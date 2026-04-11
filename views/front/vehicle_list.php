@@ -71,7 +71,6 @@
 
                 <div class="vc-footer">
                     <span class="vc-date"><i class="bi bi-calendar3 me-1"></i><?php echo date('d/m/Y', strtotime($v['date_ajout'])); ?></span>
-                    <span class="badge-fuel <?php echo $fuelClass; ?>"><?php echo htmlspecialchars($v['carburant']); ?></span>
                 </div>
             </div>
         <?php endforeach; ?>

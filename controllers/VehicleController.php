@@ -119,21 +119,6 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Show single vehicle (Back Office – for edit form)
-    // -------------------------------------------------------
-    public function showVehicle() {
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        $vehicle = $this->vehicleModel->find($id);
-
-        if (!$vehicle) {
-            header('Location: index.php?action=manageVehicles&error=Véhicule introuvable');
-            exit;
-        }
-
-        return $vehicle;
-    }
-
-    // -------------------------------------------------------
     // Update Vehicle (Back Office)
     // -------------------------------------------------------
     public function updateVehicle() {
