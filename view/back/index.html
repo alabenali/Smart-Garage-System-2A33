@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Garage Admin</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        color: #f8fafc;
+        font-family: Arial, sans-serif;
+      }
+
+      .panel {
+        width: min(92vw, 560px);
+        padding: 40px;
+        border-radius: 24px;
+        background: rgba(15, 23, 42, 0.92);
+        box-shadow: 0 30px 60px rgba(15, 23, 42, 0.35);
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: 2rem;
+      }
+
+      p {
+        margin: 0 0 24px;
+        color: #cbd5e1;
+        line-height: 1.6;
+      }
+
+      a {
+        display: inline-block;
+        padding: 14px 24px;
+        border-radius: 999px;
+        background: #f97316;
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="panel">
+      <h1>BackOffice Smart Garage</h1>
+      <p>
+        Cette version utilise uniquement PHP + MySQL via XAMPP. Ouvrez la gestion
+        des mecaniciens pour consulter, ajouter, modifier et supprimer les donnees.
+      </p>
+      <a href="./mecaniciens.html">Ouvrir les mecaniciens</a>
+    </main>
+  </body>
+</html>

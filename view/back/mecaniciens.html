@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mecaniciens - Smart Garage</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="./mecaniciens.css" />
+  </head>
+  <body>
+    <div class="admin-container">
+      <aside class="sidebar">
+        <div class="logo">
+          <h2>SMART<span style="color: white">GARAGE</span></h2>
+        </div>
+        <nav>
+          <ul>
+            <li>
+              <a href="./index.html"><i class="fas fa-house"></i> Accueil</a>
+            </li>
+            <li>
+              <a href="./mecaniciens.html" class="active"><i class="fas fa-user-cog"></i> Mecaniciens</a>
+            </li>
+            <li>
+              <a href="../front/dashboard.html"><i class="fas fa-display"></i> FrontOffice</a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <div class="top-bar">
+          <h1><i class="fas fa-user-cog"></i> Gestion des mecaniciens</h1>
+        </div>
+
+        <div class="actions-bar">
+          <button class="btn-add" id="btnAdd">
+            <i class="fas fa-plus"></i> Ajouter
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>id_mecanicien</th>
+                <th>nom</th>
+                <th>prenom</th>
+                <th>telephone</th>
+                <th>specialite</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <div id="modal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <h2 id="modalTitle"><i class="fas fa-user-cog"></i> Ajouter un mecanicien</h2>
+        <form id="form" novalidate>
+          <input type="hidden" id="id_mecanicien" />
+
+          <div class="form-group">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" autocomplete="off" />
+            <div class="error" id="err_nom"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="prenom">Prenom</label>
+            <input type="text" id="prenom" autocomplete="off" />
+            <div class="error" id="err_prenom"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="telephone">Telephone</label>
+            <input type="text" id="telephone" inputmode="numeric" maxlength="8" autocomplete="off" />
+            <div class="error" id="err_telephone"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="specialite">Specialite</label>
+            <input type="text" id="specialite" />
+            <div class="error" id="err_specialite"></div>
+          </div>
+
+          <div class="modal-buttons">
+            <button type="submit" class="btn-save"><i class="fas fa-save"></i> Enregistrer</button>
+            <button type="button" class="btn-cancel" id="btnCancel">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="./mecaniciens.js"></script>
+  </body>
+</html>

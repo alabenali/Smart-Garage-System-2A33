@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mon Compte - Smart Garage System</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="./dashboard.css" />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="logo">
+        <i class="fas fa-microchip logo-icon"></i>
+        <h2>SMART<span style="color: white">GARAGE</span></h2>
+      </div>
+      <ul class="nav-links">
+        <li><a href="#" class="active"><i class="fas fa-user"></i> Mon Compte</a></li>
+        <li><a href="#"><i class="fas fa-calendar-alt"></i> Rendez-vous</a></li>
+        <li>
+          <a href="#">
+            <i class="fas fa-bell"></i> Notifications
+            <span id="notifBadge" class="notif-badge">0</span>
+          </a>
+        </li>
+        <li><a href="#"><i class="fas fa-history"></i> Historique</a></li>
+      </ul>
+      <div class="user-info">
+        <span id="userGreeting">Bonjour, <strong id="userName">Ahmed</strong></span>
+        <div class="avatar" id="avatarBtn" role="button" aria-label="Menu utilisateur" tabindex="0">
+          <i class="fas fa-user"></i>
+        </div>
+        <button class="logout-btn" id="btnLogout">
+          <i class="fas fa-sign-out-alt"></i> Deconnexion
+        </button>
+      </div>
+    </nav>
+
+    <div class="container">
+      <div class="welcome-banner">
+        <h1>Bienvenue dans votre garage digitalise</h1>
+        <p class="greeting">
+          <i class="fas fa-car"></i> Gerez tous vos services automobile en un seul endroit
+        </p>
+      </div>
+
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="section-title">
+        <i class="fas fa-id-card"></i>
+        <h3>Mes informations personnelles</h3>
+        <button class="edit-btn" id="btnEditProfile" type="button">
+          <i class="fas fa-pen"></i> Modifier
+        </button>
+      </div>
+
+      <div class="info-card" id="profileInfo"></div>
+
+      <div class="section-title">
+        <i class="fas fa-bell"></i>
+        <h3>Preferences de communication</h3>
+      </div>
+
+      <div class="info-card" id="preferencesInfo"></div>
+
+      <div class="section-title">
+        <i class="fas fa-user-cog"></i>
+        <h3>Liste des Mecaniciens</h3>
+      </div>
+
+      <section class="info-card mecaniciens-section">
+        <div id="mecaniciensList" class="mecaniciens-grid"></div>
+        <p id="mecaniciensMessage" class="section-message">Chargement des mecaniciens...</p>
+      </section>
+
+      <div class="ia-card" id="iaRecommendation"></div>
+
+      <div class="ia-card muted-card" id="ecoCard"></div>
+    </div>
+
+    <div id="editModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <h2><i class="fas fa-user-edit"></i> Modifier mon profil</h2>
+        <form id="editProfileForm" novalidate>
+          <div class="form-group">
+            <label for="fullname"><i class="fas fa-user"></i> Nom complet</label>
+            <input type="text" id="fullname" />
+          </div>
+          <div class="form-group">
+            <label for="email"><i class="fas fa-envelope"></i> Email</label>
+            <input type="email" id="email" />
+          </div>
+          <div class="form-group">
+            <label for="phone"><i class="fas fa-phone"></i> Telephone</label>
+            <input type="text" id="phone" />
+          </div>
+          <div class="form-group">
+            <label for="address"><i class="fas fa-map-marker-alt"></i> Adresse</label>
+            <input type="text" id="address" />
+          </div>
+          <div class="modal-buttons">
+            <button type="submit" class="btn-save"><i class="fas fa-save"></i> Enregistrer</button>
+            <button type="button" class="btn-cancel" id="btnCancelEdit">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer>
+      <p>
+        <i class="fas fa-microchip"></i> Smart Garage System © 2025 - Transformation Numerique des
+        Services
+      </p>
+    </footer>
+
+    <script src="./dashboard.js"></script>
+  </body>
+</html>
