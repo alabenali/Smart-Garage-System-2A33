@@ -14,7 +14,7 @@
 <!-- Navbar (BackOffice) -->
 <nav class="sg-navbar">
     <a href="index.php?action=dashboard" class="brand">
-        <img src="assets/images/logo.svg" alt="Smart Garage Logo" class="logo-img">
+        <img src="assets/images/logo-custom.png" alt="Smart Garage Logo" class="logo-img">
         Smart Garage <span style="color:var(--accent); font-weight:400; font-size:0.8rem; margin-left:4px;">Admin</span>
     </a>
     <ul class="nav-links">

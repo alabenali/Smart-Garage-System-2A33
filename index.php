@@ -1,14 +1,10 @@
 <?php
-// ============================================
-// Smart Garage System – Main Router (index.php)
-// Module: Pièces & Commandes
-// ============================================
+
 
 require_once __DIR__ . '/controllers/PieceController.php';
 
 $controller = new PieceController();
 
-// Read action from query string
 $action = isset($_GET['action']) ? $_GET['action'] : 'showCatalogue';
 
 switch ($action) {

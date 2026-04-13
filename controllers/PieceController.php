@@ -11,24 +11,64 @@ class PieceController {
     private $pieceModel;
 
     public function __construct() {
+        // Create one model instance to reuse in all controller methods.
         $this->pieceModel = new Piece();
+    }
+
+    private function cleanText($value) {
+        // Basic sanitize helper for text inputs.
+        return htmlspecialchars(strip_tags(trim($value)));
     }
 
     // -------------------------------------------------------
     // PHP-side validation for PIECE (BackOffice add/edit)
     // -------------------------------------------------------
     private function validateInput($data) {
+        // Returns:
+        // - errors: array of validation messages
+        // - sanitized: cleaned values ready for DB usage
         $errors = [];
 
-        // Sanitize all inputs
-        $reference      = htmlspecialchars(strip_tags(trim($data['reference'] ?? '')));
-        $nom            = htmlspecialchars(strip_tags(trim($data['nom'] ?? '')));
-        $description    = htmlspecialchars(strip_tags(trim($data['description'] ?? '')));
-        $categorie      = htmlspecialchars(strip_tags(trim($data['categorie'] ?? '')));
-        $marque         = htmlspecialchars(strip_tags(trim($data['marque'] ?? '')));
-        $prix_unitaire  = trim($data['prix_unitaire'] ?? '');
-        $quantite_stock = trim($data['quantite_stock'] ?? '');
-        $seuil_alerte   = trim($data['seuil_alerte'] ?? '');
+        // Read and sanitize all fields (explicit style for beginners)
+        $reference = '';
+        if (isset($data['reference'])) {
+            $reference = $this->cleanText($data['reference']);
+        }
+
+        $nom = '';
+        if (isset($data['nom'])) {
+            $nom = $this->cleanText($data['nom']);
+        }
+
+        $description = '';
+        if (isset($data['description'])) {
+            $description = $this->cleanText($data['description']);
+        }
+
+        $categorie = '';
+        if (isset($data['categorie'])) {
+            $categorie = $this->cleanText($data['categorie']);
+        }
+
+        $marque = '';
+        if (isset($data['marque'])) {
+            $marque = $this->cleanText($data['marque']);
+        }
+
+        $prix_unitaire = '';
+        if (isset($data['prix_unitaire'])) {
+            $prix_unitaire = trim($data['prix_unitaire']);
+        }
+
+        $quantite_stock = '';
+        if (isset($data['quantite_stock'])) {
+            $quantite_stock = trim($data['quantite_stock']);
+        }
+
+        $seuil_alerte = '';
+        if (isset($data['seuil_alerte'])) {
+            $seuil_alerte = trim($data['seuil_alerte']);
+        }
 
         // Check empty values
         if (empty($reference))      $errors[] = "La référence est obligatoire.";
@@ -97,13 +137,33 @@ class PieceController {
     // PHP-side validation for ORDER (FrontOffice commande)
     // -------------------------------------------------------
     private function validateOrderInput($data) {
+        // Same structure as validateInput(), but for order form fields.
         $errors = [];
 
-        $nom_client     = htmlspecialchars(strip_tags(trim($data['nom_client'] ?? '')));
-        $prenom_client  = htmlspecialchars(strip_tags(trim($data['prenom_client'] ?? '')));
-        $telephone      = htmlspecialchars(strip_tags(trim($data['telephone'] ?? '')));
-        $id_piece       = trim($data['id_piece'] ?? '');
-        $quantite       = trim($data['quantite'] ?? '');
+        $nom_client = '';
+        if (isset($data['nom_client'])) {
+            $nom_client = $this->cleanText($data['nom_client']);
+        }
+
+        $prenom_client = '';
+        if (isset($data['prenom_client'])) {
+            $prenom_client = $this->cleanText($data['prenom_client']);
+        }
+
+        $telephone = '';
+        if (isset($data['telephone'])) {
+            $telephone = $this->cleanText($data['telephone']);
+        }
+
+        $id_piece = '';
+        if (isset($data['id_piece'])) {
+            $id_piece = trim($data['id_piece']);
+        }
+
+        $quantite = '';
+        if (isset($data['quantite'])) {
+            $quantite = trim($data['quantite']);
+        }
 
         // Required fields
         if (empty($nom_client))     $errors[] = "Le nom est obligatoire.";
@@ -164,6 +224,7 @@ class PieceController {
     // FrontOffice – Catalogue des pièces disponibles
     // -------------------------------------------------------
     public function showCatalogue() {
+        // Fetch data then load the front catalogue view.
         $pieces = $this->pieceModel->getAll();
         require __DIR__ . '/../views/front/piece_catalogue.php';
     }
@@ -172,6 +233,7 @@ class PieceController {
     // FrontOffice – Commander une pièce
     // -------------------------------------------------------
     public function orderPiece() {
+        // Variables passed to the view.
         $errors = [];
         $success = '';
         $old = [];
@@ -190,7 +252,7 @@ class PieceController {
             if (empty($errors)) {
                 $d = $validation['sanitized'];
 
-                // Get the piece to calculate total
+                // Get selected piece price to calculate order total.
                 $piece = $this->pieceModel->getById($d['id_piece']);
                 $montant_total = $piece['prix_unitaire'] * $d['quantite'];
 
@@ -204,6 +266,7 @@ class PieceController {
                 ];
 
                 try {
+                    // createCommande() also updates stock in DB transaction.
                     if ($this->pieceModel->createCommande($orderData)) {
                         $success = "Commande passée avec succès ! Montant total : " . number_format($montant_total, 2, ',', ' ') . " DT";
                         $old = []; // clear form
@@ -223,6 +286,7 @@ class PieceController {
     // BackOffice – Dashboard Pièces
     // -------------------------------------------------------
     public function dashboard() {
+        // Read all pieces once, then compute summary statistics.
         $pieces = $this->pieceModel->getAll();
         $totalPieces = count($pieces);
 
@@ -234,6 +298,7 @@ class PieceController {
         $brandStats = [];
 
         foreach ($pieces as $p) {
+            // Running totals for dashboard cards.
             $totalStock += $p['quantite_stock'];
             $totalValue += $p['prix_unitaire'] * $p['quantite_stock'];
 
@@ -243,8 +308,15 @@ class PieceController {
 
             $cat = $p['categorie'];
             $brand = $p['marque'];
-            $categoryStats[$cat] = ($categoryStats[$cat] ?? 0) + 1;
-            $brandStats[$brand]  = ($brandStats[$brand] ?? 0) + 1;
+            if (!isset($categoryStats[$cat])) {
+                $categoryStats[$cat] = 0;
+            }
+            $categoryStats[$cat]++;
+
+            if (!isset($brandStats[$brand])) {
+                $brandStats[$brand] = 0;
+            }
+            $brandStats[$brand]++;
         }
 
         // Commandes stats
@@ -258,6 +330,7 @@ class PieceController {
     // BackOffice – Ajouter une pièce
     // -------------------------------------------------------
     public function addPiece() {
+        // Default values used by the "add piece" form.
         $errors = [];
         $piece = [
             'reference'      => '',
@@ -320,6 +393,7 @@ class PieceController {
     // BackOffice – Modifier une pièce
     // -------------------------------------------------------
     public function updatePiece() {
+        // Read id from URL and load current piece.
         $errors = [];
         $success = '';
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -388,6 +462,7 @@ class PieceController {
     // BackOffice – Exécuter la suppression
     // -------------------------------------------------------
     public function deletePiece() {
+        // Delete by id then redirect with a success/error message.
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($id > 0 && $this->pieceModel->delete($id)) {
@@ -412,6 +487,7 @@ class PieceController {
     // BackOffice – Supprimer une commande
     // -------------------------------------------------------
     public function deleteCommande() {
+        // Delete order by id then redirect with a success/error message.
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
         if ($id > 0 && $this->pieceModel->deleteCommande($id)) {

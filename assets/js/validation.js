@@ -1,6 +1,4 @@
-/**
- * Client-side validation for Smart Garage forms (complements PHP validation).
- */
+
 (function () {
     'use strict';
 

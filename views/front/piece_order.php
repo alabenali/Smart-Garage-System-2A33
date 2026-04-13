@@ -1,4 +1,8 @@
-<?php $pageTitle = 'Commander une Pièce'; $action = 'orderPiece'; ?>
+<?php
+// Variables used by shared layout and active navbar item.
+$pageTitle = 'Commander une Pièce';
+$action = 'orderPiece';
+?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
 <h1 class="page-title">Commander une Pièce</h1>
@@ -9,6 +13,7 @@
 <?php endif; ?>
 
 <?php if (!empty($errors)): ?>
+    <!-- Server-side validation errors are shown here -->
     <div class="sg-alert sg-alert-danger">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div>
@@ -27,24 +32,30 @@
             <!-- Nom du client -->
             <div class="sg-form-group">
                 <label for="nom_client">Nom</label>
+                <!-- Keep previously entered value after a failed submit -->
+                <?php $oldNom = isset($old['nom_client']) ? $old['nom_client'] : ''; ?>
                 <input type="text" name="nom_client" id="nom_client" placeholder="Ex: Ben Ahmed"
-                       value="<?php echo htmlspecialchars($old['nom_client'] ?? ''); ?>">
+                       value="<?php echo htmlspecialchars($oldNom); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
             <!-- Prénom du client -->
             <div class="sg-form-group">
                 <label for="prenom_client">Prénom</label>
+                <!-- Keep previously entered value after a failed submit -->
+                <?php $oldPrenom = isset($old['prenom_client']) ? $old['prenom_client'] : ''; ?>
                 <input type="text" name="prenom_client" id="prenom_client" placeholder="Ex: Karim"
-                       value="<?php echo htmlspecialchars($old['prenom_client'] ?? ''); ?>">
+                       value="<?php echo htmlspecialchars($oldPrenom); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
             <!-- Téléphone -->
             <div class="sg-form-group">
                 <label for="telephone">Téléphone</label>
+                <!-- Keep previously entered value after a failed submit -->
+                <?php $oldTelephone = isset($old['telephone']) ? $old['telephone'] : ''; ?>
                 <input type="text" name="telephone" id="telephone" placeholder="Ex: 98 765 432"
-                       value="<?php echo htmlspecialchars($old['telephone'] ?? ''); ?>">
+                       value="<?php echo htmlspecialchars($oldTelephone); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
@@ -54,6 +65,7 @@
                 <select name="id_piece" id="id_piece">
                     <option value="">-- Sélectionner une pièce --</option>
                     <?php foreach ($pieces as $p):
+                        // Prepare option state and stock label.
                         $selected = (isset($old['id_piece']) && (int)$old['id_piece'] === (int)$p['id_piece']) ? 'selected' : '';
                         $stockInfo = $p['quantite_stock'] > 0 ? '(Stock: ' . $p['quantite_stock'] . ')' : '(Rupture)';
                         $disabled = $p['quantite_stock'] <= 0 ? 'disabled' : '';
@@ -72,8 +84,10 @@
             <!-- Quantité -->
             <div class="sg-form-group">
                 <label for="quantite">Quantité</label>
+                <!-- Default quantity = 1 for easier first order -->
+                <?php $oldQuantite = isset($old['quantite']) ? $old['quantite'] : '1'; ?>
                 <input type="text" name="quantite" id="quantite" placeholder="Ex: 2"
-                       value="<?php echo htmlspecialchars($old['quantite'] ?? '1'); ?>">
+                       value="<?php echo htmlspecialchars($oldQuantite); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
@@ -104,10 +118,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const montantEstime = document.getElementById('montant_estime');
 
     function updateMontant() {
+        // Read selected piece price and multiply by typed quantity.
         const selectedOption = pieceSelect.options[pieceSelect.selectedIndex];
         const prix = selectedOption ? parseFloat(selectedOption.getAttribute('data-prix')) || 0 : 0;
         const qte = parseInt(quantiteInput.value) || 0;
         const total = prix * qte;
+        // Format like: 1 234,56 DT
         montantEstime.value = total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' DT';
     }
 

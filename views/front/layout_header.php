@@ -1,3 +1,10 @@
+<?php
+// $currentAction helps us highlight the active menu item.
+$currentAction = '';
+if (isset($action)) {
+    $currentAction = $action;
+}
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -14,13 +21,13 @@
 <!-- Navbar -->
 <nav class="sg-navbar">
     <a href="index.php" class="brand">
-        <img src="assets/images/logo.svg" alt="Smart Garage Logo" class="logo-img">
+        <img src="assets/images/logo-custom.png" alt="Smart Garage Logo" class="logo-img">
         Smart Garage
     </a>
     <ul class="nav-links">
-        <li><a href="index.php?action=showCatalogue" class="<?php echo ($action ?? '') === 'showCatalogue' ? 'active' : ''; ?>"><i class="bi bi-box-seam me-1"></i> Catalogue</a></li>
-        <li><a href="index.php?action=orderPiece" class="<?php echo ($action ?? '') === 'orderPiece' ? 'active' : ''; ?>"><i class="bi bi-cart-plus me-1"></i> Commander</a></li>
-        <li><a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> BackOffice</a></li>
+        <li><a href="index.php?action=showCatalogue" class="<?php echo $currentAction === 'showCatalogue' ? 'active' : ''; ?>"><i class="bi bi-box-seam me-1"></i> Catalogue</a></li>
+        <li><a href="index.php?action=orderPiece" class="<?php echo $currentAction === 'orderPiece' ? 'active' : ''; ?>"><i class="bi bi-cart-plus me-1"></i> Commander</a></li>
+        <li><a href="index.php?action=dashboard" class="<?php echo $currentAction === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> BackOffice</a></li>
     </ul>
 </nav>
 

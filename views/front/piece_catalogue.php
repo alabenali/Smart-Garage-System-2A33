@@ -1,11 +1,18 @@
-<?php $pageTitle = 'Catalogue des Pièces'; $action = 'showCatalogue'; ?>
+<?php
+// Basic page variables used by layout and title area.
+$pageTitle = 'Catalogue des Pièces';
+$action = 'showCatalogue';
+$pieceCount = count($pieces);
+$piecePlural = $pieceCount !== 1 ? 's' : '';
+$availablePlural = $pieceCount !== 1 ? 's' : '';
+?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
     <div>
         <h1 class="page-title" style="margin-bottom:0.2rem;">Catalogue des Pièces</h1>
         <p class="page-subtitle" style="margin-bottom:0;">
-            <?php echo count($pieces); ?> pièce<?php echo count($pieces) !== 1 ? 's' : ''; ?> disponible<?php echo count($pieces) !== 1 ? 's' : ''; ?>
+            <?php echo $pieceCount; ?> pièce<?php echo $piecePlural; ?> disponible<?php echo $availablePlural; ?>
         </p>
     </div>
     <a href="index.php?action=orderPiece" class="btn-sg btn-sg-primary">
@@ -22,6 +29,7 @@
     <select id="filterCategory">
         <option value="">Toutes les catégories</option>
         <?php
+        // Build the category dropdown from the current pieces list.
         $categories = array_unique(array_column($pieces, 'categorie'));
         sort($categories);
         foreach ($categories as $cat):
@@ -50,7 +58,7 @@
     <div class="piece-grid" id="pieceGrid">
         <?php foreach ($pieces as $p): ?>
             <?php
-                // Determine stock status
+                // Decide the visual stock status badge for each piece.
                 if ($p['quantite_stock'] <= 0) {
                     $stockClass = 'out-of-stock';
                     $stockLabel = 'Rupture';
@@ -95,6 +103,7 @@
                 </div>
 
                 <div class="pc-footer">
+                    <!-- Show order button only when stock is available -->
                     <span class="pc-price"><?php echo number_format($p['prix_unitaire'], 2, ',', ' '); ?> <small>DT</small></span>
                     <?php if ($p['quantite_stock'] > 0): ?>
                         <a href="index.php?action=orderPiece&id_piece=<?php echo $p['id_piece']; ?>" class="btn-sg btn-sg-primary" style="padding:0.4rem 1rem; font-size:0.85rem;">
@@ -127,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (!pieceGrid) return;
 
+    // Filters cards by search text, category, and stock dropdown.
     function filterPieces() {
         const search = searchInput.value.toLowerCase().trim();
         const cat = filterCategory.value;
@@ -135,6 +145,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let visibleCount = 0;
 
         cards.forEach(function(card) {
+            // Read searchable values saved in data-* attributes.
             const name = card.getAttribute('data-name');
             const cardCat = card.getAttribute('data-category');
             const cardStock = card.getAttribute('data-stock');
