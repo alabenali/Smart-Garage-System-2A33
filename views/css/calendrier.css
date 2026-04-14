@@ -59,6 +59,7 @@
 .dot-green { background: #0da15b; }
 .dot-orange { background: #f39c12; }
 .dot-red { background: #e74c3c; }
+.dot-holiday { background: #d35400; }
 .dot-gray { background: #7f8c8d; }
 
 .month-grid {
@@ -102,6 +103,25 @@
 .day-cell.status-orange .status-dot { background: #f39c12; }
 .day-cell.status-red .status-dot { background: #e74c3c; }
 .day-cell.status-gray .status-dot { background: #7f8c8d; }
+.day-cell.status-holiday {
+    background: #ffe6d5;
+    border-color: #d35400;
+    color: #8a3f00;
+}
+
+.day-cell.status-holiday .status-dot {
+    background: #d35400;
+}
+
+.holiday-name {
+    font-size: 0.68rem;
+    color: #8a3f00;
+    line-height: 1.1;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 .day-cell:hover:not(:disabled),
 .day-cell.selected {
@@ -255,6 +275,31 @@
 .grid-cell.blocked {
     background: rgba(231, 76, 60, 0.2);
     color: #ff9a8f;
+}
+
+.holiday-head-cell {
+    min-height: 34px;
+}
+
+.holiday-banner {
+    width: 100%;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #8a3f00;
+    background: #ffe6d5;
+    border: 1px solid #f1b689;
+    border-radius: 6px;
+    padding: 0.2rem 0.35rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.grid-cell.holiday-unavailable {
+    background: #dcdcdc;
+    color: #666;
+    cursor: not-allowed;
+    border: 1px solid #bfbfbf;
 }
 
 .slot-sidebar {

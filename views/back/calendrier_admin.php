@@ -1,8 +1,8 @@
 <?php
 $pageTitle = 'Calendrier RDV';
 $action = 'backCalendar';
-$extraCss = ['assets/css/calendrier.css'];
-$extraJs = ['assets/js/calendrier_back.js'];
+$extraCss = ['views/css/calendrier.css'];
+$extraJs = ['views/js/calendrier_back.js'];
 require __DIR__ . '/layout_header.php';
 ?>
 
@@ -52,6 +52,22 @@ require __DIR__ . '/layout_header.php';
                         <th><?php echo ucfirst($day->format('D')); ?><br><?php echo $day->format('d/m'); ?></th>
                     <?php endforeach; ?>
                 </tr>
+                <tr>
+                    <th></th>
+                    <?php foreach ($weekDays as $day): ?>
+                        <?php
+                        $dayKey = $day->format('Y-m-d');
+                        $holidayName = $holidays[$dayKey] ?? '';
+                        ?>
+                        <th class="holiday-head-cell">
+                            <?php if ($holidayName !== ''): ?>
+                                <div class="holiday-banner" title="<?php echo htmlspecialchars($holidayName); ?>">
+                                    <?php echo htmlspecialchars($holidayName); ?>
+                                </div>
+                            <?php endif; ?>
+                        </th>
+                    <?php endforeach; ?>
+                </tr>
             </thead>
             <tbody>
                 <?php foreach ($hours as $hour): ?>
@@ -60,6 +76,8 @@ require __DIR__ . '/layout_header.php';
                         <?php foreach ($weekDays as $day): ?>
                             <?php
                             $dayKey = $day->format('Y-m-d');
+                            $holidayName = $holidays[$dayKey] ?? '';
+                            $isHoliday = ($holidayName !== '');
                             $cell = $grid[$hour][$dayKey] ?? null;
                             $idCreneau = $cell['id_creneau'] ?? 0;
                             $cap = isset($cell['capacite_max']) ? (int) $cell['capacite_max'] : 0;
@@ -67,7 +85,11 @@ require __DIR__ . '/layout_header.php';
                             $isBlocked = $cap === 0;
                             ?>
                             <td>
-                                <?php if ($idCreneau > 0): ?>
+                                <?php if ($isHoliday): ?>
+                                    <div class="grid-cell holiday-unavailable" title="<?php echo htmlspecialchars($holidayName); ?>">
+                                        <span>Férié</span>
+                                    </div>
+                                <?php elseif ($idCreneau > 0): ?>
                                     <button type="button" class="grid-cell <?php echo $isBlocked ? 'blocked' : ''; ?>" data-id-creneau="<?php echo (int) $idCreneau; ?>">
                                         <?php if ($isBlocked): ?>
                                             <span>Bloqué</span>
@@ -90,6 +112,10 @@ require __DIR__ . '/layout_header.php';
         <div class="sidebar-placeholder">Cliquez sur une cellule pour afficher le détail du créneau.</div>
     </aside>
 </div>
+
+<script>
+const holidays = <?php echo json_encode($holidays ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+</script>
 
 <?php if (!empty($manualErrors)): ?>
     <div class="sg-alert sg-alert-danger mt-3">

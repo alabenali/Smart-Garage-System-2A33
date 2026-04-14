@@ -57,6 +57,7 @@
 
         const nom = form.querySelector('[name="nom_client"]');
         const prenom = form.querySelector('[name="prenom_client"]');
+        const email = form.querySelector('[name="email_client"]');
         const tel = form.querySelector('[name="telephone_client"]');
         const immat = form.querySelector('[name="immatriculation"]');
         const intervention = form.querySelector('[name="type_intervention"]');
@@ -67,6 +68,13 @@
         }
         if (!prenom.value.trim()) {
             showError(prenom, 'Prénom obligatoire.');
+            valid = false;
+        }
+        if (!email.value.trim()) {
+            showError(email, 'Email obligatoire.');
+            valid = false;
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
+            showError(email, 'Email invalide. Format : exemple@domaine.com');
             valid = false;
         }
         if (!/^\d{8}$/.test(tel.value.trim())) {

@@ -1,8 +1,8 @@
 <?php
 $pageTitle = 'Liste des RDV';
 $action = 'backRdvList';
-$extraCss = ['assets/css/calendrier.css'];
-$extraJs = ['assets/js/calendrier_back.js'];
+$extraCss = ['views/css/calendrier.css'];
+$extraJs = ['views/js/calendrier_back.js'];
 require __DIR__ . '/layout_header.php';
 
 $queryBase = [

@@ -1,7 +1,7 @@
 <?php
 $pageTitle = 'Confirmation rendez-vous';
 $action = 'frontCalendar';
-$extraCss = ['assets/css/calendrier.css'];
+$extraCss = ['views/css/calendrier.css'];
 require __DIR__ . '/layout_header.php';
 ?>
 

@@ -1,8 +1,8 @@
 <?php
 $pageTitle = 'Prendre un rendez-vous';
 $action = 'frontCalendar';
-$extraCss = ['assets/css/calendrier.css'];
-$extraJs = ['assets/js/calendrier_front.js'];
+$extraCss = ['views/css/calendrier.css'];
+$extraJs = ['views/js/calendrier_front.js'];
 
 $monthDate = DateTime::createFromFormat('!m', (string) $month);
 $monthLabel = $monthDate ? $monthDate->format('F') : date('F');
@@ -68,6 +68,7 @@ require __DIR__ . '/layout_header.php';
             <span><i class="dot dot-green"></i> Disponible</span>
             <span><i class="dot dot-orange"></i> Presque complet</span>
             <span><i class="dot dot-red"></i> Complet</span>
+            <span><i class="dot dot-holiday"></i> Jour férié</span>
             <span><i class="dot dot-gray"></i> Non travaillé / passé</span>
         </div>
 
@@ -163,7 +164,7 @@ require __DIR__ . '/layout_header.php';
                     <div class="invalid-feedback"></div>
                 </div>
                 <div class="sg-form-group">
-                    <label>Email</label>
+                    <label>Email *</label>
                     <input type="email" name="email_client" value="<?php echo htmlspecialchars($old['email_client'] ?? ''); ?>">
                     <div class="invalid-feedback"></div>
                 </div>
@@ -248,5 +249,32 @@ require __DIR__ . '/layout_header.php';
         <button type="button" id="nextStep" class="btn-sg btn-sg-primary btn-sg-sm">Suivant</button>
     </div>
 </div>
+
+<script>
+const holidays = <?php echo json_encode($holidays ?? [], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+
+document.addEventListener('DOMContentLoaded', function () {
+    const dayCells = document.querySelectorAll('.day-cell[data-date]');
+
+    dayCells.forEach(function (cell) {
+        const dateValue = cell.getAttribute('data-date') || '';
+        if (!dateValue || !Object.prototype.hasOwnProperty.call(holidays, dateValue)) {
+            return;
+        }
+
+        const holidayName = holidays[dateValue];
+
+        cell.disabled = true;
+        cell.classList.add('status-holiday');
+        cell.classList.remove('selected');
+        cell.setAttribute('title', holidayName);
+
+        const label = document.createElement('small');
+        label.className = 'holiday-name';
+        label.textContent = holidayName;
+        cell.appendChild(label);
+    });
+});
+</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

@@ -1,61 +1,41 @@
 <?php
 
-require_once __DIR__ . '/../config/Database.php';
-
 class VehicleModel
 {
-    private PDO $db;
+    private $id;
+    private $marque;
+    private $modele;
+    private $immatriculation;
+    private $couleur;
+    private $annee;
+    private $kilometrage;
+    private $carburant;
+    private $date_ajout;
 
-    public function __construct()
-    {
-        $this->db = Database::getInstance()->getConnection();
-    }
+    public function getId() { return $this->id; }
+    public function setId($id) { $this->id = $id; }
 
-    public function normalizePlate(string $plate): string
-    {
-        $plate = strtoupper(trim($plate));
-        $plate = preg_replace('/\s+/', ' ', $plate);
-        return $plate;
-    }
+    public function getMarque() { return $this->marque; }
+    public function setMarque($marque) { $this->marque = $marque; }
 
-    public function findByImmatriculation(string $immatriculation): ?array
-    {
-        $normalized = $this->normalizePlate($immatriculation);
+    public function getModele() { return $this->modele; }
+    public function setModele($modele) { $this->modele = $modele; }
 
-        $sql = 'SELECT * FROM vehicle WHERE UPPER(REPLACE(immatriculation, "  ", " ")) = :immatriculation LIMIT 1';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([':immatriculation' => $normalized]);
+    public function getImmatriculation() { return $this->immatriculation; }
+    public function setImmatriculation($immatriculation) { $this->immatriculation = $immatriculation; }
 
-        $vehicle = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $vehicle ?: null;
-    }
+    public function getCouleur() { return $this->couleur; }
+    public function setCouleur($couleur) { $this->couleur = $couleur; }
 
-    public function create(array $data): int
-    {
-        $sql = 'INSERT INTO vehicle (marque, modele, immatriculation, couleur, annee, kilometrage, carburant, date_ajout)
-                VALUES (:marque, :modele, :immatriculation, :couleur, :annee, :kilometrage, :carburant, NOW())';
+    public function getAnnee() { return $this->annee; }
+    public function setAnnee($annee) { $this->annee = $annee; }
 
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
-            ':marque' => $data['marque'],
-            ':modele' => $data['modele'],
-            ':immatriculation' => $this->normalizePlate($data['immatriculation']),
-            ':couleur' => $data['couleur'] ?? 'N/A',
-            ':annee' => (int) $data['annee'],
-            ':kilometrage' => (int) $data['kilometrage'],
-            ':carburant' => $data['carburant'],
-        ]);
+    public function getKilometrage() { return $this->kilometrage; }
+    public function setKilometrage($kilometrage) { $this->kilometrage = $kilometrage; }
 
-        return (int) $this->db->lastInsertId();
-    }
+    public function getCarburant() { return $this->carburant; }
+    public function setCarburant($carburant) { $this->carburant = $carburant; }
 
-    public function findOrCreate(array $data): int
-    {
-        $existing = $this->findByImmatriculation($data['immatriculation']);
-        if ($existing) {
-            return (int) $existing['id'];
-        }
-
-        return $this->create($data);
-    }
+    public function getDateAjout() { return $this->date_ajout; }
+    public function setDateAjout($date_ajout) { $this->date_ajout = $date_ajout; }
 }

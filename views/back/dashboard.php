@@ -4,7 +4,8 @@
 <h1 class="page-title">Dashboard</h1>
 <p class="page-subtitle">Vue d'ensemble du garage – Statistiques en temps réel.</p>
 
-<!-- Cartes de statistiques -->
+<!-- ========== CARTES VÉHICULES ========== -->
+<h2 style="margin:1.5rem 0 1rem 0; color:var(--text-primary);">📊 Véhicules</h2>
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon purple"><i class="bi bi-car-front-fill"></i></div>
@@ -28,7 +29,66 @@
     </div>
 </div>
 
-<!-- Deux colonnes : Répartition par carburant + Répartition par marque -->
+<!-- ========== CARTES RENDEZVOUS ========== -->
+<h2 style="margin:1.5rem 0 1rem 0; color:var(--text-primary);">📅 Rendez-vous</h2>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon cyan"><i class="bi bi-calendar-check"></i></div>
+        <div class="stat-value"><?php echo $totalRdv; ?></div>
+        <div class="stat-label">Total RDV</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon yellow"><i class="bi bi-calendar-day"></i></div>
+        <div class="stat-value"><?php echo $rdvStats['rdv_jour'] ?? 0; ?></div>
+        <div class="stat-label">RDV Aujourd'hui</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon teal"><i class="bi bi-calendar-week"></i></div>
+        <div class="stat-value"><?php echo $rdvStats['rdv_semaine'] ?? 0; ?></div>
+        <div class="stat-label">RDV Cette Semaine</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="bi bi-hourglass-split"></i></div>
+        <div class="stat-value"><?php echo $rdvStats['rdv_attente'] ?? 0; ?></div>
+        <div class="stat-label">En Attente Confirmation</div>
+    </div>
+</div>
+
+<?php
+$todayKey = date('Y-m-d');
+$upcomingHolidays = [];
+foreach (($holidays ?? []) as $holidayDate => $holidayName) {
+    if ($holidayDate >= $todayKey) {
+        $upcomingHolidays[$holidayDate] = $holidayName;
+    }
+}
+ksort($upcomingHolidays);
+$upcomingHolidays = array_slice($upcomingHolidays, 0, 8, true);
+?>
+
+<div class="sg-table-wrap" style="margin-bottom:2rem;">
+    <div class="table-header">
+        <h3><i class="bi bi-calendar-event me-2"></i>Jours fériés Tunisie (<?php echo date('Y'); ?>)</h3>
+    </div>
+    <table class="sg-table">
+        <thead>
+            <tr><th>Date</th><th>Jour férié</th></tr>
+        </thead>
+        <tbody>
+            <?php foreach ($upcomingHolidays as $holidayDate => $holidayName): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars(date('d/m/Y', strtotime($holidayDate))); ?></td>
+                    <td><?php echo htmlspecialchars($holidayName); ?></td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (empty($upcomingHolidays)): ?>
+                <tr><td colspan="2" style="text-align:center;color:var(--text-muted);padding:2rem;">Aucun jour férié à venir.</td></tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
+</div>
+
+<!-- Deux colonnes : Répartition par carburant + Répartition par statut RDV -->
 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-bottom:2.5rem;">
 
     <!-- Répartition par Carburant -->
@@ -63,37 +123,74 @@
         </table>
     </div>
 
-    <!-- Répartition par Marque -->
+    <!-- Répartition par Statut RDV -->
     <div class="sg-table-wrap">
         <div class="table-header">
-            <h3><i class="bi bi-building me-2"></i>Répartition par Marque</h3>
+            <h3><i class="bi bi-list-check me-2"></i>Répartition des RDV par Statut</h3>
+            <a href="index.php?action=backRdvList" class="btn-sg btn-sg-outline btn-sg-sm">Voir tous <i class="bi bi-arrow-right"></i></a>
         </div>
         <table class="sg-table">
             <thead>
-                <tr><th>Marque</th><th>Nombre</th><th>%</th></tr>
+                <tr><th>Statut</th><th>Nombre</th><th>%</th></tr>
             </thead>
             <tbody>
-                <?php foreach ($brandStats as $brand => $count): ?>
-                    <?php $pct = $totalVehicles > 0 ? round(($count / $totalVehicles) * 100) : 0; ?>
+                <?php foreach ($rdvParStatut as $statut => $count): ?>
+                    <?php $pct = $totalRdv > 0 ? round(($count / $totalRdv) * 100) : 0; ?>
                     <tr>
-                        <td style="font-weight:600;"><?php echo htmlspecialchars($brand); ?></td>
+                        <td>
+                            <span class="status-badge status-<?php echo str_replace(' ', '-', strtolower($statut)); ?>">
+                                <?php echo htmlspecialchars($statut); ?>
+                            </span>
+                        </td>
                         <td><?php echo $count; ?></td>
                         <td>
                             <div style="display:flex;align-items:center;gap:8px;">
                                 <div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;">
-                                    <div style="width:<?php echo $pct; ?>%;height:100%;background:var(--success);border-radius:3px;"></div>
+                                    <div style="width:<?php echo $pct; ?>%;height:100%;background:var(--accent);border-radius:3px;"></div>
                                 </div>
                                 <span style="font-size:0.8rem;color:var(--text-secondary);min-width:36px;"><?php echo $pct; ?>%</span>
                             </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
-                <?php if (empty($brandStats)): ?>
-                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">Aucune donnée</td></tr>
+                <?php if (empty($rdvParStatut)): ?>
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">Aucun RDV</td></tr>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
+</div>
+
+<!-- Table des Marques de Véhicules -->
+<div class="sg-table-wrap">
+    <div class="table-header">
+        <h3><i class="bi bi-building me-2"></i>Répartition par Marque</h3>
+    </div>
+    <table class="sg-table">
+        <thead>
+            <tr><th>Marque</th><th>Nombre</th><th>%</th></tr>
+        </thead>
+        <tbody>
+            <?php foreach ($brandStats as $brand => $count): ?>
+                <?php $pct = $totalVehicles > 0 ? round(($count / $totalVehicles) * 100) : 0; ?>
+                <tr>
+                    <td style="font-weight:600;"><?php echo htmlspecialchars($brand); ?></td>
+                    <td><?php echo $count; ?></td>
+                    <td>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;">
+                                <div style="width:<?php echo $pct; ?>%;height:100%;background:var(--success);border-radius:3px;"></div>
+                            </div>
+                            <span style="font-size:0.8rem;color:var(--text-secondary);min-width:36px;"><?php echo $pct; ?>%</span>
+                        </div>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+            <?php if (empty($brandStats)): ?>
+                <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">Aucune donnée</td></tr>
+            <?php endif; ?>
+        </tbody>
+    </table>
 </div>
 
 <!-- Table des Véhicules Récents -->

@@ -1,12 +1,9 @@
 <?php
 // ============================================
-// Modèle de Véhicule (POO + PDO)
+// Modèle de Véhicule (classe de données)
 // ============================================
 
-require_once __DIR__ . '/Model.php';
-
-class Vehicle extends Model {
-    protected $table = 'vehicle';
+class Vehicle {
 
     // Propriétés du véhicule
     private $id;
@@ -18,10 +15,6 @@ class Vehicle extends Model {
     private $kilometrage;
     private $carburant;
     private $date_ajout;
-
-    public function __construct() {
-        parent::__construct();
-    }
 
     // ---- Getters & Setters ----
 
@@ -51,5 +44,4 @@ class Vehicle extends Model {
 
     public function getDateAjout() { return $this->date_ajout; }
 
-    // CRUD methods are inherited from the base Model class
 }

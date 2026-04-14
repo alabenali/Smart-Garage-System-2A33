@@ -226,6 +226,26 @@ body {
     color: var(--info);
 }
 
+.stat-card .stat-icon.cyan {
+    background: rgba(0, 229, 255, 0.1);
+    color: #00E5FF;
+}
+
+.stat-card .stat-icon.yellow {
+    background: rgba(255, 193, 7, 0.1);
+    color: #FFC107;
+}
+
+.stat-card .stat-icon.teal {
+    background: rgba(32, 201, 198, 0.1);
+    color: #20C9C6;
+}
+
+.stat-card .stat-icon.red {
+    background: rgba(244, 67, 54, 0.1);
+    color: #F44336;
+}
+
 .stat-card .stat-value {
     font-size: 1.8rem;
     font-weight: 800;

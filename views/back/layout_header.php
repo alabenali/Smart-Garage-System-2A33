@@ -7,7 +7,7 @@
     <meta name="description" content="Smart Garage System – Panneau d'administration.">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="views/css/style.css">
     <?php if (!empty($extraCss) && is_array($extraCss)): ?>
         <?php foreach ($extraCss as $css): ?>
             <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>">
@@ -19,7 +19,7 @@
 <!-- Barre de navigation (Back Office) -->
 <nav class="sg-navbar">
     <a href="index.php?action=dashboard" class="brand">
-        <img src="assets/images/logo.png" alt="Smart Garage Logo" class="logo-img">
+        <img src="views/images/logo.png" alt="Smart Garage Logo" class="logo-img">
         Smart Garage <span style="color:var(--accent); font-weight:400; font-size:0.8rem; margin-left:4px;">Admin</span>
     </a>
     <ul class="nav-links">
