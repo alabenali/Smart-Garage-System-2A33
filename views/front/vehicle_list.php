@@ -1,4 +1,5 @@
 <?php $pageTitle = 'Nos Véhicules'; $action = 'showVehicles'; ?>
+<?php require_once __DIR__ . '/../../helpers/PlateHelper.php'; ?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
 <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
@@ -42,7 +43,7 @@
                         <div class="vc-brand"><?php echo htmlspecialchars($v['marque']); ?></div>
                         <div class="vc-model"><?php echo htmlspecialchars($v['modele']); ?></div>
                     </div>
-                    <span class="vc-plate"><?php echo htmlspecialchars($v['immatriculation']); ?></span>
+                    <span class="vc-plate"><?php echo formatPlate($v['immatriculation'] ?? ''); ?></span>
                 </div>
 
                 <div class="vc-details">

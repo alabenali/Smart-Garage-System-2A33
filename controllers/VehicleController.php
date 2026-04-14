@@ -332,7 +332,13 @@ class VehicleController
     private function normalizePlate(string $plate): string
     {
         $plate = strtoupper(trim($plate));
-        $plate = preg_replace('/\s+/', ' ', $plate);
+        $plate = preg_replace('/\s+/', '', $plate);
+        $plate = str_replace(['-', '.'], '', $plate);
+
+        if (preg_match('/^(\d{1,3})(TU|RS)(\d{1,4})$/', $plate, $matches) === 1) {
+            return $matches[1] . $matches[2] . $matches[3];
+        }
+
         return $plate;
     }
 

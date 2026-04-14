@@ -618,14 +618,83 @@ body {
 }
 
 .vehicle-card .vc-plate {
-    font-family: 'Courier New', monospace;
-    font-weight: 700;
-    font-size: 0.82rem;
-    background: var(--bg-secondary);
+    display: inline-flex;
+}
+
+.tn-plate {
+    background: #0a0a0a;
+    border: 2px solid #ffffff;
+    border-radius: 4px;
     padding: 4px 10px;
-    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 170px;
+    box-shadow: none;
+    white-space: nowrap;
+}
+
+.tn-plate-left,
+.tn-plate-right {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-family: "Courier New", Courier, monospace;
+}
+
+.tn-plate-center {
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    direction: rtl;
+    border-left: 1px solid #ffffff;
+    border-right: 1px solid #ffffff;
+    padding: 0 6px;
+    font-family: Arial, sans-serif;
+    line-height: 1;
+}
+
+.tn-plate-rs {
+    direction: ltr;
+}
+
+.tn-plate-rs-ar {
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: Arial, sans-serif;
+    direction: rtl;
+    line-height: 1;
+}
+
+.tn-plate-rs-sep {
+    display: inline-block;
+    height: 18px;
+    border-left: 1px solid #ffffff;
+}
+
+.tn-plate-rs-right,
+.tn-plate-rs-left {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-family: "Courier New", Courier, monospace;
+}
+
+.tn-plate-neutral {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border-radius: 4px;
     border: 1px solid var(--border-color);
-    color: var(--accent);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 600;
 }
 
 .vehicle-card .vc-details {

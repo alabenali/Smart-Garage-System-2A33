@@ -1,4 +1,5 @@
 <?php $pageTitle = 'Dashboard'; $action = 'dashboard'; ?>
+<?php require_once __DIR__ . '/../../helpers/PlateHelper.php'; ?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
 <h1 class="page-title">Dashboard</h1>
@@ -219,7 +220,7 @@ $upcomingHolidays = array_slice($upcomingHolidays, 0, 8, true);
                 <tr>
                     <td style="color:var(--text-muted);">#<?php echo $v['id']; ?></td>
                     <td><strong><?php echo htmlspecialchars($v['marque']); ?></strong> <?php echo htmlspecialchars($v['modele']); ?></td>
-                    <td><code style="color:var(--accent);background:var(--bg-secondary);padding:2px 8px;border-radius:4px;"><?php echo htmlspecialchars($v['immatriculation']); ?></code></td>
+                    <td><?php echo formatPlate($v['immatriculation'] ?? ''); ?></td>
                     <td><?php echo $v['annee']; ?></td>
                     <td><?php echo number_format($v['kilometrage'], 0, ',', ' '); ?> km</td>
                     <td><span class="badge-fuel <?php echo strtolower($v['carburant']); ?>"><?php echo htmlspecialchars($v['carburant']); ?></span></td>

@@ -1,4 +1,5 @@
 <?php $pageTitle = 'Modifier le Véhicule'; $action = 'editVehicle'; ?>
+<?php require_once __DIR__ . '/../../helpers/PlateHelper.php'; ?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
 <div style="display:flex; align-items:center; gap:1rem; margin-bottom: 2rem;">
@@ -50,8 +51,25 @@
             <!-- Immatriculation -->
             <div class="sg-form-group">
                 <label for="immatriculation">Immatriculation</label>
-                <input type="text" name="immatriculation" id="immatriculation" placeholder="Ex: 123 TU 4567"
-                       value="<?php echo htmlspecialchars($vehicle['immatriculation']); ?>">
+                <?php
+                $currentImmat = (string) ($vehicle['immatriculation'] ?? '');
+                $detectedSeries = (stripos(strtoupper($currentImmat), 'RS') !== false) ? 'RS' : 'TU';
+                ?>
+                <div style="display:flex; gap:0.8rem; margin-bottom:0.45rem; align-items:center; flex-wrap:wrap;">
+                    <label style="display:inline-flex; align-items:center; gap:0.35rem; margin:0;">
+                        <input type="radio" name="plate_series" value="TU" <?php echo $detectedSeries === 'TU' ? 'checked' : ''; ?>>
+                        Série TU
+                    </label>
+                    <label style="display:inline-flex; align-items:center; gap:0.35rem; margin:0;">
+                        <input type="radio" name="plate_series" value="RS" <?php echo $detectedSeries === 'RS' ? 'checked' : ''; ?>>
+                        Série RS
+                    </label>
+                </div>
+                <input type="text" name="immatriculation" id="immatriculation" placeholder="<?php echo $detectedSeries === 'RS' ? '123RS4567' : '123TU4567'; ?>"
+                       value="<?php echo htmlspecialchars($currentImmat); ?>">
+                <div id="platePreview" style="margin-top:0.5rem; min-height:32px;">
+                    <?php echo $currentImmat !== '' ? formatPlate($currentImmat) : ''; ?>
+                </div>
                 <div class="invalid-feedback"></div>
             </div>
 
@@ -109,5 +127,75 @@
         </div>
     </form>
 </div>
+
+<script>
+(function () {
+    const form = document.getElementById('vehicleForm');
+    if (!form) {
+        return;
+    }
+
+    const input = form.querySelector('#immatriculation');
+    const preview = form.querySelector('#platePreview');
+    const radios = form.querySelectorAll('input[name="plate_series"]');
+
+    function escapeHtml(value) {
+        return value
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function currentSeries() {
+        const selected = form.querySelector('input[name="plate_series"]:checked');
+        return selected ? selected.value : 'TU';
+    }
+
+    function normalizePlate(value) {
+        return value.toUpperCase().trim().replace(/\s+/g, '').replace(/[\-.]/g, '');
+    }
+
+    function renderPlate(rawValue) {
+        const normalized = normalizePlate(rawValue);
+        const series = currentSeries();
+        const tuMatch = normalized.match(/^(\d{1,3})TU(\d{1,4})$/i);
+        const rsMatch = normalized.match(/^(\d{1,3})RS(\d{1,4})$/i);
+
+        if (series === 'TU' && tuMatch) {
+            return '<span class="tn-plate">'
+                + '<span class="tn-plate-left">' + escapeHtml(tuMatch[1]) + '</span>'
+                + '<span class="tn-plate-center">تونس</span>'
+                + '<span class="tn-plate-right">' + escapeHtml(tuMatch[2]) + '</span>'
+                + '</span>';
+        }
+
+        if (series === 'RS' && rsMatch) {
+            return '<span class="tn-plate tn-plate-rs" title="Série RS">'
+                + '<span class="tn-plate-rs-ar">ن.ت</span>'
+                + '<span class="tn-plate-rs-sep"></span>'
+                + '<span class="tn-plate-rs-right">' + escapeHtml(rsMatch[2]) + '</span>'
+                + '<span class="tn-plate-rs-left">' + escapeHtml(rsMatch[1]) + '</span>'
+                + '</span>';
+        }
+
+        if (!normalized) {
+            return '';
+        }
+
+        return '<span class="tn-plate-neutral">' + escapeHtml(rawValue.trim()) + '</span>';
+    }
+
+    function refresh() {
+        input.placeholder = currentSeries() === 'RS' ? '123RS4567' : '123TU4567';
+        preview.innerHTML = renderPlate(input.value || '');
+    }
+
+    radios.forEach((radio) => radio.addEventListener('change', refresh));
+    input.addEventListener('input', refresh);
+    refresh();
+})();
+</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>
