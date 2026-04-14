@@ -1,12 +1,12 @@
 // ============================================
-// Smart Garage System – Client-Side Validation
-// No HTML5 validation attributes used.
+// Système Smart Garage – Validation Côté Client
+// Aucun attribut de validation HTML5 utilisé.
 // ============================================
 
 /**
- * Validate a vehicle form (add or edit).
- * @param {HTMLFormElement} form - the form element
- * @returns {boolean} true if valid
+ * Valider un formulaire de véhicule (ajout ou modification).
+ * @param {HTMLFormElement} form - l'élément formulaire
+ * @returns {boolean} true si valide
  */
 function validateVehicleForm(form) {
     clearErrors(form);
@@ -20,19 +20,19 @@ function validateVehicleForm(form) {
     const kilometrage = form.querySelector('[name="kilometrage"]');
     const carburant = form.querySelector('[name="carburant"]');
 
-    // Marque – required
+    // Marque – obligatoire
     if (!marque.value.trim()) {
         showError(marque, 'La marque est obligatoire.');
         isValid = false;
     }
 
-    // Modèle – required
+    // Modèle – obligatoire
     if (!modele.value.trim()) {
         showError(modele, 'Le modèle est obligatoire.');
         isValid = false;
     }
 
-    // Immatriculation – required + format
+    // Immatriculation – obligatoire + format
     const immatVal = immatriculation.value.trim();
     if (!immatVal) {
         showError(immatriculation, "L'immatriculation est obligatoire.");
@@ -42,13 +42,13 @@ function validateVehicleForm(form) {
         isValid = false;
     }
 
-    // Couleur – required
+    // Couleur – obligatoire
     if (!couleur.value.trim()) {
         showError(couleur, 'La couleur est obligatoire.');
         isValid = false;
     }
 
-    // Année – required, between 1990 and current year
+    // Année – obligatoire, entre 1990 et l'année en cours
     const currentYear = new Date().getFullYear();
     const anneeVal = annee.value.trim();
     if (!anneeVal) {
@@ -59,7 +59,7 @@ function validateVehicleForm(form) {
         isValid = false;
     }
 
-    // Kilométrage – required, positive number
+    // Kilométrage – obligatoire, nombre positif
     const kmVal = kilometrage.value.trim();
     if (kmVal === '') {
         showError(kilometrage, 'Le kilométrage est obligatoire.');
@@ -69,7 +69,7 @@ function validateVehicleForm(form) {
         isValid = false;
     }
 
-    // Carburant – required
+    // Carburant – obligatoire
     if (!carburant.value.trim()) {
         showError(carburant, 'Le type de carburant est obligatoire.');
         isValid = false;
@@ -78,10 +78,10 @@ function validateVehicleForm(form) {
     return isValid;
 }
 
-// ---- Helper: show error on a field ----
+// ---- Helper : afficher une erreur sur un champ ----
 function showError(input, message) {
     input.classList.add('is-invalid');
-    // Look for a sibling .invalid-feedback
+    // Chercher un élément .invalid-feedback parmi les frères
     let feedback = input.parentElement.querySelector('.invalid-feedback');
     if (!feedback) {
         feedback = document.createElement('div');
@@ -92,7 +92,7 @@ function showError(input, message) {
     feedback.style.display = 'block';
 }
 
-// ---- Helper: clear all errors ----
+// ---- Helper : effacer toutes les erreurs ----
 function clearErrors(form) {
     form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
     form.querySelectorAll('.invalid-feedback').forEach(el => {
@@ -101,7 +101,7 @@ function clearErrors(form) {
     });
 }
 
-// ---- Real-time: remove error on input ----
+// ---- Temps réel : enlever l'erreur lors de la saisie ----
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.sg-form-group input, .sg-form-group select').forEach(function (el) {
         el.addEventListener('input', function () {
@@ -112,7 +112,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-// ---- Confirm delete ----
+// ---- Confirmer la suppression ----
 function confirmDelete(url) {
     if (confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ? Cette action est irréversible.')) {
         window.location.href = url;

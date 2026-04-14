@@ -4,7 +4,7 @@
 <h1 class="page-title">Dashboard</h1>
 <p class="page-subtitle">Vue d'ensemble du garage – Statistiques en temps réel.</p>
 
-<!-- Stats Cards -->
+<!-- Cartes de statistiques -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon purple"><i class="bi bi-car-front-fill"></i></div>
@@ -28,10 +28,10 @@
     </div>
 </div>
 
-<!-- Two columns: Fuel breakdown + Brand breakdown -->
+<!-- Deux colonnes : Répartition par carburant + Répartition par marque -->
 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-bottom:2.5rem;">
 
-    <!-- Fuel Breakdown -->
+    <!-- Répartition par Carburant -->
     <div class="sg-table-wrap">
         <div class="table-header">
             <h3><i class="bi bi-fuel-pump me-2"></i>Répartition par Carburant</h3>
@@ -63,7 +63,7 @@
         </table>
     </div>
 
-    <!-- Brand Breakdown -->
+    <!-- Répartition par Marque -->
     <div class="sg-table-wrap">
         <div class="table-header">
             <h3><i class="bi bi-building me-2"></i>Répartition par Marque</h3>
@@ -96,7 +96,7 @@
     </div>
 </div>
 
-<!-- Recent Vehicles Table -->
+<!-- Table des Véhicules Récents -->
 <div class="sg-table-wrap">
     <div class="table-header">
         <h3><i class="bi bi-clock-history me-2"></i>Véhicules Récents</h3>

@@ -95,7 +95,7 @@
                 <div class="invalid-feedback"></div>
             </div>
 
-            <!-- Submit -->
+            <!-- Validation -->
             <div class="sg-form-actions">
                 <button type="submit" class="btn-sg btn-sg-primary">
                     <i class="bi bi-check-lg"></i> Sauvegarder les Modifications

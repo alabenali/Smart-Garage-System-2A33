@@ -1,6 +1,6 @@
 <?php
 // ============================================
-// PDO Database Connection (Singleton Pattern)
+// Connexion à la base de données via PDO (Modèle Singleton)
 // ============================================
 
 class Database {
@@ -8,12 +8,12 @@ class Database {
     private $connection;
 
     private $host = 'localhost';
-    private $dbname = 'smart_garage_system';
+    private $dbname = 'smart_garage';
     private $username = 'root';
     private $password = '';
     private $charset = 'utf8mb4';
 
-    // Private constructor – prevents direct instantiation
+    // Constructeur privé – empêche l'instanciation directe
     private function __construct() {
         try {
             $dsn = "mysql:host={$this->host};dbname={$this->dbname};charset={$this->charset}";
@@ -28,7 +28,7 @@ class Database {
         }
     }
 
-    // Singleton accessor
+    // Accesseur de l'instance unique (Singleton)
     public static function getInstance() {
         if (self::$instance === null) {
             self::$instance = new self();
@@ -36,11 +36,11 @@ class Database {
         return self::$instance;
     }
 
-    // Return the PDO connection
+    // Renvoie la connexion PDO
     public function getConnection() {
         return $this->connection;
     }
 
-    // Prevent cloning
+    // Empêche le clonage
     private function __clone() {}
 }

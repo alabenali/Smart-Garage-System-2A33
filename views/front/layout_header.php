@@ -8,10 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
+    <?php if (!empty($extraCss) && is_array($extraCss)): ?>
+        <?php foreach ($extraCss as $css): ?>
+            <link rel="stylesheet" href="<?php echo htmlspecialchars($css); ?>">
+        <?php endforeach; ?>
+    <?php endif; ?>
 </head>
 <body>
 
-<!-- Navbar -->
+<!-- Barre de navigation -->
 <nav class="sg-navbar">
     <a href="index.php" class="brand">
         <img src="assets/images/logo.png" alt="Smart Garage Logo" class="logo-img">
@@ -20,9 +25,10 @@
     <ul class="nav-links">
         <li><a href="index.php?action=showVehicles" class="<?php echo ($action ?? '') === 'showVehicles' ? 'active' : ''; ?>"><i class="bi bi-car-front me-1"></i> Véhicules</a></li>
         <li><a href="index.php?action=addVehicle" class="<?php echo ($action ?? '') === 'addVehicle' ? 'active' : ''; ?>"><i class="bi bi-plus-circle me-1"></i> Ajouter</a></li>
+        <li><a href="index.php?action=frontCalendar" class="<?php echo ($action ?? '') === 'frontCalendar' ? 'active' : ''; ?>"><i class="bi bi-calendar-check me-1"></i> Rendez-vous</a></li>
         <li><a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> BackOffice</a></li>
     </ul>
 </nav>
 
-<!-- Page Content (injected by each view) -->
+<!-- Contenu de la page (injecté par chaque vue) -->
 <div class="page-wrapper">

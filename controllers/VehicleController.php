@@ -1,6 +1,6 @@
 <?php
 // ============================================
-// Vehicle Controller
+// Contrôleur de Véhicule
 // ============================================
 
 require_once __DIR__ . '/../models/Vehicle.php';
@@ -14,12 +14,12 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // PHP-side validation (sanitize + check empty + numeric)
+    // Validation côté PHP (nettoyage + vérification vide + numérique)
     // -------------------------------------------------------
     private function validateInput($data) {
         $errors = [];
 
-        // Sanitize all inputs
+        // Nettoyer toutes les entrées
         $marque         = htmlspecialchars(strip_tags(trim($data['marque'] ?? '')));
         $modele         = htmlspecialchars(strip_tags(trim($data['modele'] ?? '')));
         $immatriculation = htmlspecialchars(strip_tags(trim($data['immatriculation'] ?? '')));
@@ -28,7 +28,7 @@ class VehicleController {
         $kilometrage    = trim($data['kilometrage'] ?? '');
         $carburant      = htmlspecialchars(strip_tags(trim($data['carburant'] ?? '')));
 
-        // Check empty values
+        // Vérifier les valeurs vides
         if (empty($marque))         $errors[] = "La marque est obligatoire.";
         if (empty($modele))         $errors[] = "Le modèle est obligatoire.";
         if (empty($immatriculation)) $errors[] = "L'immatriculation est obligatoire.";
@@ -37,7 +37,7 @@ class VehicleController {
         if (empty($kilometrage) && $kilometrage !== '0') $errors[] = "Le kilométrage est obligatoire.";
         if (empty($carburant))      $errors[] = "Le type de carburant est obligatoire.";
 
-        // Validate numeric fields
+        // Valider les champs numériques
         if (!empty($annee)) {
             if (!is_numeric($annee)) {
                 $errors[] = "L'année doit être un nombre.";
@@ -56,7 +56,7 @@ class VehicleController {
             $errors[] = "Le kilométrage doit être positif.";
         }
 
-        // Validate immatriculation format (Tunisian format: 123 TU 4567)
+        // Valider le format de l'immatriculation (format Tunisien: 123 TU 4567)
         if (!empty($immatriculation) && !preg_match('/^\d{1,4}\s?[A-Za-z]{1,4}\s?\d{1,4}$/', $immatriculation)) {
             $errors[] = "Le format de l'immatriculation est invalide (ex: 123 TU 4567).";
         }
@@ -76,7 +76,7 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Add Vehicle (Front Office)
+    // Ajouter un véhicule (Front Office)
     // -------------------------------------------------------
     public function addVehicle() {
         $errors = [];
@@ -100,7 +100,7 @@ class VehicleController {
 
                 if ($this->vehicleModel->add()) {
                     $success = "Véhicule ajouté avec succès !";
-                    $old = []; // clear form
+                    $old = []; // Vider le formulaire
                 } else {
                     $errors[] = "Erreur lors de l'ajout du véhicule.";
                 }
@@ -111,7 +111,7 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Show all vehicles (Front Office list)
+    // Afficher tous les véhicules (Liste Front Office)
     // -------------------------------------------------------
     public function showVehicles() {
         $vehicles = $this->vehicleModel->list();
@@ -119,7 +119,7 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Update Vehicle (Back Office)
+    // Mettre à jour le véhicule (Back Office)
     // -------------------------------------------------------
     public function updateVehicle() {
         $errors = [];
@@ -149,12 +149,12 @@ class VehicleController {
 
                 if ($this->vehicleModel->update()) {
                     $success = "Véhicule mis à jour avec succès !";
-                    $vehicle = $this->vehicleModel->find($id); // refresh data
+                    $vehicle = $this->vehicleModel->find($id); // Actualiser les données
                 } else {
                     $errors[] = "Erreur lors de la mise à jour.";
                 }
             } else {
-                // Keep POST data on the form when validation failed
+                // Garder les données POST sur le formulaire en cas d'échec de la validation
                 $vehicle = array_merge($vehicle, $_POST);
             }
         }
@@ -163,7 +163,7 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Delete Vehicle (Back Office)
+    // Supprimer le véhicule (Back Office)
     // -------------------------------------------------------
     public function deleteVehicle() {
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -177,7 +177,7 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Back Office – vehicle management list
+    // Back Office – liste de gestion des véhicules
     // -------------------------------------------------------
     public function manageVehicles() {
         $vehicles = $this->vehicleModel->list();
@@ -187,13 +187,13 @@ class VehicleController {
     }
 
     // -------------------------------------------------------
-    // Dashboard (Back Office)
+    // Tableau de bord (Back Office)
     // -------------------------------------------------------
     public function dashboard() {
         $vehicles = $this->vehicleModel->list();
         $totalVehicles = count($vehicles);
 
-        // Stats for dashboard cards
+        // Statistiques pour les cartes du tableau de bord
         $totalKm = 0;
         $fuelStats = [];
         $brandStats = [];

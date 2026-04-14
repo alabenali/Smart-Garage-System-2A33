@@ -1,14 +1,14 @@
 <?php
 // ============================================
-// Vehicle Model (OOP + PDO)
+// Modèle de Véhicule (POO + PDO)
 // ============================================
 
-require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/Model.php';
 
-class Vehicle {
-    private $db;
+class Vehicle extends Model {
+    protected $table = 'vehicle';
 
-    // Vehicle properties
+    // Propriétés du véhicule
     private $id;
     private $marque;
     private $modele;
@@ -20,7 +20,7 @@ class Vehicle {
     private $date_ajout;
 
     public function __construct() {
-        $this->db = Database::getInstance()->getConnection();
+        parent::__construct();
     }
 
     // ---- Getters & Setters ----
@@ -51,72 +51,5 @@ class Vehicle {
 
     public function getDateAjout() { return $this->date_ajout; }
 
-    // ---- CRUD Methods ----
-
-    /**
-     * Add a new vehicle to the database
-     */
-    public function add() {
-        $sql = "INSERT INTO vehicle (marque, modele, immatriculation, couleur, annee, kilometrage, carburant)
-                VALUES (:marque, :modele, :immatriculation, :couleur, :annee, :kilometrage, :carburant)";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':marque', $this->marque);
-        $stmt->bindParam(':modele', $this->modele);
-        $stmt->bindParam(':immatriculation', $this->immatriculation);
-        $stmt->bindParam(':couleur', $this->couleur);
-        $stmt->bindParam(':annee', $this->annee, PDO::PARAM_INT);
-        $stmt->bindParam(':kilometrage', $this->kilometrage, PDO::PARAM_INT);
-        $stmt->bindParam(':carburant', $this->carburant);
-        return $stmt->execute();
-    }
-
-    /**
-     * Update an existing vehicle
-     */
-    public function update() {
-        $sql = "UPDATE vehicle
-                SET marque = :marque, modele = :modele, immatriculation = :immatriculation,
-                    couleur = :couleur, annee = :annee, kilometrage = :kilometrage, carburant = :carburant
-                WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
-        $stmt->bindParam(':marque', $this->marque);
-        $stmt->bindParam(':modele', $this->modele);
-        $stmt->bindParam(':immatriculation', $this->immatriculation);
-        $stmt->bindParam(':couleur', $this->couleur);
-        $stmt->bindParam(':annee', $this->annee, PDO::PARAM_INT);
-        $stmt->bindParam(':kilometrage', $this->kilometrage, PDO::PARAM_INT);
-        $stmt->bindParam(':carburant', $this->carburant);
-        return $stmt->execute();
-    }
-
-    /**
-     * Delete a vehicle by ID
-     */
-    public function delete($id) {
-        $sql = "DELETE FROM vehicle WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        return $stmt->execute();
-    }
-
-    /**
-     * List all vehicles
-     */
-    public function list() {
-        $sql = "SELECT * FROM vehicle ORDER BY date_ajout DESC";
-        $stmt = $this->db->query($sql);
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Find a single vehicle by ID
-     */
-    public function find($id) {
-        $sql = "SELECT * FROM vehicle WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-        return $stmt->fetch();
-    }
+    // CRUD methods are inherited from the base Model class
 }

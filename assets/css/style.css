@@ -1,6 +1,6 @@
 /* ============================================
-   Smart Garage System – Custom Styles
-   Premium Dark-Mode Design
+   Système Smart Garage – Styles Personnalisés
+   Design Premium en Mode Sombre
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -9,7 +9,7 @@
     /* ── Charte Graphique ─────────────────────── */
     /* Bleu Marine – fond principal               */
     --bg-primary: #0A192F;
-    /* Derived darker / lighter shades             */
+    /* Nuances dérivées plus sombres / claires     */
     --bg-secondary: #071225;
     --bg-card: #0D2137;
     --bg-card-hover: #122B45;
@@ -26,7 +26,7 @@
     --accent-hover: #33EBFF;
     --accent-glow: rgba(0, 229, 255, 0.25);
 
-    /* Status colors (kept for badges/alerts)      */
+    /* Status colors (conservées pour badges/alertes) */
     --success: #00E5A0;
     --success-bg: rgba(0, 229, 160, 0.12);
     --danger: #FF5252;
@@ -36,13 +36,13 @@
     --info: #00E5FF;
     --info-bg: rgba(0, 229, 255, 0.12);
 
-    /* Gradients – Cyan dominant                    */
+    /* Dégradés – Cyan dominant                    */
     --gradient-1: linear-gradient(135deg, #00E5FF, #00B8D4);
     --gradient-2: linear-gradient(135deg, #00E5A0, #00BFA5);
     --gradient-3: linear-gradient(135deg, #FFB74D, #FF9800);
     --gradient-4: linear-gradient(135deg, #00E5FF, #40C4FF);
 
-    /* Noir Profond – text on light backgrounds     */
+    /* Noir Profond – texte sur fonds clairs        */
     --text-dark: #1A1A1A;
 
     --radius: 12px;
@@ -66,7 +66,7 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* ---- Scrollbar ---- */
+/* ---- Barre de défilement (Scrollbar) ---- */
 ::-webkit-scrollbar {
     width: 6px;
 }
@@ -85,7 +85,7 @@ body {
 }
 
 /* ============================================
-   TOP NAVBAR
+   BARRE DE NAVIGATION SUPÉRIEURE
    ============================================ */
 .sg-navbar {
     background: rgba(10, 25, 47, 0.9);
@@ -149,7 +149,7 @@ body {
 }
 
 /* ============================================
-   PAGE WRAPPER
+   ENVELOPPE DE PAGE (WRAPPER)
    ============================================ */
 .page-wrapper {
     max-width: 1300px;
@@ -170,7 +170,7 @@ body {
 }
 
 /* ============================================
-   DASHBOARD STATS CARDS
+   CARTES STATISTIQUES DU TABLEAU DE BORD
    ============================================ */
 .stats-grid {
     display: grid;
@@ -239,7 +239,7 @@ body {
     font-weight: 500;
 }
 
-/* glow ring behind card */
+/* anneau lumineux derrière la carte */
 .stat-card::after {
     content: '';
     position: absolute;
@@ -269,7 +269,7 @@ body {
 }
 
 /* ============================================
-   DATA TABLE
+   TABLEAU DE DONNÉES
    ============================================ */
 .sg-table-wrap {
     background: var(--bg-card);
@@ -328,7 +328,7 @@ body {
 }
 
 /* ============================================
-   BADGES & PILLS
+   BADGES & PILULES (PILLS)
    ============================================ */
 .badge-fuel {
     display: inline-block;
@@ -374,7 +374,7 @@ body {
 }
 
 /* ============================================
-   BUTTONS
+   BOUTONS
    ============================================ */
 .btn-sg {
     display: inline-flex;
@@ -446,7 +446,7 @@ body {
 }
 
 /* ============================================
-   FORMS
+   FORMULAIRES
    ============================================ */
 .sg-form-wrap {
     background: var(--bg-card);
@@ -517,7 +517,7 @@ body {
 }
 
 /* ============================================
-   ALERTS / MESSAGES
+   ALERTES / MESSAGES
    ============================================ */
 .sg-alert {
     padding: 14px 20px;
@@ -556,7 +556,7 @@ body {
 }
 
 /* ============================================
-   VEHICLE CARDS (Front Office list)
+   CARTES DE VÉHICULES (Liste Front Office)
    ============================================ */
 .vehicle-grid {
     display: grid;
@@ -648,7 +648,7 @@ body {
     font-size: 0.78rem;
 }
 
-/* empty state */
+/* état vide */
 .empty-state {
     text-align: center;
     padding: 4rem 2rem;
@@ -672,7 +672,7 @@ body {
 }
 
 /* ============================================
-   RESPONSIVE
+   RÉPONSIVITÉ (RESPONSIVE)
    ============================================ */
 @media (max-width: 768px) {
     .sg-navbar {

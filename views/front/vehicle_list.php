@@ -26,7 +26,7 @@
     <div class="vehicle-grid">
         <?php foreach ($vehicles as $v): ?>
             <?php
-                // Map French color names to CSS colors for the dot
+                // Associer les noms de couleurs en français aux couleurs CSS pour la pastille
                 $colorMap = [
                     'blanc' => '#f5f5f5', 'noir' => '#1a1a1a', 'gris' => '#9ca3af',
                     'rouge' => '#ef4444', 'bleu' => '#3b82f6', 'vert' => '#22c55e',
