@@ -58,7 +58,7 @@
                         Série RS
                     </label>
                 </div>
-                <input type="text" name="immatriculation" id="immatriculation" placeholder="<?php echo $detectedSeries === 'RS' ? '123RS4567' : '123TU4567'; ?>"
+                  <input type="text" name="immatriculation" id="immatriculation" placeholder="<?php echo $detectedSeries === 'RS' ? 'RS12345' : '123TU4567'; ?>"
                        value="<?php echo htmlspecialchars($currentImmat); ?>">
                 <div id="platePreview" style="margin-top:0.5rem; min-height:32px;">
                     <?php echo $currentImmat !== '' ? formatPlate($currentImmat) : ''; ?>
@@ -150,7 +150,7 @@
         const normalized = normalizePlate(rawValue);
         const series = currentSeries();
         const tuMatch = normalized.match(/^(\d{1,3})TU(\d{1,4})$/i);
-        const rsMatch = normalized.match(/^(\d{1,3})RS(\d{1,4})$/i);
+        const rsMatch = normalized.match(/^RS(\d{4,6})$/i);
 
         if (series === 'TU' && tuMatch) {
             return '<span class="tn-plate">'
@@ -164,8 +164,7 @@
             return '<span class="tn-plate tn-plate-rs" title="Série RS">'
                 + '<span class="tn-plate-rs-ar">ن.ت</span>'
                 + '<span class="tn-plate-rs-sep"></span>'
-                + '<span class="tn-plate-rs-right">' + escapeHtml(rsMatch[2]) + '</span>'
-                + '<span class="tn-plate-rs-left">' + escapeHtml(rsMatch[1]) + '</span>'
+                + '<span class="tn-plate-rs-right">' + escapeHtml(rsMatch[1]) + '</span>'
                 + '</span>';
         }
 
@@ -177,7 +176,7 @@
     }
 
     function refresh() {
-        input.placeholder = currentSeries() === 'RS' ? '123RS4567' : '123TU4567';
+        input.placeholder = currentSeries() === 'RS' ? 'RS12345' : '123TU4567';
         preview.innerHTML = renderPlate(input.value || '');
     }
 

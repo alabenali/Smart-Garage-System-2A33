@@ -38,8 +38,10 @@ function validateVehicleForm(form) {
     if (!immatVal) {
         showError(immatriculation, "L'immatriculation est obligatoire.");
         isValid = false;
-    } else if (!/^\d{1,3}TU\d{1,4}$/i.test(normalizedImmat) && !/^\d{1,3}RS\d{1,4}$/i.test(normalizedImmat)) {
-        showError(immatriculation, 'Format invalide. Utilisez le format 123TU4567 ou 123RS4567.');
+    } else if (!/^\d{1,3}TU\d{1,4}$/i.test(normalizedImmat)
+        && !/^\d{1,3}RS\d{1,4}$/i.test(normalizedImmat)
+        && !/^RS\d{4,6}$/i.test(normalizedImmat)) {
+        showError(immatriculation, 'Format invalide. Utilisez le format 123TU4567 ou RS12345.');
         isValid = false;
     }
 

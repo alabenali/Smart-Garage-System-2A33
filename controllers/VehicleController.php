@@ -58,9 +58,14 @@ class VehicleController
             $errors[] = "Le kilométrage doit être positif.";
         }
 
-        // Valider le format de l'immatriculation (format Tunisien: 123 TU 4567)
-        if (!empty($immatriculation) && !preg_match('/^\d{1,4}\s?[A-Za-z]{1,4}\s?\d{1,4}$/', $immatriculation)) {
-            $errors[] = "Le format de l'immatriculation est invalide (ex: 123 TU 4567).";
+        // Valider le format de l'immatriculation (TU: 123TU4567, RS: RS1234 à RS123456)
+        $normalizedPlate = strtoupper(preg_replace('/[\s\-.]+/', '', $immatriculation));
+        if (!empty($immatriculation)
+            && !preg_match('/^\d{1,3}TU\d{1,4}$/', $normalizedPlate)
+            && !preg_match('/^\d{1,3}RS\d{1,4}$/', $normalizedPlate)
+            && !preg_match('/^RS\d{4,6}$/', $normalizedPlate)
+        ) {
+            $errors[] = "Le format de l'immatriculation est invalide (ex: 123TU4567 ou RS12345).";
         }
 
         return [
@@ -335,8 +340,16 @@ class VehicleController
         $plate = preg_replace('/\s+/', '', $plate);
         $plate = str_replace(['-', '.'], '', $plate);
 
-        if (preg_match('/^(\d{1,3})(TU|RS)(\d{1,4})$/', $plate, $matches) === 1) {
-            return $matches[1] . $matches[2] . $matches[3];
+        if (preg_match('/^(\d{1,3})TU(\d{1,4})$/', $plate, $tuMatches) === 1) {
+            return $tuMatches[1] . 'TU' . $tuMatches[2];
+        }
+
+        if (preg_match('/^(\d{1,3})RS(\d{1,4})$/', $plate, $legacyRsMatches) === 1) {
+            return $legacyRsMatches[1] . 'RS' . $legacyRsMatches[2];
+        }
+
+        if (preg_match('/^RS(\d{4,6})$/', $plate, $rsMatches) === 1) {
+            return 'RS' . $rsMatches[1];
         }
 
         return $plate;

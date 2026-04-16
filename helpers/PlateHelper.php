@@ -25,6 +25,16 @@ if (!function_exists('formatPlate')) {
 
     function formatRSPlate(string $normalized): string
     {
+        if (preg_match('/^RS(\d{4,6})$/i', $normalized, $matches) === 1) {
+            $digits = $matches[1];
+
+            return '<span class="tn-plate tn-plate-rs" title="Série RS">'
+                . '<span class="tn-plate-rs-ar">ن.ت</span>'
+                . '<span class="tn-plate-rs-sep"></span>'
+                . '<span class="tn-plate-rs-right">' . htmlspecialchars($digits, ENT_QUOTES, 'UTF-8') . '</span>'
+                . '</span>';
+        }
+
         $parts = preg_split('/RS/i', $normalized);
         $left = (is_array($parts) && isset($parts[0])) ? trim($parts[0]) : '';
         $right = (is_array($parts) && isset($parts[1])) ? trim($parts[1]) : '';
@@ -52,7 +62,7 @@ if (!function_exists('formatPlate')) {
             return formatTUPlate($normalized);
         }
 
-        if (preg_match('/^\d{1,3}RS\d{1,4}$/i', $normalized) === 1) {
+        if (preg_match('/^\d{1,3}RS\d{1,4}$/i', $normalized) === 1 || preg_match('/^RS\d{4,6}$/i', $normalized) === 1) {
             return formatRSPlate($normalized);
         }
 
