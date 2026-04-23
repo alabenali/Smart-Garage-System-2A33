@@ -62,6 +62,26 @@ CREATE TABLE IF NOT EXISTS rendezvous_digital (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
+-- Mise a niveau schema (bases existantes)
+-- ============================================
+ALTER TABLE rendezvous_digital
+    MODIFY nom_client VARCHAR(150) NULL,
+    MODIFY prenom_client VARCHAR(150) NULL,
+    MODIFY telephone_client VARCHAR(20) NULL;
+
+ALTER TABLE rendezvous_digital
+    ADD COLUMN IF NOT EXISTS circonstances_panne VARCHAR(100) NULL AFTER description_panne;
+
+ALTER TABLE rendezvous_digital
+    ADD COLUMN IF NOT EXISTS temoins_panne TEXT NULL AFTER circonstances_panne;
+
+ALTER TABLE rendezvous_digital
+    ADD COLUMN IF NOT EXISTS panne_data_json LONGTEXT NULL AFTER temoins_panne;
+
+ALTER TABLE rendezvous_digital
+    ADD COLUMN IF NOT EXISTS photos_json LONGTEXT NULL AFTER panne_data_json;
+
+-- ============================================
 -- Données d'exemple (optionnel – pour tests)
 -- ============================================
 INSERT INTO vehicle (marque, modele, immatriculation, couleur, annee, kilometrage, carburant) VALUES
