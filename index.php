@@ -79,6 +79,10 @@ switch ($action) {
         $calendrierController->backExportCsv();
         break;
 
+    case 'backRdvExportPdf':
+        $calendrierController->backExportPdf();
+        break;
+
     case 'manageVehicles':
         $controller->manageVehicles();
         break;

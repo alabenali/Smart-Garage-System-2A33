@@ -142,89 +142,74 @@ require __DIR__ . '/layout_header.php';
     </section>
 
     <section class="calendar-block" data-step-panel="3">
-        <h3>Informations client et véhicule</h3>
-        <form id="rdvForm" method="POST" action="index.php?action=frontCreateRdv" novalidate>
+        <h3>Déclaration de panne</h3>
+        <form id="rdvForm" method="POST" action="index.php?action=frontCreateRdv" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="id_creneau" id="id_creneau" value="<?php echo htmlspecialchars($old['id_creneau'] ?? ''); ?>">
             <input type="hidden" name="selected_date" id="selected_date" value="<?php echo htmlspecialchars($selectedDate); ?>">
 
-            <div class="cal-form-grid">
-                <div class="sg-form-group">
-                    <label>Nom *</label>
-                    <input type="text" name="nom_client" value="<?php echo htmlspecialchars($old['nom_client'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Prénom *</label>
-                    <input type="text" name="prenom_client" value="<?php echo htmlspecialchars($old['prenom_client'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Téléphone *</label>
-                    <input type="text" name="telephone_client" maxlength="8" value="<?php echo htmlspecialchars($old['telephone_client'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Email *</label>
-                    <input type="email" name="email_client" value="<?php echo htmlspecialchars($old['email_client'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-            </div>
+            <?php
+            $oldTemoins = $old['temoins_panne'] ?? [];
+            if (!is_array($oldTemoins)) {
+                $oldTemoins = [];
+            }
+            ?>
 
-            <div class="separator-label">Véhicule</div>
+            <div class="separator-label">Déclaration de panne</div>
             <div class="cal-form-grid">
                 <div class="sg-form-group">
-                    <label>Immatriculation *</label>
-                    <input type="text" name="immatriculation" id="immatriculation" value="<?php echo htmlspecialchars($old['immatriculation'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Marque</label>
-                    <input type="text" name="marque" value="<?php echo htmlspecialchars($old['marque'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Modèle</label>
-                    <input type="text" name="modele" value="<?php echo htmlspecialchars($old['modele'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Année</label>
-                    <input type="number" name="annee" value="<?php echo htmlspecialchars($old['annee'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Kilométrage</label>
-                    <input type="number" name="kilometrage" value="<?php echo htmlspecialchars($old['kilometrage'] ?? ''); ?>">
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group">
-                    <label>Carburant</label>
-                    <select name="carburant">
-                        <option value="">-- Sélectionner --</option>
-                        <?php foreach (['Essence', 'Diesel', 'Hybride', 'Electrique', 'GPL'] as $fuel): ?>
-                            <option value="<?php echo $fuel; ?>" <?php echo (($old['carburant'] ?? '') === $fuel) ? 'selected' : ''; ?>><?php echo $fuel; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-            </div>
-
-            <div class="separator-label">Intervention</div>
-            <div class="cal-form-grid">
-                <div class="sg-form-group">
-                    <label>Type d'intervention *</label>
+                    <label>Type de panne *</label>
                     <select name="type_intervention">
                         <option value="">-- Sélectionner --</option>
-                        <?php foreach (['Vidange', 'Révision', 'Freinage', 'Climatisation', 'Carrosserie', 'Autre'] as $type): ?>
+                        <?php foreach (['Moteur', 'Boîte de vitesse', 'Freinage', 'Électrique-Batterie', 'Suspension-Direction', 'Climatisation', 'Carrosserie', 'Autre'] as $type): ?>
                             <option value="<?php echo $type; ?>" <?php echo (($old['type_intervention'] ?? '') === $type) ? 'selected' : ''; ?>><?php echo $type; ?></option>
                         <?php endforeach; ?>
                     </select>
                     <div class="invalid-feedback"></div>
                 </div>
-                <div class="sg-form-group full-width">
-                    <label>Description / précision</label>
-                    <textarea name="description_panne" rows="3"><?php echo htmlspecialchars($old['description_panne'] ?? ''); ?></textarea>
+                <div class="sg-form-group">
+                    <label>Circonstances</label>
+                    <select name="circonstances_panne" id="circonstances_panne">
+                        <option value="">-- Sélectionner --</option>
+                        <?php foreach (['En roulant', 'À l\'arrêt', 'Au démarrage', 'Panne intermittente'] as $item): ?>
+                            <option value="<?php echo $item; ?>" <?php echo (($old['circonstances_panne'] ?? '') === $item) ? 'selected' : ''; ?>><?php echo $item; ?></option>
+                        <?php endforeach; ?>
+                    </select>
                     <div class="invalid-feedback"></div>
+                </div>
+                <div class="sg-form-group full-width">
+                    <label>Symptômes observés *</label>
+                    <textarea name="description_panne" id="symptomes_panne" rows="4" placeholder="Décrivez ce que vous avez observé : bruits, vibrations, comportement anormal..." required><?php echo htmlspecialchars($old['description_panne'] ?? ''); ?></textarea>
+                    <div class="invalid-feedback"></div>
+                </div>
+                <div class="sg-form-group full-width">
+                    <label>Témoins de panne</label>
+                    <div class="temoins-grid" id="temoinsPanneGroup">
+                        <?php foreach (['Voyant allumé au tableau de bord', 'Bruit anormal', 'Fumée', 'Fuite de liquide', 'Véhicule immobilisé'] as $temoin): ?>
+                            <label class="temoin-item">
+                                <input type="checkbox" name="temoins_panne[]" value="<?php echo $temoin; ?>" <?php echo in_array($temoin, $oldTemoins, true) ? 'checked' : ''; ?>>
+                                <span><?php echo $temoin; ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider" aria-hidden="true"></div>
+
+            <div class="separator-label">Photos</div>
+            <div class="cal-form-grid">
+                <div class="sg-form-group full-width">
+                    <label>Zone de panne ou témoin du tableau de bord - max 5 photos - 10 Mo chacune</label>
+                    <div id="panneDropzone" class="photo-dropzone" role="button" tabindex="0" aria-label="Ajouter des photos de la panne">
+                        <input type="file" id="pannePhotosInput" name="panne_photos[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden>
+                        <div class="photo-drop-content">
+                            <strong>Cliquez ou glissez vos photos ici</strong>
+                            <small>JPG, PNG, WEBP</small>
+                        </div>
+                    </div>
+                    <div id="photosError" class="invalid-feedback photo-feedback"></div>
+                    <div id="photosPreview" class="photo-preview-list"></div>
+                    <input type="hidden" name="panne_data_json" id="panne_data_json" value="">
                 </div>
             </div>
         </form>
@@ -235,8 +220,8 @@ require __DIR__ . '/layout_header.php';
         <div class="recap-box" id="rdvRecap">
             <div><strong>Date:</strong> <span data-recap="date">-</span></div>
             <div><strong>Heure:</strong> <span data-recap="heure">-</span></div>
-            <div><strong>Véhicule:</strong> <span data-recap="vehicle">-</span></div>
-            <div><strong>Intervention:</strong> <span data-recap="intervention">-</span></div>
+            <div><strong>Type de panne:</strong> <span data-recap="intervention">-</span></div>
+            <div><strong>Circonstances:</strong> <span data-recap="circonstances">-</span></div>
             <div><strong>Remise:</strong> <span data-recap="remise">-</span></div>
         </div>
         <button type="button" id="confirmRdvBtn" class="btn-sg btn-sg-primary">

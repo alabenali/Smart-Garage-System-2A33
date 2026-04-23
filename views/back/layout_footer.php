@@ -1,5 +1,7 @@
 
-</div><!-- /.page-wrapper -->
+		</div>
+	</main>
+</div>
 
 <script src="views/js/validation.js"></script>
 <?php if (!empty($extraJs) && is_array($extraJs)): ?>

@@ -299,7 +299,7 @@ class VehicleController
 
     private function listVehicles(): array
     {
-        $stmt = $this->db->query('SELECT * FROM vehicle');
+        $stmt = $this->db->query('SELECT * FROM vehicle ORDER BY date_ajout ASC, id ASC');
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

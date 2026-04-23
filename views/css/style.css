@@ -772,6 +772,94 @@ h6,
 }
 
 /* ============================================
+   LAYOUT BACK OFFICE (SIDEBAR)
+   ============================================ */
+.app-shell {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+}
+
+.app-sidebar {
+    background: #FFFFFF;
+    border-right: 1px solid var(--border-color);
+    border-top: 2px solid #C0392B;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 1.1rem 0.9rem;
+}
+
+.brand-stack {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    text-decoration: none;
+    color: #1A2E44;
+    font-weight: 700;
+    font-size: 1.1rem;
+    padding: 0.5rem 0.6rem 1rem;
+    margin-bottom: 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.brand-stack img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.brand-title {
+    display: block;
+    line-height: 1.1;
+}
+
+.brand-subtitle {
+    display: block;
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 0.2rem;
+}
+
+.sidebar-nav {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.sidebar-nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: #2C3E50;
+    font-weight: 600;
+    padding: 0.62rem 0.75rem;
+    border-radius: 10px;
+    transition: var(--transition);
+}
+
+.sidebar-nav a:hover {
+    background: #F7EAE8;
+    color: var(--accent);
+}
+
+.sidebar-nav a.active {
+    background: #FCEDEA;
+    color: var(--accent);
+}
+
+.app-main {
+    min-width: 0;
+}
+
+.app-main .page-wrapper {
+    max-width: 1400px;
+    padding: 1.8rem 1.8rem 2.5rem;
+}
+
+/* ============================================
    RESPONSIVITE (RESPONSIVE)
    ============================================ */
 @media (max-width: 768px) {
@@ -806,6 +894,23 @@ h6,
 
     .sg-table {
         font-size: 0.82rem;
+    }
+}
+
+@media (max-width: 1024px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .app-sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .app-main .page-wrapper {
+        padding: 1.3rem 1rem 2rem;
     }
 }
 

@@ -18,6 +18,20 @@
     const hiddenDate = document.getElementById('selected_date');
     const form = document.getElementById('rdvForm');
     const confirmBtn = document.getElementById('confirmRdvBtn');
+    const circonstancesField = form ? form.querySelector('[name="circonstances_panne"]') : null;
+    const symptomesField = form ? form.querySelector('[name="description_panne"]') : null;
+    const temoinsFields = form ? form.querySelectorAll('input[name="temoins_panne[]"]') : [];
+    const panneDataField = document.getElementById('panne_data_json');
+    const photoInput = document.getElementById('pannePhotosInput');
+    const photoDropzone = document.getElementById('panneDropzone');
+    const photosPreview = document.getElementById('photosPreview');
+    const photosError = document.getElementById('photosError');
+
+    const MAX_PHOTOS = 5;
+    const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
+    const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+    const CAN_USE_DATA_TRANSFER = typeof DataTransfer !== 'undefined';
+    let selectedPhotos = [];
 
     function setStep(step) {
         currentStep = Math.min(4, Math.max(1, step));
@@ -51,44 +65,145 @@
         });
     }
 
+    function setPhotosError(message) {
+        if (!photosError) {
+            return;
+        }
+        photosError.textContent = message;
+        photosError.style.display = message ? 'block' : 'none';
+    }
+
+    function syncPhotoInputFiles() {
+        if (!photoInput) {
+            return;
+        }
+
+        if (!CAN_USE_DATA_TRANSFER) {
+            return;
+        }
+
+        try {
+            const transfer = new DataTransfer();
+            selectedPhotos.forEach((file) => transfer.items.add(file));
+            photoInput.files = transfer.files;
+        } catch (error) {
+            setPhotosError('Votre navigateur limite la gestion avancee des fichiers.');
+        }
+    }
+
+    function getPanneData() {
+        return {
+            typePanne: form.querySelector('[name="type_intervention"]').value || '',
+            circonstances: circonstancesField ? circonstancesField.value : '',
+            symptomes: symptomesField ? symptomesField.value.trim() : '',
+            temoins: Array.from(temoinsFields)
+                .filter((item) => item.checked)
+                .map((item) => item.value),
+            photos: selectedPhotos.map((file) => ({
+                name: file.name,
+                size: file.size,
+                type: file.type,
+            })),
+        };
+    }
+
+    function refreshPanneDataField() {
+        if (!panneDataField) {
+            return;
+        }
+        panneDataField.value = JSON.stringify(getPanneData());
+    }
+
+    function renderPhotos() {
+        if (!photosPreview) {
+            return;
+        }
+
+        photosPreview.innerHTML = '';
+        selectedPhotos.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'photo-thumb';
+
+            const image = document.createElement('img');
+            image.alt = file.name;
+            image.src = URL.createObjectURL(file);
+            image.onload = function () {
+                URL.revokeObjectURL(image.src);
+            };
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'photo-remove';
+            removeBtn.setAttribute('aria-label', 'Supprimer la photo');
+            removeBtn.textContent = '×';
+            removeBtn.addEventListener('click', function () {
+                selectedPhotos = selectedPhotos.filter((_, i) => i !== index);
+                syncPhotoInputFiles();
+                renderPhotos();
+                refreshPanneDataField();
+            });
+
+            item.appendChild(image);
+            item.appendChild(removeBtn);
+            photosPreview.appendChild(item);
+        });
+    }
+
+    function handlePhotoFiles(fileList, source) {
+        const files = Array.from(fileList || []);
+        if (files.length === 0) {
+            return;
+        }
+
+        if (source === 'drop' && !CAN_USE_DATA_TRANSFER) {
+            setPhotosError('Glisser-deposer non supporte sur ce navigateur. Utilisez le clic.');
+            return;
+        }
+
+        let errorMessage = '';
+
+        files.forEach((file) => {
+            if (selectedPhotos.length >= MAX_PHOTOS) {
+                errorMessage = `Maximum ${MAX_PHOTOS} photos autorisees.`;
+                return;
+            }
+
+            if (!PHOTO_TYPES.includes(file.type)) {
+                errorMessage = 'Formats acceptes: JPG, PNG, WEBP uniquement.';
+                return;
+            }
+
+            if (file.size > MAX_PHOTO_SIZE) {
+                errorMessage = 'Chaque photo doit faire 10 Mo maximum.';
+                return;
+            }
+
+            selectedPhotos.push(file);
+        });
+
+        setPhotosError(errorMessage);
+        syncPhotoInputFiles();
+        renderPhotos();
+        refreshPanneDataField();
+    }
+
     function validateStepThree() {
         clearFormErrors();
         let valid = true;
 
-        const nom = form.querySelector('[name="nom_client"]');
-        const prenom = form.querySelector('[name="prenom_client"]');
-        const email = form.querySelector('[name="email_client"]');
-        const tel = form.querySelector('[name="telephone_client"]');
-        const immat = form.querySelector('[name="immatriculation"]');
         const intervention = form.querySelector('[name="type_intervention"]');
+        const symptomes = form.querySelector('[name="description_panne"]');
 
-        if (!nom.value.trim()) {
-            showError(nom, 'Nom obligatoire.');
-            valid = false;
-        }
-        if (!prenom.value.trim()) {
-            showError(prenom, 'Prénom obligatoire.');
-            valid = false;
-        }
-        if (!email.value.trim()) {
-            showError(email, 'Email obligatoire.');
-            valid = false;
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
-            showError(email, 'Email invalide. Format : exemple@domaine.com');
-            valid = false;
-        }
-        if (!/^\d{8}$/.test(tel.value.trim())) {
-            showError(tel, 'Téléphone tunisien à 8 chiffres requis.');
-            valid = false;
-        }
-        if (!immat.value.trim()) {
-            showError(immat, 'Immatriculation obligatoire.');
-            valid = false;
-        }
         if (!intervention.value.trim()) {
-            showError(intervention, 'Type intervention obligatoire.');
+            showError(intervention, 'Type de panne obligatoire.');
             valid = false;
         }
+        if (!symptomes.value.trim()) {
+            showError(symptomes, 'Les symptomes observes sont obligatoires.');
+            valid = false;
+        }
+
+        refreshPanneDataField();
 
         return valid;
     }
@@ -96,9 +211,7 @@
     function updateRecap() {
         const slotDateTime = selectedSlot ? selectedSlot.dataset.slotDatetime : '';
         const intervention = form.querySelector('[name="type_intervention"]').value || '-';
-        const immat = form.querySelector('[name="immatriculation"]').value || '-';
-        const marque = form.querySelector('[name="marque"]').value || '';
-        const modele = form.querySelector('[name="modele"]').value || '';
+        const circonstances = (circonstancesField && circonstancesField.value) ? circonstancesField.value : '-';
 
         let dateLabel = '-';
         let hourLabel = '-';
@@ -118,8 +231,8 @@
 
         app.querySelector('[data-recap="date"]').textContent = dateLabel;
         app.querySelector('[data-recap="heure"]').textContent = hourLabel;
-        app.querySelector('[data-recap="vehicle"]').textContent = `${immat} ${marque} ${modele}`.trim();
         app.querySelector('[data-recap="intervention"]').textContent = intervention;
+        app.querySelector('[data-recap="circonstances"]').textContent = circonstances;
         app.querySelector('[data-recap="remise"]').textContent = remiseLabel;
     }
 
@@ -214,8 +327,60 @@
             setStep(3);
             return;
         }
+        refreshPanneDataField();
         form.submit();
     });
+
+    if (photoDropzone && photoInput) {
+        photoDropzone.addEventListener('click', function () {
+            photoInput.click();
+        });
+
+        photoDropzone.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                photoInput.click();
+            }
+        });
+
+        photoDropzone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            photoDropzone.classList.add('is-dragover');
+        });
+
+        photoDropzone.addEventListener('dragleave', function () {
+            photoDropzone.classList.remove('is-dragover');
+        });
+
+        photoDropzone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            photoDropzone.classList.remove('is-dragover');
+            handlePhotoFiles(event.dataTransfer ? event.dataTransfer.files : [], 'drop');
+        });
+
+        photoInput.addEventListener('change', function () {
+            handlePhotoFiles(photoInput.files, 'input');
+        });
+    }
+
+    if (symptomesField) {
+        symptomesField.addEventListener('input', refreshPanneDataField);
+    }
+    if (circonstancesField) {
+        circonstancesField.addEventListener('change', refreshPanneDataField);
+    }
+    if (form) {
+        const panneTypeField = form.querySelector('[name="type_intervention"]');
+        if (panneTypeField) {
+            panneTypeField.addEventListener('change', refreshPanneDataField);
+        }
+    }
+    Array.from(temoinsFields).forEach((item) => {
+        item.addEventListener('change', refreshPanneDataField);
+    });
+
+    window.getPanneData = getPanneData;
+    refreshPanneDataField();
 
     setStep(1);
 })();

@@ -25,10 +25,32 @@
             ?>
             <div class="rdv-card" data-rdv-id="<?php echo (int) $rdv['id_rdv']; ?>">
                 <div class="rdv-main">
-                    <strong><?php echo htmlspecialchars($rdv['prenom_client'] . ' ' . $rdv['nom_client']); ?></strong>
-                    <span><?php echo htmlspecialchars($rdv['telephone_client']); ?></span>
-                    <span><?php echo htmlspecialchars(($rdv['immatriculation'] ?? '-') . ' - ' . ($rdv['marque'] ?? '-') . ' ' . ($rdv['modele'] ?? '')); ?></span>
-                    <span><?php echo htmlspecialchars($rdv['type_intervention']); ?></span>
+                    <strong><?php echo htmlspecialchars($rdv['type_intervention']); ?></strong>
+                    <span><?php echo htmlspecialchars($rdv['circonstances_panne'] ?? '-'); ?></span>
+                    <span><?php echo htmlspecialchars($rdv['description_panne'] ?? '-'); ?></span>
+                    <span>
+                        <?php
+                        $temoins = json_decode((string) ($rdv['temoins_panne'] ?? ''), true);
+                        echo htmlspecialchars(is_array($temoins) && !empty($temoins) ? implode(', ', $temoins) : '-');
+                        ?>
+                    </span>
+                    <?php
+                    $photos = json_decode((string) ($rdv['photos_json'] ?? ''), true);
+                    if (!is_array($photos) || empty($photos)) {
+                        $rdvId = (int) ($rdv['id_rdv'] ?? 0);
+                        $diskPhotos = glob(__DIR__ . '/../images/pannes/rdv_' . $rdvId . '_*');
+                        if (is_array($diskPhotos) && !empty($diskPhotos)) {
+                            $photos = array_map(static function ($absPath) {
+                                return ['path' => 'views/images/pannes/' . basename((string) $absPath)];
+                            }, $diskPhotos);
+                        }
+                    }
+                    if (is_array($photos) && !empty($photos)):
+                    ?>
+                        <span>
+                            Photos: <?php echo count($photos); ?>
+                        </span>
+                    <?php endif; ?>
                     <span class="status-badge status-<?php echo $statusClass; ?>" data-status-label><?php echo htmlspecialchars($rdv['statut']); ?></span>
                 </div>
                 <div class="rdv-actions-inline">

@@ -24,21 +24,23 @@
     <?php endif; ?>
 </head>
 <body>
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <a href="index.php?action=dashboard" class="brand-stack">
+            <img src="views/images/logo.png" alt="Smart Garage Logo">
+            <span>
+                <span class="brand-title">Smart Garage</span>
+                <span class="brand-subtitle">Admin</span>
+            </span>
+        </a>
+        <nav class="sidebar-nav">
+            <a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a href="index.php?action=manageVehicles" class="<?php echo in_array(($action ?? ''), ['manageVehicles', 'editVehicle']) ? 'active' : ''; ?>"><i class="bi bi-car-front"></i> Véhicules</a>
+            <a href="index.php?action=backCalendar" class="<?php echo ($action ?? '') === 'backCalendar' ? 'active' : ''; ?>"><i class="bi bi-calendar-week"></i> Calendrier RDV</a>
+            <a href="index.php?action=backRdvList" class="<?php echo ($action ?? '') === 'backRdvList' ? 'active' : ''; ?>"><i class="bi bi-card-checklist"></i> Liste RDV</a>
+            <a href="index.php?action=showVehicles"><i class="bi bi-box-arrow-up-right"></i> FrontOffice</a>
+        </nav>
+    </aside>
 
-<!-- Barre de navigation (Back Office) -->
-<nav class="sg-navbar">
-    <a href="index.php?action=dashboard" class="brand">
-        <img src="views/images/logo.png" alt="Smart Garage Logo" class="logo-img">
-        Smart Garage <span style="color:var(--accent); font-weight:400; font-size:0.8rem; margin-left:4px;">Admin</span>
-    </a>
-    <ul class="nav-links">
-        <li><a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
-        <li><a href="index.php?action=manageVehicles" class="<?php echo in_array(($action ?? ''), ['manageVehicles','editVehicle']) ? 'active' : ''; ?>"><i class="bi bi-car-front me-1"></i> Véhicules</a></li>
-        <li><a href="index.php?action=backCalendar" class="<?php echo ($action ?? '') === 'backCalendar' ? 'active' : ''; ?>"><i class="bi bi-calendar-week me-1"></i> Calendrier RDV</a></li>
-        <li><a href="index.php?action=backRdvList" class="<?php echo ($action ?? '') === 'backRdvList' ? 'active' : ''; ?>"><i class="bi bi-card-checklist me-1"></i> Liste RDV</a></li>
-        <li><a href="index.php?action=showVehicles"><i class="bi bi-box-arrow-up-right me-1"></i> FrontOffice</a></li>
-    </ul>
-</nav>
-
-<!-- Contenu de la page -->
-<div class="page-wrapper">
+    <main class="app-main">
+        <div class="page-wrapper">

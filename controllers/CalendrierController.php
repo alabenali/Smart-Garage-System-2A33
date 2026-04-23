@@ -5,9 +5,22 @@ require_once __DIR__ . '/../config/Database.php';
 class CalendrierController
 {
     private PDO $db;
+    private ?bool $hasPanneColumnsCache = null;
 
     private array $allowedStatuses = ['En attente', 'Confirmé', 'En cours', 'Terminé', 'Annulé'];
-    private array $allowedInterventions = ['Vidange', 'Révision', 'Freinage', 'Climatisation', 'Carrosserie', 'Autre'];
+    private array $allowedInterventions = [
+        'Vidange',
+        'Révision',
+        'Freinage',
+        'Climatisation',
+        'Carrosserie',
+        'Autre',
+        'Moteur',
+        'Boîte de vitesse',
+        'Électrique-Batterie',
+        'Suspension-Direction',
+    ];
+    private array $allowedCircumstances = ['En roulant', 'À l\'arrêt', 'Au démarrage', 'Panne intermittente'];
 
     public function __construct()
     {
@@ -94,21 +107,28 @@ class CalendrierController
             exit;
         }
 
-        $vehicleId = $this->findOrCreateVehicle($payload['vehicle']);
-
         $rdvId = $this->createRendezvous([
             'id_creneau' => (int) $slot['id_creneau'],
-            'nom_client' => $payload['nom_client'],
-            'prenom_client' => $payload['prenom_client'],
-            'telephone_client' => $payload['telephone_client'],
-            'email_client' => $payload['email_client'],
-            'id_vehicle' => $vehicleId,
+            'nom_client' => '',
+            'prenom_client' => '',
+            'telephone_client' => '',
+            'email_client' => null,
+            'id_vehicle' => null,
             'type_intervention' => $payload['type_intervention'],
             'description_panne' => $payload['description_panne'],
+            'circonstances_panne' => $payload['circonstances_panne'],
+            'temoins_panne' => $payload['temoins_panne'],
+            'panne_data_json' => $payload['panne_data_json'],
+            'photos_json' => '[]',
             'remise_eco_appliquee' => ((int) $slot['est_heure_creuse'] === 1) ? 15.00 : 0.00,
             'statut' => 'En attente',
             'notes' => null,
         ]);
+
+        $savedPhotos = $this->savePannePhotos($rdvId, $_FILES['panne_photos'] ?? null);
+        if (!empty($savedPhotos)) {
+            $this->updateRendezvousPhotosJson($rdvId, $savedPhotos);
+        }
 
         header('Location: index.php?action=frontConfirmation&id=' . $rdvId);
         exit;
@@ -326,6 +346,10 @@ class CalendrierController
             'id_vehicle' => $vehicleId,
             'type_intervention' => $payload['type_intervention'],
             'description_panne' => $payload['description_panne'],
+            'circonstances_panne' => $payload['circonstances_panne'] ?? '',
+            'temoins_panne' => $payload['temoins_panne'] ?? [],
+            'panne_data_json' => $payload['panne_data_json'] ?? json_encode([], JSON_UNESCAPED_UNICODE),
+            'photos_json' => json_encode([], JSON_UNESCAPED_UNICODE),
             'remise_eco_appliquee' => ((int) $slot['est_heure_creuse'] === 1) ? 15.00 : 0.00,
             'statut' => 'Confirmé',
             'notes' => null,
@@ -368,19 +392,15 @@ class CalendrierController
         header('Content-Disposition: attachment; filename=rdv_export_' . date('Ymd_His') . '.csv');
 
         $output = fopen('php://output', 'w');
-        fputcsv($output, ['Date/Heure', 'Nom', 'Prénom', 'Téléphone', 'Email', 'Immatriculation', 'Marque', 'Modèle', 'Intervention', 'Statut', 'Remise %'], ';');
+        fputcsv($output, ['Date/Heure', 'Type de panne', 'Circonstances', 'Symptômes', 'Témoins', 'Statut', 'Remise %'], ';');
 
         foreach ($rows as $row) {
             fputcsv($output, [
                 $row['date_heure'],
-                $row['nom_client'],
-                $row['prenom_client'],
-                $row['telephone_client'],
-                $row['email_client'],
-                $row['immatriculation'],
-                $row['marque'],
-                $row['modele'],
                 $row['type_intervention'],
+                $row['circonstances_panne'] ?? '',
+                $row['description_panne'] ?? '',
+                $this->temoinsToLabel($row['temoins_panne'] ?? null),
                 $row['statut'],
                 $row['remise_eco_appliquee'],
             ], ';');
@@ -390,45 +410,157 @@ class CalendrierController
         exit;
     }
 
+    public function backExportPdf(): void
+    {
+        $filters = [
+            'status' => isset($_GET['status']) ? trim($_GET['status']) : '',
+            'date' => isset($_GET['date']) ? trim($_GET['date']) : '',
+            'search' => isset($_GET['search']) ? trim($_GET['search']) : '',
+        ];
+
+        $rows = $this->getFilteredForExport($filters);
+
+        $lines = [];
+        $lines[] = 'SMART GARAGE - Export RDV';
+        $lines[] = 'Genere le: ' . date('d/m/Y H:i');
+        $lines[] = 'Filtres - Statut: ' . ($filters['status'] !== '' ? $filters['status'] : 'Tous')
+            . ' | Date: ' . ($filters['date'] !== '' ? $filters['date'] : 'Toutes')
+            . ' | Recherche: ' . ($filters['search'] !== '' ? $filters['search'] : 'Aucune');
+        $lines[] = str_repeat('-', 110);
+        $lines[] = 'DATE/HEURE | TYPE PANNE | CIRCONSTANCES | TEMOINS | STATUT';
+        $lines[] = str_repeat('-', 110);
+
+        foreach ($rows as $row) {
+            $dateHeure = date('d/m/Y H:i', strtotime((string) $row['date_heure']));
+            $temoins = $this->temoinsToLabel($row['temoins_panne'] ?? null);
+
+            $line = sprintf(
+                '%s | %s | %s | %s | %s',
+                $dateHeure,
+                (string) ($row['type_intervention'] ?? ''),
+                (string) ($row['circonstances_panne'] ?? '-'),
+                $temoins,
+                (string) ($row['statut'] ?? '')
+            );
+
+            $lines[] = $this->truncatePdfLine($line, 155);
+        }
+
+        if (empty($rows)) {
+            $lines[] = 'Aucun rendez-vous pour ces filtres.';
+        }
+
+        $pdfBinary = $this->buildSimplePdf($lines);
+
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename=rdv_export_' . date('Ymd_His') . '.pdf');
+        header('Content-Length: ' . strlen($pdfBinary));
+        echo $pdfBinary;
+        exit;
+    }
+
     private function validateRdvRequest(array $input, bool $manualMode): array
     {
         $errors = [];
 
-        $nomClient = $this->sanitize($input['nom_client'] ?? '');
-        $prenomClient = $this->sanitize($input['prenom_client'] ?? '');
-        $telephoneClient = preg_replace('/\D+/', '', $input['telephone_client'] ?? '');
-        $emailClient = trim($input['email_client'] ?? '');
         $typeIntervention = $this->sanitize($input['type_intervention'] ?? '');
         $descriptionPanne = $this->sanitize($input['description_panne'] ?? '');
-        $immatriculation = $this->sanitize($input['immatriculation'] ?? '');
+        $circonstancesPanne = $this->sanitize($input['circonstances_panne'] ?? '');
+        $temoinsPanne = $input['temoins_panne'] ?? [];
+        if (!is_array($temoinsPanne)) {
+            $temoinsPanne = [];
+        }
+        $temoinsPanne = array_values(array_filter(array_map(fn($item) => $this->sanitize((string) $item), $temoinsPanne), static fn($item) => $item !== ''));
+        $panneDataJsonRaw = trim((string) ($input['panne_data_json'] ?? ''));
 
-        if ($nomClient === '') {
-            $errors[] = 'Le nom du client est obligatoire.';
-        }
-        if ($prenomClient === '') {
-            $errors[] = 'Le prénom du client est obligatoire.';
-        }
-        if (!preg_match('/^\d{8}$/', $telephoneClient)) {
-            $errors[] = 'Le téléphone doit contenir exactement 8 chiffres (format tunisien).';
-        }
-        if ($emailClient === '') {
-            $errors[] = 'L\'email du client est obligatoire.';
-        } elseif (!filter_var($emailClient, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Email invalide.';
-        }
         if (!in_array($typeIntervention, $this->allowedInterventions, true)) {
             $errors[] = 'Type d\'intervention invalide.';
+        }
+        if ($descriptionPanne === '') {
+            $errors[] = 'La description des symptômes est obligatoire.';
+        }
+        if ($circonstancesPanne !== '' && !in_array($circonstancesPanne, $this->allowedCircumstances, true)) {
+            $errors[] = 'Circonstances invalides.';
         }
 
         $idCreneau = isset($input['id_creneau']) ? (int) $input['id_creneau'] : 0;
         $dateHeureManual = trim($input['date_heure_manual'] ?? '');
 
+        $nomClient = '';
+        $prenomClient = '';
+        $telephoneClient = '';
+        $emailClient = '';
+        $vehicle = null;
+
         if ($manualMode) {
+            $nomClient = $this->sanitize($input['nom_client'] ?? '');
+            $prenomClient = $this->sanitize($input['prenom_client'] ?? '');
+            $telephoneClient = preg_replace('/\D+/', '', $input['telephone_client'] ?? '');
+            $emailClient = trim($input['email_client'] ?? '');
+            $immatriculation = $this->sanitize($input['immatriculation'] ?? '');
+
+            if ($nomClient === '') {
+                $errors[] = 'Le nom du client est obligatoire.';
+            }
+            if ($prenomClient === '') {
+                $errors[] = 'Le prénom du client est obligatoire.';
+            }
+            if (!preg_match('/^\d{8}$/', $telephoneClient)) {
+                $errors[] = 'Le téléphone doit contenir exactement 8 chiffres (format tunisien).';
+            }
+            if ($emailClient === '') {
+                $errors[] = 'L\'email du client est obligatoire.';
+            } elseif (!filter_var($emailClient, FILTER_VALIDATE_EMAIL)) {
+                $errors[] = 'Email invalide.';
+            }
             if ($idCreneau <= 0 && $dateHeureManual === '') {
                 $errors[] = 'Sélectionnez un créneau ou renseignez une date/heure manuelle.';
             }
             if ($dateHeureManual !== '' && !$this->isValidDateTime($dateHeureManual)) {
                 $errors[] = 'Date/heure manuelle invalide.';
+            }
+
+            if ($immatriculation === '') {
+                $errors[] = 'L\'immatriculation est obligatoire.';
+            }
+
+            $existingVehicle = null;
+            if ($immatriculation !== '') {
+                $existingVehicle = $this->findVehicleByImmatriculation($immatriculation);
+            }
+
+            $vehicle = [
+                'immatriculation' => $immatriculation,
+            ];
+
+            if ($existingVehicle) {
+                $vehicle += [
+                    'marque' => $existingVehicle['marque'],
+                    'modele' => $existingVehicle['modele'],
+                    'annee' => $existingVehicle['annee'],
+                    'kilometrage' => $existingVehicle['kilometrage'],
+                    'carburant' => $existingVehicle['carburant'],
+                    'couleur' => $existingVehicle['couleur'] ?? 'N/A',
+                ];
+            } else {
+                $marque = $this->sanitize($input['marque'] ?? '');
+                $modele = $this->sanitize($input['modele'] ?? '');
+                $annee = (int) ($input['annee'] ?? 0);
+                $kilometrage = (int) ($input['kilometrage'] ?? 0);
+                $carburant = $this->sanitize($input['carburant'] ?? '');
+
+                if ($marque === '' || $modele === '' || $annee <= 0 || $kilometrage < 0 || $carburant === '') {
+                    $errors[] = 'Véhicule inconnu: marque, modèle, année, kilométrage et carburant sont requis.';
+                }
+
+                $vehicle += [
+                    'marque' => $marque,
+                    'modele' => $modele,
+                    'annee' => $annee,
+                    'kilometrage' => $kilometrage,
+                    'carburant' => $carburant,
+                    'couleur' => $this->sanitize($input['couleur'] ?? 'N/A'),
+                ];
             }
         } else {
             if ($idCreneau <= 0) {
@@ -436,48 +568,21 @@ class CalendrierController
             }
         }
 
-        if ($immatriculation === '') {
-            $errors[] = 'L\'immatriculation est obligatoire.';
-        }
-
-        $existingVehicle = null;
-        if ($immatriculation !== '') {
-            $existingVehicle = $this->findVehicleByImmatriculation($immatriculation);
-        }
-
-        $vehicle = [
-            'immatriculation' => $immatriculation,
-        ];
-
-        if ($existingVehicle) {
-            $vehicle += [
-                'marque' => $existingVehicle['marque'],
-                'modele' => $existingVehicle['modele'],
-                'annee' => $existingVehicle['annee'],
-                'kilometrage' => $existingVehicle['kilometrage'],
-                'carburant' => $existingVehicle['carburant'],
-                'couleur' => $existingVehicle['couleur'] ?? 'N/A',
-            ];
-        } else {
-            $marque = $this->sanitize($input['marque'] ?? '');
-            $modele = $this->sanitize($input['modele'] ?? '');
-            $annee = (int) ($input['annee'] ?? 0);
-            $kilometrage = (int) ($input['kilometrage'] ?? 0);
-            $carburant = $this->sanitize($input['carburant'] ?? '');
-
-            if ($marque === '' || $modele === '' || $annee <= 0 || $kilometrage < 0 || $carburant === '') {
-                $errors[] = 'Véhicule inconnu: marque, modèle, année, kilométrage et carburant sont requis.';
+        $decodedPanneData = [];
+        if ($panneDataJsonRaw !== '') {
+            $decodedPanneData = json_decode($panneDataJsonRaw, true);
+            if (!is_array($decodedPanneData)) {
+                $decodedPanneData = [];
             }
-
-            $vehicle += [
-                'marque' => $marque,
-                'modele' => $modele,
-                'annee' => $annee,
-                'kilometrage' => $kilometrage,
-                'carburant' => $carburant,
-                'couleur' => $this->sanitize($input['couleur'] ?? 'N/A'),
-            ];
         }
+
+        $panneData = [
+            'typePanne' => $typeIntervention,
+            'circonstances' => $circonstancesPanne,
+            'symptomes' => $descriptionPanne,
+            'temoins' => $temoinsPanne,
+            'photos' => is_array($decodedPanneData['photos'] ?? null) ? $decodedPanneData['photos'] : [],
+        ];
 
         return [
             'errors' => $errors,
@@ -490,6 +595,9 @@ class CalendrierController
                 'email_client' => $emailClient,
                 'type_intervention' => $typeIntervention,
                 'description_panne' => $descriptionPanne,
+                'circonstances_panne' => $circonstancesPanne,
+                'temoins_panne' => $temoinsPanne,
+                'panne_data_json' => json_encode($panneData, JSON_UNESCAPED_UNICODE),
                 'vehicle' => $vehicle,
             ],
         ];
@@ -829,6 +937,77 @@ class CalendrierController
                     id_vehicle,
                     type_intervention,
                     description_panne,
+                    circonstances_panne,
+                    temoins_panne,
+                    panne_data_json,
+                    photos_json,
+                    remise_eco_appliquee,
+                    statut,
+                    notes,
+                    date_creation,
+                    date_modification
+                ) VALUES (
+                    :id_creneau,
+                    :nom_client,
+                    :prenom_client,
+                    :telephone_client,
+                    :email_client,
+                    :id_vehicle,
+                    :type_intervention,
+                    :description_panne,
+                    :circonstances_panne,
+                    :temoins_panne,
+                    :panne_data_json,
+                    :photos_json,
+                    :remise_eco_appliquee,
+                    :statut,
+                    :notes,
+                    NOW(),
+                    NOW()
+                )";
+
+        $params = [
+            ':id_creneau' => (int) $data['id_creneau'],
+            ':nom_client' => $data['nom_client'],
+            ':prenom_client' => $data['prenom_client'],
+            ':telephone_client' => $data['telephone_client'],
+            ':email_client' => $data['email_client'] !== '' ? $data['email_client'] : null,
+            ':id_vehicle' => isset($data['id_vehicle']) ? (int) $data['id_vehicle'] : null,
+            ':type_intervention' => $data['type_intervention'],
+            ':description_panne' => $data['description_panne'] !== '' ? $data['description_panne'] : null,
+            ':circonstances_panne' => $data['circonstances_panne'] !== '' ? $data['circonstances_panne'] : null,
+            ':temoins_panne' => isset($data['temoins_panne']) ? json_encode($data['temoins_panne'], JSON_UNESCAPED_UNICODE) : json_encode([], JSON_UNESCAPED_UNICODE),
+            ':panne_data_json' => $data['panne_data_json'] ?? json_encode([], JSON_UNESCAPED_UNICODE),
+            ':photos_json' => $data['photos_json'] ?? json_encode([], JSON_UNESCAPED_UNICODE),
+            ':remise_eco_appliquee' => $data['remise_eco_appliquee'],
+            ':statut' => $data['statut'] ?? 'En attente',
+            ':notes' => $data['notes'] ?? null,
+        ];
+
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'Unknown column') !== false) {
+                return $this->createRendezvousLegacy($data);
+            }
+            throw $e;
+        }
+
+        return (int) $this->db->lastInsertId();
+    }
+
+    private function createRendezvousLegacy(array $data): int
+    {
+        $sql = "INSERT INTO rendezvous_digital (
+                    id_creneau,
+                    nom_client,
+                    prenom_client,
+                    telephone_client,
+                    email_client,
+                    id_vehicle,
+                    type_intervention,
+                    description_panne,
                     remise_eco_appliquee,
                     statut,
                     notes,
@@ -886,27 +1065,129 @@ class CalendrierController
         return $row ?: null;
     }
 
+    private function savePannePhotos(int $idRdv, ?array $files): array
+    {
+        if ($idRdv <= 0 || !is_array($files) || !isset($files['name']) || !is_array($files['name'])) {
+            return [];
+        }
+
+        $maxPhotos = 5;
+        $maxSize = 10 * 1024 * 1024;
+        $allowedMime = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+        ];
+
+        $uploadDir = __DIR__ . '/../views/images/pannes';
+        if (!is_dir($uploadDir) && !mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
+            return [];
+        }
+
+        $saved = [];
+        $count = min($maxPhotos, count($files['name']));
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+
+        for ($i = 0; $i < $count; $i++) {
+            $error = (int) ($files['error'][$i] ?? UPLOAD_ERR_NO_FILE);
+            if ($error !== UPLOAD_ERR_OK) {
+                continue;
+            }
+
+            $tmpName = (string) ($files['tmp_name'][$i] ?? '');
+            $originalName = $this->sanitize((string) ($files['name'][$i] ?? 'photo'));
+            $size = (int) ($files['size'][$i] ?? 0);
+            if ($tmpName === '' || $size <= 0 || $size > $maxSize || !is_uploaded_file($tmpName)) {
+                continue;
+            }
+
+            $mime = $finfo ? (string) finfo_file($finfo, $tmpName) : (string) ($files['type'][$i] ?? '');
+            if (!isset($allowedMime[$mime])) {
+                continue;
+            }
+
+            $ext = $allowedMime[$mime];
+            try {
+                $entropy = bin2hex(random_bytes(4));
+            } catch (Throwable $e) {
+                $entropy = (string) mt_rand(1000, 9999);
+            }
+
+            $safeName = 'rdv_' . $idRdv . '_' . date('YmdHis') . '_' . $entropy . '.' . $ext;
+            $targetPath = $uploadDir . '/' . $safeName;
+
+            if (!move_uploaded_file($tmpName, $targetPath)) {
+                continue;
+            }
+
+            $saved[] = [
+                'path' => 'views/images/pannes/' . $safeName,
+                'name' => $originalName,
+                'size' => $size,
+                'type' => $mime,
+            ];
+        }
+
+        if ($finfo) {
+            finfo_close($finfo);
+        }
+
+        return $saved;
+    }
+
+    private function updateRendezvousPhotosJson(int $idRdv, array $photos): void
+    {
+        if ($idRdv <= 0) {
+            return;
+        }
+
+        try {
+            $stmt = $this->db->prepare('UPDATE rendezvous_digital SET photos_json = :photos_json, date_modification = NOW() WHERE id_rdv = :id_rdv');
+            $stmt->execute([
+                ':photos_json' => json_encode($photos, JSON_UNESCAPED_UNICODE),
+                ':id_rdv' => $idRdv,
+            ]);
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'Unknown column') !== false) {
+                return;
+            }
+            throw $e;
+        }
+    }
+
     private function getByCreneau(int $idCreneau): array
     {
-        $sql = "SELECT
-                    r.id_rdv,
-                    r.nom_client,
-                    r.prenom_client,
-                    r.telephone_client,
-                    r.email_client,
-                    r.type_intervention,
-                    r.description_panne,
-                    r.statut,
-                    r.remise_eco_appliquee,
-                    r.notes,
-                    r.date_creation,
-                    v.immatriculation,
-                    v.marque,
-                    v.modele
-                FROM rendezvous_digital r
-                LEFT JOIN vehicle v ON v.id = r.id_vehicle
-                WHERE r.id_creneau = :id_creneau
-                ORDER BY r.date_creation ASC";
+        if ($this->hasPanneColumns()) {
+            $sql = "SELECT
+                        r.id_rdv,
+                        r.type_intervention,
+                        r.description_panne,
+                        r.circonstances_panne,
+                        r.temoins_panne,
+                        r.photos_json,
+                        r.statut,
+                        r.remise_eco_appliquee,
+                        r.notes,
+                        r.date_creation
+                    FROM rendezvous_digital r
+                    WHERE r.id_creneau = :id_creneau
+                    ORDER BY r.date_creation ASC";
+        } else {
+            $sql = "SELECT
+                        r.id_rdv,
+                        r.type_intervention,
+                        r.description_panne,
+                        '' AS circonstances_panne,
+                        '[]' AS temoins_panne,
+                        '[]' AS photos_json,
+                        r.statut,
+                        r.remise_eco_appliquee,
+                        r.notes,
+                        r.date_creation
+                    FROM rendezvous_digital r
+                    WHERE r.id_creneau = :id_creneau
+                    ORDER BY r.date_creation ASC";
+        }
 
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id_creneau' => $idCreneau]);
@@ -967,6 +1248,7 @@ class CalendrierController
     {
         $where = [];
         $params = [];
+        $hasPanneColumns = $this->hasPanneColumns();
 
         if (!empty($filters['status'])) {
             $where[] = 'r.statut = :status';
@@ -979,24 +1261,47 @@ class CalendrierController
         }
 
         if (!empty($filters['search'])) {
-            $where[] = '(CONCAT(r.nom_client, " ", r.prenom_client) LIKE :search OR r.telephone_client LIKE :search OR v.immatriculation LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
+            if ($hasPanneColumns) {
+                $where[] = '(r.type_intervention LIKE :search_type OR r.description_panne LIKE :search_desc OR r.circonstances_panne LIKE :search_context OR r.statut LIKE :search_status)';
+            } else {
+                $where[] = '(r.type_intervention LIKE :search_type OR r.description_panne LIKE :search_desc OR r.statut LIKE :search_status)';
+            }
+            $searchValue = '%' . $filters['search'] . '%';
+            $params[':search_type'] = $searchValue;
+            $params[':search_desc'] = $searchValue;
+            $params[':search_status'] = $searchValue;
+            if ($hasPanneColumns) {
+                $params[':search_context'] = $searchValue;
+            }
         }
 
-        $sql = "SELECT
-                    r.id_rdv,
-                    c.date_heure,
-                    r.nom_client,
-                    r.prenom_client,
-                    r.telephone_client,
-                    r.type_intervention,
-                    r.statut,
-                    v.immatriculation,
-                    v.marque,
-                    v.modele
-                FROM rendezvous_digital r
-                INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau
-                LEFT JOIN vehicle v ON v.id = r.id_vehicle";
+        if ($hasPanneColumns) {
+            $sql = "SELECT
+                        r.id_rdv,
+                        c.date_heure,
+                        r.type_intervention,
+                        r.description_panne,
+                        r.circonstances_panne,
+                        r.temoins_panne,
+                        r.photos_json,
+                        r.statut,
+                        r.remise_eco_appliquee
+                    FROM rendezvous_digital r
+                    INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau";
+        } else {
+            $sql = "SELECT
+                        r.id_rdv,
+                        c.date_heure,
+                        r.type_intervention,
+                        r.description_panne,
+                        '' AS circonstances_panne,
+                        '[]' AS temoins_panne,
+                        '[]' AS photos_json,
+                        r.statut,
+                        r.remise_eco_appliquee
+                    FROM rendezvous_digital r
+                    INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau";
+        }
 
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -1019,6 +1324,7 @@ class CalendrierController
     {
         $where = [];
         $params = [];
+        $hasPanneColumns = $this->hasPanneColumns();
 
         if (!empty($filters['status'])) {
             $where[] = 'r.statut = :status';
@@ -1031,11 +1337,21 @@ class CalendrierController
         }
 
         if (!empty($filters['search'])) {
-            $where[] = '(CONCAT(r.nom_client, " ", r.prenom_client) LIKE :search OR r.telephone_client LIKE :search OR v.immatriculation LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
+            if ($hasPanneColumns) {
+                $where[] = '(r.type_intervention LIKE :search_type OR r.description_panne LIKE :search_desc OR r.circonstances_panne LIKE :search_context OR r.statut LIKE :search_status)';
+            } else {
+                $where[] = '(r.type_intervention LIKE :search_type OR r.description_panne LIKE :search_desc OR r.statut LIKE :search_status)';
+            }
+            $searchValue = '%' . $filters['search'] . '%';
+            $params[':search_type'] = $searchValue;
+            $params[':search_desc'] = $searchValue;
+            $params[':search_status'] = $searchValue;
+            if ($hasPanneColumns) {
+                $params[':search_context'] = $searchValue;
+            }
         }
 
-        $sql = 'SELECT COUNT(*) FROM rendezvous_digital r INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau LEFT JOIN vehicle v ON v.id = r.id_vehicle';
+        $sql = 'SELECT COUNT(*) FROM rendezvous_digital r INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau';
 
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -1051,6 +1367,7 @@ class CalendrierController
     {
         $where = [];
         $params = [];
+        $hasPanneColumns = $this->hasPanneColumns();
 
         if (!empty($filters['status'])) {
             $where[] = 'r.statut = :status';
@@ -1063,25 +1380,43 @@ class CalendrierController
         }
 
         if (!empty($filters['search'])) {
-            $where[] = '(CONCAT(r.nom_client, " ", r.prenom_client) LIKE :search OR r.telephone_client LIKE :search OR v.immatriculation LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
+            if ($hasPanneColumns) {
+                $where[] = '(r.type_intervention LIKE :search_type OR r.description_panne LIKE :search_desc OR r.circonstances_panne LIKE :search_context OR r.statut LIKE :search_status)';
+            } else {
+                $where[] = '(r.type_intervention LIKE :search_type OR r.description_panne LIKE :search_desc OR r.statut LIKE :search_status)';
+            }
+            $searchValue = '%' . $filters['search'] . '%';
+            $params[':search_type'] = $searchValue;
+            $params[':search_desc'] = $searchValue;
+            $params[':search_status'] = $searchValue;
+            if ($hasPanneColumns) {
+                $params[':search_context'] = $searchValue;
+            }
         }
 
-        $sql = "SELECT
-                    c.date_heure,
-                    r.nom_client,
-                    r.prenom_client,
-                    r.telephone_client,
-                    r.email_client,
-                    v.immatriculation,
-                    v.marque,
-                    v.modele,
-                    r.type_intervention,
-                    r.statut,
-                    r.remise_eco_appliquee
-                FROM rendezvous_digital r
-                INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau
-                LEFT JOIN vehicle v ON v.id = r.id_vehicle";
+        if ($hasPanneColumns) {
+            $sql = "SELECT
+                        c.date_heure,
+                        r.type_intervention,
+                        r.description_panne,
+                        r.circonstances_panne,
+                        r.temoins_panne,
+                        r.statut,
+                        r.remise_eco_appliquee
+                    FROM rendezvous_digital r
+                    INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau";
+        } else {
+            $sql = "SELECT
+                        c.date_heure,
+                        r.type_intervention,
+                        r.description_panne,
+                        '' AS circonstances_panne,
+                        '[]' AS temoins_panne,
+                        r.statut,
+                        r.remise_eco_appliquee
+                    FROM rendezvous_digital r
+                    INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau";
+        }
 
         if (!empty($where)) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -1093,6 +1428,22 @@ class CalendrierController
         $stmt->execute($params);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function hasPanneColumns(): bool
+    {
+        if ($this->hasPanneColumnsCache !== null) {
+            return $this->hasPanneColumnsCache;
+        }
+
+        try {
+            $stmt = $this->db->query("SHOW COLUMNS FROM rendezvous_digital LIKE 'circonstances_panne'");
+            $this->hasPanneColumnsCache = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            $this->hasPanneColumnsCache = false;
+        }
+
+        return $this->hasPanneColumnsCache;
     }
 
     private function getQuickStats(string $dayStart, string $dayEnd, string $weekStart, string $weekEnd): array
@@ -1138,5 +1489,101 @@ class CalendrierController
         $stats['taux_remplissage'] = $capacity > 0 ? round(($totalRdv / $capacity) * 100, 2) : 0;
 
         return $stats;
+    }
+
+    private function temoinsToLabel($rawTemoins): string
+    {
+        if ($rawTemoins === null || $rawTemoins === '') {
+            return '-';
+        }
+
+        $decoded = json_decode((string) $rawTemoins, true);
+        if (!is_array($decoded) || empty($decoded)) {
+            return '-';
+        }
+
+        return implode(', ', array_map(static fn($item) => (string) $item, $decoded));
+    }
+
+    private function truncatePdfLine(string $line, int $maxLen): string
+    {
+        if (mb_strlen($line, 'UTF-8') <= $maxLen) {
+            return $line;
+        }
+
+        return mb_substr($line, 0, $maxLen - 3, 'UTF-8') . '...';
+    }
+
+    private function buildSimplePdf(array $lines): string
+    {
+        $linesPerPage = 48;
+        $pagesLines = array_chunk($lines, $linesPerPage);
+
+        $objects = [];
+        $nextId = 1;
+
+        $catalogId = $nextId++;
+        $pagesId = $nextId++;
+        $fontId = $nextId++;
+
+        $objects[$fontId] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+
+        $pageIds = [];
+
+        foreach ($pagesLines as $pageLines) {
+            $content = "BT\n/F1 10 Tf\n14 TL\n40 805 Td\n";
+            foreach ($pageLines as $line) {
+                $content .= '(' . $this->pdfEscape($line) . ") Tj\nT*\n";
+            }
+            $content .= "ET";
+
+            $contentId = $nextId++;
+            $objects[$contentId] = "<< /Length " . strlen($content) . " >>\nstream\n" . $content . "\nendstream";
+
+            $pageId = $nextId++;
+            $objects[$pageId] = "<< /Type /Page /Parent {$pagesId} 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 {$fontId} 0 R >> >> /Contents {$contentId} 0 R >>";
+            $pageIds[] = $pageId;
+        }
+
+        $kids = implode(' ', array_map(static fn($id) => $id . ' 0 R', $pageIds));
+        $objects[$pagesId] = "<< /Type /Pages /Kids [{$kids}] /Count " . count($pageIds) . " >>";
+        $objects[$catalogId] = "<< /Type /Catalog /Pages {$pagesId} 0 R >>";
+
+        ksort($objects);
+
+        $pdf = "%PDF-1.4\n";
+        $offsets = [0 => 0];
+
+        foreach ($objects as $id => $body) {
+            $offsets[$id] = strlen($pdf);
+            $pdf .= $id . " 0 obj\n" . $body . "\nendobj\n";
+        }
+
+        $xrefOffset = strlen($pdf);
+        $pdf .= "xref\n0 " . (count($objects) + 1) . "\n";
+        $pdf .= "0000000000 65535 f \n";
+
+        for ($id = 1; $id <= count($objects); $id++) {
+            $pdf .= sprintf('%010d 00000 n ', $offsets[$id] ?? 0) . "\n";
+        }
+
+        $pdf .= "trailer\n<< /Size " . (count($objects) + 1) . " /Root {$catalogId} 0 R >>\n";
+        $pdf .= "startxref\n{$xrefOffset}\n%%EOF";
+
+        return $pdf;
+    }
+
+    private function pdfEscape(string $text): string
+    {
+        $encoded = iconv('UTF-8', 'windows-1252//TRANSLIT//IGNORE', $text);
+        if ($encoded === false) {
+            $encoded = $text;
+        }
+
+        $encoded = str_replace('\\', '\\\\', $encoded);
+        $encoded = str_replace('(', '\\(', $encoded);
+        $encoded = str_replace(')', '\\)', $encoded);
+
+        return $encoded;
     }
 }

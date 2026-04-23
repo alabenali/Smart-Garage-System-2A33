@@ -17,7 +17,7 @@ $queryBase = [
 <p class="page-subtitle">Filtrez, recherchez et exportez les rendez-vous du garage.</p>
 
 <div class="sg-form-wrap rdv-filter-wrap">
-    <form method="GET" class="rdv-filter-grid">
+    <form method="GET" action="index.php" class="rdv-filter-grid">
         <input type="hidden" name="action" value="backRdvList">
         <div class="sg-form-group">
             <label>Statut</label>
@@ -34,13 +34,16 @@ $queryBase = [
         </div>
         <div class="sg-form-group">
             <label>Recherche</label>
-            <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search'] ?? ''); ?>" placeholder="Nom, téléphone, immatriculation">
+            <input type="text" name="search" value="<?php echo htmlspecialchars($filters['search'] ?? ''); ?>" placeholder="Type de panne, symptôme, circonstances">
         </div>
         <div class="sg-form-actions">
             <button class="btn-sg btn-sg-primary" type="submit"><i class="bi bi-funnel"></i> Filtrer</button>
             <a class="btn-sg btn-sg-outline" href="index.php?action=backRdvList">Réinitialiser</a>
             <a class="btn-sg btn-sg-success" href="index.php?action=backRdvExportCsv&status=<?php echo urlencode($filters['status'] ?? ''); ?>&date=<?php echo urlencode($filters['date'] ?? ''); ?>&search=<?php echo urlencode($filters['search'] ?? ''); ?>">
                 <i class="bi bi-filetype-csv"></i> Export CSV
+            </a>
+            <a class="btn-sg btn-sg-outline" href="index.php?action=backRdvExportPdf&status=<?php echo urlencode($filters['status'] ?? ''); ?>&date=<?php echo urlencode($filters['date'] ?? ''); ?>&search=<?php echo urlencode($filters['search'] ?? ''); ?>">
+                <i class="bi bi-file-earmark-pdf"></i> Export PDF
             </a>
         </div>
     </form>
@@ -51,10 +54,10 @@ $queryBase = [
         <thead>
             <tr>
                 <th>Date/Heure</th>
-                <th>Client</th>
-                <th>Téléphone</th>
-                <th>Véhicule</th>
-                <th>Intervention</th>
+                <th>Type panne</th>
+                <th>Circonstances</th>
+                <th>Symptômes</th>
+                <th>Témoins</th>
                 <th>Statut</th>
             </tr>
         </thead>
@@ -72,20 +75,83 @@ $queryBase = [
                         'Annulé' => 'annule',
                     ];
                     $statusClass = $statusMap[$row['statut']] ?? 'en-attente';
+                    $rdvId = (int) ($row['id_rdv'] ?? 0);
+                    $temoins = json_decode((string) ($row['temoins_panne'] ?? ''), true);
+                    $temoinsLabel = is_array($temoins) && !empty($temoins) ? implode(', ', $temoins) : '-';
+                    $photos = json_decode((string) ($row['photos_json'] ?? ''), true);
+                    $photos = is_array($photos) ? $photos : [];
+
+                    if (empty($photos)) {
+                        $diskPhotos = glob(__DIR__ . '/../images/pannes/rdv_' . $rdvId . '_*');
+                        if (is_array($diskPhotos) && !empty($diskPhotos)) {
+                            $photos = array_map(static function ($absPath) {
+                                return ['path' => 'views/images/pannes/' . basename((string) $absPath)];
+                            }, $diskPhotos);
+                        }
+                    }
                     ?>
-                    <tr>
+                    <tr class="rdv-summary-row" data-rdv-detail-id="rdv-detail-<?php echo $rdvId; ?>">
                         <td><?php echo htmlspecialchars(date('d/m/Y H:i', strtotime($row['date_heure']))); ?></td>
-                        <td><?php echo htmlspecialchars($row['prenom_client'] . ' ' . $row['nom_client']); ?></td>
-                        <td><?php echo htmlspecialchars($row['telephone_client']); ?></td>
-                        <td><?php echo htmlspecialchars(($row['immatriculation'] ?? '-') . ' - ' . ($row['marque'] ?? '-') . ' ' . ($row['modele'] ?? '')); ?></td>
                         <td><?php echo htmlspecialchars($row['type_intervention']); ?></td>
+                        <td><?php echo htmlspecialchars($row['circonstances_panne'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($row['description_panne'] ?? '-'); ?></td>
+                        <td><?php echo htmlspecialchars($temoinsLabel); ?></td>
                         <td><span class="status-badge status-<?php echo $statusClass; ?>"><?php echo htmlspecialchars($row['statut']); ?></span></td>
+                    </tr>
+                    <tr id="rdv-detail-<?php echo $rdvId; ?>" class="rdv-detail-row" style="display:none;">
+                        <td colspan="6">
+                            <div class="rdv-list-detail-box">
+                                <div><strong>Type de panne:</strong> <?php echo htmlspecialchars($row['type_intervention'] ?? '-'); ?></div>
+                                <div><strong>Circonstances:</strong> <?php echo htmlspecialchars($row['circonstances_panne'] ?? '-'); ?></div>
+                                <div><strong>Symptômes:</strong> <?php echo htmlspecialchars($row['description_panne'] ?? '-'); ?></div>
+                                <div><strong>Témoins:</strong> <?php echo htmlspecialchars($temoinsLabel); ?></div>
+                                <div><strong>Images de panne:</strong></div>
+
+                                <?php if (empty($photos)): ?>
+                                    <div class="rdv-images-empty">Aucune image</div>
+                                <?php else: ?>
+                                    <div class="rdv-images-grid">
+                                        <?php foreach ($photos as $photo): ?>
+                                            <?php $imgPath = isset($photo['path']) ? (string) $photo['path'] : ''; ?>
+                                            <?php if ($imgPath === '') { continue; } ?>
+                                            <a href="<?php echo htmlspecialchars($imgPath); ?>" target="_blank" rel="noopener noreferrer" class="rdv-image-link">
+                                                <img src="<?php echo htmlspecialchars($imgPath); ?>" alt="Image panne RDV <?php echo $rdvId; ?>" class="rdv-image-thumb">
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             <?php endif; ?>
         </tbody>
     </table>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const summaryRows = document.querySelectorAll('.rdv-summary-row[data-rdv-detail-id]');
+
+    summaryRows.forEach(function (row) {
+        row.addEventListener('click', function () {
+            const detailId = row.getAttribute('data-rdv-detail-id');
+            if (!detailId) {
+                return;
+            }
+
+            const detailRow = document.getElementById(detailId);
+            if (!detailRow) {
+                return;
+            }
+
+            const isOpen = detailRow.style.display !== 'none';
+            detailRow.style.display = isOpen ? 'none' : 'table-row';
+            row.classList.toggle('is-open', !isOpen);
+        });
+    });
+});
+</script>
 
 <?php if ($totalPages > 1): ?>
     <div class="pagination-wrap">
