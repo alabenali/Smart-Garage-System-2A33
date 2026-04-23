@@ -68,13 +68,33 @@ $queryBase = [
                 <?php foreach ($rdvs as $row): ?>
                     <?php
                     $statusMap = [
-                        'En attente' => 'en-attente',
-                        'Confirmé' => 'confirme',
-                        'En cours' => 'en-cours',
-                        'Terminé' => 'termine',
-                        'Annulé' => 'annule',
+                        'en attente' => 'en-attente',
+                        'confirme' => 'confirme',
+                        'en cours' => 'en-cours',
+                        'termine' => 'termine',
+                        'annule' => 'annule',
                     ];
-                    $statusClass = $statusMap[$row['statut']] ?? 'en-attente';
+                    $statusLabelMap = [
+                        'en attente' => 'En attente',
+                        'confirme' => 'Confirmé',
+                        'en cours' => 'En cours',
+                        'termine' => 'Terminé',
+                        'annule' => 'Annulé',
+                    ];
+
+                    $statusRaw = trim((string) ($row['statut'] ?? ''));
+                    $statusKey = mb_strtolower($statusRaw, 'UTF-8');
+                    $statusKey = strtr($statusKey, [
+                        'à' => 'a', 'â' => 'a', 'ä' => 'a',
+                        'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+                        'î' => 'i', 'ï' => 'i',
+                        'ô' => 'o', 'ö' => 'o',
+                        'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+                        'ç' => 'c',
+                    ]);
+
+                    $statusClass = $statusMap[$statusKey] ?? 'en-attente';
+                    $statusLabel = $statusLabelMap[$statusKey] ?? ($statusRaw !== '' ? $statusRaw : 'En attente');
                     $rdvId = (int) ($row['id_rdv'] ?? 0);
                     $temoins = json_decode((string) ($row['temoins_panne'] ?? ''), true);
                     $temoinsLabel = is_array($temoins) && !empty($temoins) ? implode(', ', $temoins) : '-';
@@ -96,7 +116,7 @@ $queryBase = [
                         <td><?php echo htmlspecialchars($row['circonstances_panne'] ?? '-'); ?></td>
                         <td><?php echo htmlspecialchars($row['description_panne'] ?? '-'); ?></td>
                         <td><?php echo htmlspecialchars($temoinsLabel); ?></td>
-                        <td><span class="status-badge status-<?php echo $statusClass; ?>"><?php echo htmlspecialchars($row['statut']); ?></span></td>
+                        <td><span class="status-badge status-<?php echo $statusClass; ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
                     </tr>
                     <tr id="rdv-detail-<?php echo $rdvId; ?>" class="rdv-detail-row" style="display:none;">
                         <td colspan="6">

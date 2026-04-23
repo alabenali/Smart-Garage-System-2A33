@@ -8,12 +8,20 @@
     const statusUrl = adminCalendar.dataset.statusUrl;
     const sidebar = document.getElementById('slotSidebar');
     const statusClassMap = {
-        'En attente': 'en-attente',
-        'Confirmé': 'confirme',
-        'En cours': 'en-cours',
-        'Terminé': 'termine',
-        'Annulé': 'annule',
+        'en attente': 'en-attente',
+        'confirme': 'confirme',
+        'en cours': 'en-cours',
+        'termine': 'termine',
+        'annule': 'annule',
     };
+
+    function normalizeStatus(value) {
+        return String(value || '')
+            .toLowerCase()
+            .trim()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+    }
 
     async function loadSlotDetails(idCreneau) {
         sidebar.innerHTML = '<div class="sidebar-loading">Chargement...</div>';
@@ -56,7 +64,7 @@
         const badge = card.querySelector('[data-status-label]');
         if (badge) {
             badge.textContent = newStatus;
-            const cls = statusClassMap[newStatus] || 'en-attente';
+            const cls = statusClassMap[normalizeStatus(newStatus)] || 'en-attente';
             badge.className = `status-badge status-${cls}`;
         }
     }

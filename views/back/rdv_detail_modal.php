@@ -15,13 +15,33 @@
         <?php foreach ($rdvs as $rdv): ?>
             <?php
             $statusMap = [
-                'En attente' => 'en-attente',
-                'Confirmé' => 'confirme',
-                'En cours' => 'en-cours',
-                'Terminé' => 'termine',
-                'Annulé' => 'annule',
+                'en attente' => 'en-attente',
+                'confirme' => 'confirme',
+                'en cours' => 'en-cours',
+                'termine' => 'termine',
+                'annule' => 'annule',
             ];
-            $statusClass = $statusMap[$rdv['statut']] ?? 'en-attente';
+            $statusLabelMap = [
+                'en attente' => 'En attente',
+                'confirme' => 'Confirmé',
+                'en cours' => 'En cours',
+                'termine' => 'Terminé',
+                'annule' => 'Annulé',
+            ];
+
+            $statusRaw = trim((string) ($rdv['statut'] ?? ''));
+            $statusKey = mb_strtolower($statusRaw, 'UTF-8');
+            $statusKey = strtr($statusKey, [
+                'à' => 'a', 'â' => 'a', 'ä' => 'a',
+                'é' => 'e', 'è' => 'e', 'ê' => 'e', 'ë' => 'e',
+                'î' => 'i', 'ï' => 'i',
+                'ô' => 'o', 'ö' => 'o',
+                'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+                'ç' => 'c',
+            ]);
+
+            $statusClass = $statusMap[$statusKey] ?? 'en-attente';
+            $statusLabel = $statusLabelMap[$statusKey] ?? ($statusRaw !== '' ? $statusRaw : 'En attente');
             ?>
             <div class="rdv-card" data-rdv-id="<?php echo (int) $rdv['id_rdv']; ?>">
                 <div class="rdv-main">
@@ -51,7 +71,7 @@
                             Photos: <?php echo count($photos); ?>
                         </span>
                     <?php endif; ?>
-                    <span class="status-badge status-<?php echo $statusClass; ?>" data-status-label><?php echo htmlspecialchars($rdv['statut']); ?></span>
+                    <span class="status-badge status-<?php echo $statusClass; ?>" data-status-label><?php echo htmlspecialchars($statusLabel); ?></span>
                 </div>
                 <div class="rdv-actions-inline">
                     <button type="button" class="btn-sg btn-sg-outline btn-sg-sm status-action" data-status="En cours">En cours</button>

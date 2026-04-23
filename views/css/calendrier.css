@@ -485,11 +485,11 @@
     font-weight: 700;
 }
 
-.status-en-attente { background: rgba(243, 156, 18, 0.2); color: #ffca7c; }
-.status-confirme { background: rgba(52, 152, 219, 0.2); color: #85d0ff; }
-.status-en-cours { background: rgba(26, 188, 156, 0.2); color: #8bf9df; }
-.status-termine { background: rgba(46, 204, 113, 0.2); color: #9ff6c5; }
-.status-annule { background: rgba(231, 76, 60, 0.2); color: #ff9a8f; }
+.status-en-attente { background: #FFF3CD; color: #6B4E00; }
+.status-confirme { background: #E7EEF7; color: #23384F; }
+.status-en-cours { background: #E8F5E9; color: #1F5130; }
+.status-termine { background: #EAF7EF; color: #2E7D32; }
+.status-annule { background: #FDECEA; color: #8F1D1D; }
 
 .week-toolbar {
     display: flex;
