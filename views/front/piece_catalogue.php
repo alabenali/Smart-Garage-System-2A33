@@ -1,173 +1,135 @@
 <?php
-// Basic page variables used by layout and title area.
-$pageTitle = 'Catalogue des Pièces';
+$pageTitle = 'Catalogue des Pieces';
 $action = 'showCatalogue';
-$pieceCount = count($pieces);
+$pieceCount = isset($pagination['total_items']) ? (int) $pagination['total_items'] : count($pieces);
 $piecePlural = $pieceCount !== 1 ? 's' : '';
-$availablePlural = $pieceCount !== 1 ? 's' : '';
 ?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
-<div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+<div class="hero-panel">
     <div>
-        <h1 class="page-title" style="margin-bottom:0.2rem;">Catalogue des Pièces</h1>
+        <h1 class="page-title" style="margin-bottom:0.2rem;">Catalogue des Pieces</h1>
         <p class="page-subtitle" style="margin-bottom:0;">
-            <?php echo $pieceCount; ?> pièce<?php echo $piecePlural; ?> disponible<?php echo $availablePlural; ?>
+            <?php echo $pieceCount; ?> piece<?php echo $piecePlural; ?> disponible<?php echo $piecePlural; ?>
         </p>
     </div>
-    <a href="index.php?action=orderPiece" class="btn-sg btn-sg-primary">
-        <i class="bi bi-cart-plus"></i> Commander
-    </a>
+    <div class="hero-actions">
+        <a href="index.php?action=orderHistory" class="btn-sg btn-sg-outline">
+            <i class="bi bi-clock-history"></i> Historique
+        </a>
+        <a href="index.php?action=requestPiece" class="btn-sg btn-sg-primary">
+            <i class="bi bi-send"></i> Demander
+        </a>
+    </div>
 </div>
 
-<!-- Search & Filter Bar -->
-<div class="filter-bar" id="filterBar">
-    <div class="search-wrap">
-        <i class="bi bi-search search-icon"></i>
-        <input type="text" id="searchInput" placeholder="Rechercher une pièce..." autocomplete="off">
+<form method="GET" action="index.php" class="filter-panel catalog-filter-panel">
+    <input type="hidden" name="action" value="showCatalogue">
+    <div class="catalog-filter-grid">
+        <div class="search-wrap search-wrap-wide">
+            <i class="bi bi-search search-icon"></i>
+            <input type="text" name="q" placeholder="Rechercher une piece, une marque ou une reference..." value="<?php echo htmlspecialchars((string) ($paginationQuery['q'] ?? '')); ?>">
+        </div>
+        <select name="categorie">
+            <option value="">Toutes les categories</option>
+            <?php foreach ($categories as $cat): ?>
+                <option value="<?php echo htmlspecialchars((string) $cat); ?>" <?php echo (($paginationQuery['categorie'] ?? '') === $cat) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars((string) $cat); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <select name="stock">
+            <option value="">Tous les stocks</option>
+            <option value="in-stock" <?php echo (($paginationQuery['stock'] ?? '') === 'in-stock') ? 'selected' : ''; ?>>En stock</option>
+            <option value="low-stock" <?php echo (($paginationQuery['stock'] ?? '') === 'low-stock') ? 'selected' : ''; ?>>Stock faible</option>
+            <option value="out-of-stock" <?php echo (($paginationQuery['stock'] ?? '') === 'out-of-stock') ? 'selected' : ''; ?>>Rupture</option>
+        </select>
+        <div class="filter-actions">
+            <button type="submit" class="btn-sg btn-sg-primary"><i class="bi bi-funnel"></i> Filtrer</button>
+            <a href="index.php?action=showCatalogue" class="btn-sg btn-sg-outline">Reinitialiser</a>
+        </div>
     </div>
-    <select id="filterCategory">
-        <option value="">Toutes les catégories</option>
-        <?php
-        // Build the category dropdown from the current pieces list.
-        $categories = array_unique(array_column($pieces, 'categorie'));
-        sort($categories);
-        foreach ($categories as $cat):
-        ?>
-            <option value="<?php echo htmlspecialchars($cat); ?>"><?php echo htmlspecialchars($cat); ?></option>
-        <?php endforeach; ?>
-    </select>
-    <select id="filterStock">
-        <option value="">Tous les stocks</option>
-        <option value="in-stock">En stock</option>
-        <option value="low-stock">Stock faible</option>
-        <option value="out-of-stock">Rupture</option>
-    </select>
-</div>
+</form>
 
 <?php if (empty($pieces)): ?>
     <div class="sg-form-wrap empty-state">
-        <div class="empty-icon">🔩</div>
-        <h3>Aucune pièce trouvée</h3>
-        <p>Aucune pièce n'est disponible pour le moment.</p>
-        <a href="index.php?action=orderPiece" class="btn-sg btn-sg-primary">
-            <i class="bi bi-cart-plus"></i> Commander une Pièce
-        </a>
+        <div class="empty-icon">Pieces</div>
+        <h3>Aucune piece trouvee</h3>
+        <p>Aucune piece ne correspond a vos criteres pour le moment.</p>
+        <div class="hero-actions" style="justify-content:center;">
+            <a href="index.php?action=showCatalogue" class="btn-sg btn-sg-outline">Voir tout le catalogue</a>
+            <a href="index.php?action=requestPiece&q=<?php echo urlencode((string) ($paginationQuery['q'] ?? '')); ?>" class="btn-sg btn-sg-primary">
+                <i class="bi bi-send"></i> Demander cette piece
+            </a>
+        </div>
     </div>
 <?php else: ?>
-    <div class="piece-grid" id="pieceGrid">
+    <div class="piece-grid">
         <?php foreach ($pieces as $p): ?>
             <?php
-                // Decide the visual stock status badge for each piece.
-                if ($p['quantite_stock'] <= 0) {
-                    $stockClass = 'out-of-stock';
-                    $stockLabel = 'Rupture';
-                } elseif ($p['quantite_stock'] <= $p['seuil_alerte']) {
-                    $stockClass = 'low-stock';
-                    $stockLabel = 'Stock faible';
-                } else {
-                    $stockClass = 'in-stock';
-                    $stockLabel = 'En stock';
-                }
+            if ((int) $p['quantite_stock'] <= 0) {
+                $stockClass = 'out-of-stock';
+                $stockLabel = 'Rupture';
+            } elseif ((int) $p['quantite_stock'] <= (int) $p['seuil_alerte']) {
+                $stockClass = 'low-stock';
+                $stockLabel = 'Stock faible';
+            } else {
+                $stockClass = 'in-stock';
+                $stockLabel = 'En stock';
+            }
             ?>
-            <div class="piece-card"
-                 data-name="<?php echo strtolower(htmlspecialchars($p['nom'] . ' ' . $p['marque'] . ' ' . $p['reference'])); ?>"
-                 data-category="<?php echo htmlspecialchars($p['categorie']); ?>"
-                 data-stock="<?php echo $stockClass; ?>">
+            <div class="piece-card piece-card-rich">
+                <div class="piece-media">
+                    <?php if (!empty($p['image'])): ?>
+                        <img src="<?php echo htmlspecialchars((string) $p['image']); ?>" alt="<?php echo htmlspecialchars((string) $p['nom']); ?>">
+                    <?php else: ?>
+                        <div class="piece-media-fallback">
+                            <i class="bi bi-box-seam"></i>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
                 <div class="pc-header">
                     <div>
-                        <div class="pc-name"><?php echo htmlspecialchars($p['nom']); ?></div>
-                        <div class="pc-brand"><?php echo htmlspecialchars($p['marque']); ?></div>
+                        <div class="pc-name"><?php echo htmlspecialchars((string) $p['nom']); ?></div>
+                        <div class="pc-brand"><?php echo htmlspecialchars((string) $p['marque']); ?></div>
                     </div>
-                    <span class="pc-ref"><?php echo htmlspecialchars($p['reference']); ?></span>
+                    <span class="pc-ref"><?php echo htmlspecialchars((string) $p['reference']); ?></span>
                 </div>
 
                 <?php if (!empty($p['description'])): ?>
-                    <div class="pc-description"><?php echo htmlspecialchars($p['description']); ?></div>
+                    <div class="pc-description"><?php echo htmlspecialchars((string) $p['description']); ?></div>
                 <?php endif; ?>
 
                 <div class="pc-details">
                     <div class="pc-detail">
-                        <span class="pc-detail-label">Catégorie</span>
-                        <span class="pc-detail-value">
-                            <span class="badge-category"><?php echo htmlspecialchars($p['categorie']); ?></span>
-                        </span>
+                        <span class="pc-detail-label">Categorie</span>
+                        <span class="pc-detail-value"><span class="badge-category"><?php echo htmlspecialchars((string) $p['categorie']); ?></span></span>
                     </div>
                     <div class="pc-detail">
                         <span class="pc-detail-label">Stock</span>
-                        <span class="pc-detail-value">
-                            <span class="badge-stock <?php echo $stockClass; ?>"><?php echo $p['quantite_stock']; ?> – <?php echo $stockLabel; ?></span>
-                        </span>
+                        <span class="pc-detail-value"><span class="badge-stock <?php echo $stockClass; ?>"><?php echo (int) $p['quantite_stock']; ?> - <?php echo $stockLabel; ?></span></span>
                     </div>
                 </div>
 
                 <div class="pc-footer">
-                    <!-- Show order button only when stock is available -->
-                    <span class="pc-price"><?php echo number_format($p['prix_unitaire'], 2, ',', ' '); ?> <small>DT</small></span>
-                    <?php if ($p['quantite_stock'] > 0): ?>
-                        <a href="index.php?action=orderPiece&id_piece=<?php echo $p['id_piece']; ?>" class="btn-sg btn-sg-primary" style="padding:0.4rem 1rem; font-size:0.85rem;">
-                            <i class="bi bi-cart-plus"></i> Commander
+                    <span class="pc-price"><?php echo number_format((float) $p['prix_unitaire'], 2, ',', ' '); ?> <small>DT</small></span>
+                    <?php if ((int) $p['quantite_stock'] > 0): ?>
+                        <a href="index.php?action=orderPiece&id_piece=<?php echo (int) $p['id_piece']; ?>" class="btn-sg btn-sg-primary">
+                            <i class="bi bi-cart-check"></i> Commander
                         </a>
                     <?php else: ?>
-                        <span style="color:var(--danger); font-size:0.85rem; font-weight:500;">Rupture de stock</span>
+                        <span class="stock-caption stock-caption-danger">Rupture de stock</span>
                     <?php endif; ?>
                 </div>
             </div>
         <?php endforeach; ?>
     </div>
 
-    <!-- No results message (hidden by default) -->
-    <div class="sg-form-wrap empty-state" id="noResults" style="display:none;">
-        <div class="empty-icon">🔍</div>
-        <h3>Aucun résultat</h3>
-        <p>Aucune pièce ne correspond à vos critères de recherche.</p>
-    </div>
+    <?php
+    $paginationAction = 'showCatalogue';
+    require __DIR__ . '/../shared/pagination.php';
+    ?>
 <?php endif; ?>
-
-<!-- Client-side search & filter -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    const filterCategory = document.getElementById('filterCategory');
-    const filterStock = document.getElementById('filterStock');
-    const pieceGrid = document.getElementById('pieceGrid');
-    const noResults = document.getElementById('noResults');
-
-    if (!pieceGrid) return;
-
-    // Filters cards by search text, category, and stock dropdown.
-    function filterPieces() {
-        const search = searchInput.value.toLowerCase().trim();
-        const cat = filterCategory.value;
-        const stock = filterStock.value;
-        const cards = pieceGrid.querySelectorAll('.piece-card');
-        let visibleCount = 0;
-
-        cards.forEach(function(card) {
-            // Read searchable values saved in data-* attributes.
-            const name = card.getAttribute('data-name');
-            const cardCat = card.getAttribute('data-category');
-            const cardStock = card.getAttribute('data-stock');
-
-            let show = true;
-            if (search && name.indexOf(search) === -1) show = false;
-            if (cat && cardCat !== cat) show = false;
-            if (stock && cardStock !== stock) show = false;
-
-            card.style.display = show ? '' : 'none';
-            if (show) visibleCount++;
-        });
-
-        if (noResults) {
-            noResults.style.display = visibleCount === 0 ? '' : 'none';
-        }
-    }
-
-    searchInput.addEventListener('input', filterPieces);
-    filterCategory.addEventListener('change', filterPieces);
-    filterStock.addEventListener('change', filterPieces);
-});
-</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

@@ -4,7 +4,7 @@
 <h1 class="page-title">Dashboard – Pièces</h1>
 <p class="page-subtitle">Vue d'ensemble du stock de pièces – Statistiques en temps réel.</p>
 
-<!-- Stats Cards -->
+<!-- Cartes de statistiques -->
 <div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon purple"><i class="bi bi-box-seam-fill"></i></div>
@@ -28,10 +28,10 @@
     </div>
 </div>
 
-<!-- Two columns: Category breakdown + Brand breakdown -->
+<!-- Deux colonnes : répartition par catégorie + répartition par marque -->
 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.25rem; margin-bottom:2.5rem;">
 
-    <!-- Category Breakdown -->
+    <!-- Répartition par catégorie -->
     <div class="sg-table-wrap">
         <div class="table-header">
             <h3><i class="bi bi-tags me-2"></i>Répartition par Catégorie</h3>
@@ -63,7 +63,7 @@
         </table>
     </div>
 
-    <!-- Brand Breakdown -->
+    <!-- Répartition par marque -->
     <div class="sg-table-wrap">
         <div class="table-header">
             <h3><i class="bi bi-building me-2"></i>Répartition par Marque</h3>
@@ -137,7 +137,7 @@ $alertPieces = array_filter($pieces, function($p) { return $p['quantite_stock'] 
 </div>
 <?php endif; ?>
 
-<!-- Recent Pieces Table -->
+<!-- Tableau des pièces récentes -->
 <div class="sg-table-wrap">
     <div class="table-header">
         <h3><i class="bi bi-clock-history me-2"></i>Pièces Récentes</h3>

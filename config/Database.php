@@ -1,7 +1,7 @@
 <?php
 // ============================================
-// PDO Database Connection (Singleton Pattern)
-// Optional credentials: project root .env (DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_CHARSET)
+// Connexion à la base de données PDO (pattern Singleton)
+// Identifiants optionnels : .env à la racine du projet (DB_HOST, DB_NAME, DB_USER, DB_PASS, DB_CHARSET)
 // ============================================
 
 class Database {

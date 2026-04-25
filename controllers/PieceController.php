@@ -1,441 +1,223 @@
 <?php
-// ============================================
-// Piece Controller
-// Module: Pièces & Commandes
-// ============================================
 
-require_once __DIR__ . '/../models/Piece.php';
+require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/ValidationHelper.php';
 
-class PieceController {
+class PieceController
+{
+    private $conn;
+    private $uploadDir;
+    private $uploadWebPath;
 
-    private $pieceModel;
+    public function __construct()
+    {
+        $this->conn = Database::getInstance()->getConnection();
+        $this->uploadDir = __DIR__ . '/../views/assets/uploads/pieces';
+        $this->uploadWebPath = 'views/assets/uploads/pieces';
 
-    public function __construct() {
-        // Create one model instance to reuse in all controller methods.
-        $this->pieceModel = new Piece();
+        $this->ensurePieceImageColumn();
+        $this->syncStoredPieceImages();
     }
 
-    private function cleanText($value) {
-        // Basic sanitize helper for text inputs.
-        return htmlspecialchars(strip_tags(trim($value)));
-    }
-
-    // -------------------------------------------------------
-    // PHP-side validation for PIECE (BackOffice add/edit)
-    // -------------------------------------------------------
-    private function validateInput($data) {
-        // Returns:
-        // - errors: array of validation messages
-        // - sanitized: cleaned values ready for DB usage
-        $errors = [];
-
-        // Read and sanitize all fields (explicit style for beginners)
-        $reference = '';
-        if (isset($data['reference'])) {
-            $reference = $this->cleanText($data['reference']);
-        }
-
-        $nom = '';
-        if (isset($data['nom'])) {
-            $nom = $this->cleanText($data['nom']);
-        }
-
-        $description = '';
-        if (isset($data['description'])) {
-            $description = $this->cleanText($data['description']);
-        }
-
-        $categorie = '';
-        if (isset($data['categorie'])) {
-            $categorie = $this->cleanText($data['categorie']);
-        }
-
-        $marque = '';
-        if (isset($data['marque'])) {
-            $marque = $this->cleanText($data['marque']);
-        }
-
-        $prix_unitaire = '';
-        if (isset($data['prix_unitaire'])) {
-            $prix_unitaire = trim($data['prix_unitaire']);
-        }
-
-        $quantite_stock = '';
-        if (isset($data['quantite_stock'])) {
-            $quantite_stock = trim($data['quantite_stock']);
-        }
-
-        $seuil_alerte = '';
-        if (isset($data['seuil_alerte'])) {
-            $seuil_alerte = trim($data['seuil_alerte']);
-        }
-
-        // Check empty values
-        if (empty($reference))      $errors[] = "La référence est obligatoire.";
-        if (empty($nom))            $errors[] = "Le nom de la pièce est obligatoire.";
-        if (empty($categorie))      $errors[] = "La catégorie est obligatoire.";
-        if (empty($marque))         $errors[] = "La marque est obligatoire.";
-        if ($prix_unitaire === '')   $errors[] = "Le prix unitaire est obligatoire.";
-        if ($quantite_stock === '')  $errors[] = "La quantité en stock est obligatoire.";
-        if ($seuil_alerte === '')    $errors[] = "Le seuil d'alerte est obligatoire.";
-
-        // Validate reference format (letters, numbers, hyphens – 3 to 50 chars)
-        if (!empty($reference) && !preg_match('/^[A-Za-z0-9\-]{3,50}$/', $reference)) {
-            $errors[] = "La référence doit contenir 3 à 50 caractères (lettres, chiffres, tirets).";
-        }
-
-        // Validate nom length (2-150 chars)
-        if (!empty($nom) && (strlen($nom) < 2 || strlen($nom) > 150)) {
-            $errors[] = "Le nom doit contenir entre 2 et 150 caractères.";
-        }
-
-        // Validate prix_unitaire (positive decimal)
-        if ($prix_unitaire !== '') {
-            if (!is_numeric($prix_unitaire)) {
-                $errors[] = "Le prix unitaire doit être un nombre.";
-            } elseif ((float)$prix_unitaire <= 0) {
-                $errors[] = "Le prix unitaire doit être supérieur à 0.";
-            } elseif ((float)$prix_unitaire > 99999.99) {
-                $errors[] = "Le prix unitaire ne peut pas dépasser 99 999,99 DT.";
-            }
-        }
-
-        // Validate quantite_stock (positive integer)
-        if ($quantite_stock !== '') {
-            if (!ctype_digit($quantite_stock) && $quantite_stock !== '0') {
-                $errors[] = "La quantité en stock doit être un nombre entier positif.";
-            } elseif ((int)$quantite_stock < 0) {
-                $errors[] = "La quantité en stock ne peut pas être négative.";
-            }
-        }
-
-        // Validate seuil_alerte (positive integer)
-        if ($seuil_alerte !== '') {
-            if (!ctype_digit($seuil_alerte) && $seuil_alerte !== '0') {
-                $errors[] = "Le seuil d'alerte doit être un nombre entier positif.";
-            } elseif ((int)$seuil_alerte < 0) {
-                $errors[] = "Le seuil d'alerte ne peut pas être négatif.";
-            }
-        }
-
-        return [
-            'errors' => $errors,
-            'sanitized' => [
-                'reference'      => $reference,
-                'nom'            => $nom,
-                'description'    => $description,
-                'categorie'      => $categorie,
-                'marque'         => $marque,
-                'prix_unitaire'  => (float)$prix_unitaire,
-                'quantite_stock' => (int)$quantite_stock,
-                'seuil_alerte'   => (int)$seuil_alerte,
-            ]
+    public function showCatalogue()
+    {
+        $filters = [
+            'q' => trim((string) ($_GET['q'] ?? '')),
+            'categorie' => trim((string) ($_GET['categorie'] ?? '')),
+            'stock' => trim((string) ($_GET['stock'] ?? '')),
         ];
-    }
 
-    // -------------------------------------------------------
-    // PHP-side validation for ORDER (FrontOffice commande)
-    // -------------------------------------------------------
-    private function validateOrderInput($data) {
-        // Same structure as validateInput(), but for order form fields.
-        $errors = [];
+        $page = $this->getPageNumber();
+        $catalogue = $this->getPaginatedPieces($page, 6, $filters);
 
-        $nom_client = '';
-        if (isset($data['nom_client'])) {
-            $nom_client = $this->cleanText($data['nom_client']);
-        }
+        $pieces = $catalogue['items'];
+        $pagination = $catalogue['pagination'];
+        $paginationQuery = $filters;
+        $categories = $this->getPieceCategories();
 
-        $prenom_client = '';
-        if (isset($data['prenom_client'])) {
-            $prenom_client = $this->cleanText($data['prenom_client']);
-        }
-
-        $telephone = '';
-        if (isset($data['telephone'])) {
-            $telephone = $this->cleanText($data['telephone']);
-        }
-
-        $id_piece = '';
-        if (isset($data['id_piece'])) {
-            $id_piece = trim($data['id_piece']);
-        }
-
-        $quantite = '';
-        if (isset($data['quantite'])) {
-            $quantite = trim($data['quantite']);
-        }
-
-        // Required fields
-        if (empty($nom_client))     $errors[] = "Le nom est obligatoire.";
-        if (empty($prenom_client))  $errors[] = "Le prénom est obligatoire.";
-        if (empty($telephone))      $errors[] = "Le téléphone est obligatoire.";
-        if ($id_piece === '')       $errors[] = "Veuillez sélectionner une pièce.";
-        if ($quantite === '')       $errors[] = "La quantité est obligatoire.";
-
-        // Validate nom length (2-150 chars)
-        if (!empty($nom_client) && (strlen($nom_client) < 2 || strlen($nom_client) > 150)) {
-            $errors[] = "Le nom doit contenir entre 2 et 150 caractères.";
-        }
-
-        // Validate prenom length (2-150 chars)
-        if (!empty($prenom_client) && (strlen($prenom_client) < 2 || strlen($prenom_client) > 150)) {
-            $errors[] = "Le prénom doit contenir entre 2 et 150 caractères.";
-        }
-
-        // Validate telephone format (digits, spaces, +, -, min 8 chars)
-        if (!empty($telephone) && !preg_match('/^[\d\s\+\-]{8,20}$/', $telephone)) {
-            $errors[] = "Le numéro de téléphone doit contenir 8 à 20 caractères (chiffres, espaces, +, -).";
-        }
-
-        // Validate quantite (positive integer >= 1)
-        if ($quantite !== '') {
-            if (!ctype_digit($quantite)) {
-                $errors[] = "La quantité doit être un nombre entier positif.";
-            } elseif ((int)$quantite < 1) {
-                $errors[] = "La quantité doit être au moins 1.";
-            } elseif ((int)$quantite > 999) {
-                $errors[] = "La quantité ne peut pas dépasser 999.";
-            }
-        }
-
-        // Validate that the piece exists and has enough stock
-        if ($id_piece !== '' && ctype_digit($id_piece)) {
-            $piece = $this->pieceModel->getById((int)$id_piece);
-            if (!$piece) {
-                $errors[] = "La pièce sélectionnée n'existe pas.";
-            } elseif ($quantite !== '' && ctype_digit($quantite) && (int)$quantite > $piece['quantite_stock']) {
-                $errors[] = "Stock insuffisant. Seulement " . $piece['quantite_stock'] . " unité(s) disponible(s).";
-            }
-        }
-
-        return [
-            'errors' => $errors,
-            'sanitized' => [
-                'id_piece'       => (int)$id_piece,
-                'nom_client'     => $nom_client,
-                'prenom_client'  => $prenom_client,
-                'telephone'      => $telephone,
-                'quantite'       => (int)$quantite,
-            ]
-        ];
-    }
-
-    // -------------------------------------------------------
-    // FrontOffice – Catalogue des pièces disponibles
-    // -------------------------------------------------------
-    public function showCatalogue() {
-        // Fetch data then load the front catalogue view.
-        $pieces = $this->pieceModel->getAll();
         require __DIR__ . '/../views/front/piece_catalogue.php';
     }
 
-    // -------------------------------------------------------
-    // FrontOffice – Commander une pièce
-    // -------------------------------------------------------
-    public function orderPiece() {
-        // Variables passed to the view.
-        $errors = [];
-        $success = '';
-        $old = [];
-        $pieces = $this->pieceModel->getAll();
+    public function dashboard()
+    {
+        $pieces = $this->getAllPieces();
+        $commandes = $this->getAllCommandes();
 
-        // Pre-select piece if coming from catalogue
-        if (isset($_GET['id_piece'])) {
-            $old['id_piece'] = (int)$_GET['id_piece'];
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $validation = $this->validateOrderInput($_POST);
-            $errors = $validation['errors'];
-            $old = $_POST;
-
-            if (empty($errors)) {
-                $d = $validation['sanitized'];
-
-                // Get selected piece price to calculate order total.
-                $piece = $this->pieceModel->getById($d['id_piece']);
-                $montant_total = $piece['prix_unitaire'] * $d['quantite'];
-
-                $orderData = [
-                    'id_piece'       => $d['id_piece'],
-                    'nom_client'     => $d['nom_client'],
-                    'prenom_client'  => $d['prenom_client'],
-                    'telephone'      => $d['telephone'],
-                    'quantite'       => $d['quantite'],
-                    'montant_total'  => $montant_total,
-                ];
-
-                try {
-                    // createCommande() also updates stock in DB transaction.
-                    if ($this->pieceModel->createCommande($orderData)) {
-                        $success = "Commande passée avec succès ! Montant total : " . number_format($montant_total, 2, ',', ' ') . " DT";
-                        $old = []; // clear form
-                    } else {
-                        $errors[] = "Erreur lors de la commande.";
-                    }
-                } catch (PDOException $e) {
-                    $errors[] = "Erreur lors de la commande : " . $e->getMessage();
-                }
-            }
-        }
-
-        require __DIR__ . '/../views/front/piece_order.php';
-    }
-
-    // -------------------------------------------------------
-    // BackOffice – Dashboard Pièces
-    // -------------------------------------------------------
-    public function dashboard() {
-        // Read all pieces once, then compute summary statistics.
-        $pieces = $this->pieceModel->getAll();
         $totalPieces = count($pieces);
-
-        // Stats for dashboard cards
         $totalStock = 0;
-        $totalValue = 0;
+        $totalValue = 0.0;
         $alertCount = 0;
         $categoryStats = [];
         $brandStats = [];
+        $totalCommandes = count($commandes);
 
-        foreach ($pieces as $p) {
-            // Running totals for dashboard cards.
-            $totalStock += $p['quantite_stock'];
-            $totalValue += $p['prix_unitaire'] * $p['quantite_stock'];
+        foreach ($pieces as $piece) {
+            $stock = (int) $piece['quantite_stock'];
+            $seuil = (int) $piece['seuil_alerte'];
+            $prix = (float) $piece['prix_unitaire'];
 
-            if ($p['quantite_stock'] <= $p['seuil_alerte']) {
+            $totalStock += $stock;
+            $totalValue += $prix * $stock;
+
+            if ($stock <= $seuil) {
                 $alertCount++;
             }
 
-            $cat = $p['categorie'];
-            $brand = $p['marque'];
-            if (!isset($categoryStats[$cat])) {
-                $categoryStats[$cat] = 0;
-            }
-            $categoryStats[$cat]++;
+            $categorie = $piece['categorie'];
+            $marque = $piece['marque'];
 
-            if (!isset($brandStats[$brand])) {
-                $brandStats[$brand] = 0;
+            if (!isset($categoryStats[$categorie])) {
+                $categoryStats[$categorie] = 0;
             }
-            $brandStats[$brand]++;
+            $categoryStats[$categorie]++;
+
+            if (!isset($brandStats[$marque])) {
+                $brandStats[$marque] = 0;
+            }
+            $brandStats[$marque]++;
         }
-
-        // Commandes stats
-        $commandes = $this->pieceModel->getAllCommandes();
-        $totalCommandes = count($commandes);
 
         require __DIR__ . '/../views/back/dashboard.php';
     }
 
-    // -------------------------------------------------------
-    // BackOffice – Ajouter une pièce
-    // -------------------------------------------------------
-    public function addPiece() {
-        // Default values used by the "add piece" form.
+    public function managePieces()
+    {
+        $filters = [
+            'q' => trim((string) ($_GET['q'] ?? '')),
+        ];
+
+        $page = $this->getPageNumber();
+        $result = $this->getPaginatedPieces($page, 8, $filters);
+
+        $pieces = $result['items'];
+        $pagination = $result['pagination'];
+        $paginationQuery = $filters;
+        $demandesPiece = $this->getDemandesPiece();
+        $success = isset($_GET['success']) ? htmlspecialchars((string) $_GET['success']) : '';
+        $error = isset($_GET['error']) ? htmlspecialchars((string) $_GET['error']) : '';
+
+        require __DIR__ . '/../views/back/piece_list.php';
+    }
+
+    public function addPiece()
+    {
         $errors = [];
         $piece = [
-            'reference'      => '',
-            'nom'            => '',
-            'description'    => '',
-            'categorie'      => '',
-            'marque'         => '',
-            'prix_unitaire'  => '',
+            'reference' => '',
+            'nom' => '',
+            'description' => '',
+            'categorie' => '',
+            'marque' => '',
+            'prix_unitaire' => '',
             'quantite_stock' => '',
-            'seuil_alerte'   => '',
+            'seuil_alerte' => '',
+            'image' => null,
         ];
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $validation = $this->validateInput($_POST);
+            $validation = ValidationHelper::validatePiece($_POST);
             $errors = $validation['errors'];
+            $piece = array_merge($piece, $_POST);
 
             if (empty($errors)) {
-                $d = $validation['sanitized'];
-                $this->pieceModel->setReference($d['reference']);
-                $this->pieceModel->setNom($d['nom']);
-                $this->pieceModel->setDescription($d['description']);
-                $this->pieceModel->setCategorie($d['categorie']);
-                $this->pieceModel->setMarque($d['marque']);
-                $this->pieceModel->setPrixUnitaire($d['prix_unitaire']);
-                $this->pieceModel->setQuantiteStock($d['quantite_stock']);
-                $this->pieceModel->setSeuilAlerte($d['seuil_alerte']);
+                $sanitized = $validation['sanitized'];
+                $sanitized['image'] = $this->handleUploadedPieceImage(
+                    $_FILES['image_file'] ?? null,
+                    $sanitized['reference'],
+                    $errors
+                );
 
-                try {
-                    if ($this->pieceModel->insert()) {
-                        header('Location: index.php?action=managePieces&success=' . rawurlencode('Pièce ajoutée avec succès'));
-                        exit;
-                    }
-                    $errors[] = "Erreur lors de l'ajout.";
-                } catch (PDOException $e) {
-                    if ($e->getCode() == 23000) {
-                        $errors[] = "Cette référence existe déjà dans la base de données.";
-                    } else {
-                        $errors[] = "Erreur lors de l'ajout : " . $e->getMessage();
+                if (empty($errors)) {
+                    try {
+                        $created = $this->insertPiece($sanitized);
+
+                        if ($created) {
+                            if (!empty($sanitized['image'])) {
+                                $this->forcePieceImageUpdate((int) $created, $sanitized['image']);
+                            }
+                            header('Location: index.php?action=managePieces&success=' . rawurlencode('Piece ajoutee avec succes'));
+                            exit;
+                        }
+
+                        $errors[] = 'Erreur lors de l\'ajout.';
+                    } catch (PDOException $e) {
+                        if ((string) $e->getCode() === '23000') {
+                            $errors[] = 'Cette reference existe deja dans la base de donnees.';
+                        } else {
+                            $errors[] = 'Erreur lors de l\'ajout : ' . $e->getMessage();
+                        }
                     }
                 }
-            } else {
-                $piece = array_merge($piece, $_POST);
+
+                $piece = array_merge($piece, $sanitized);
             }
         }
 
         require __DIR__ . '/../views/back/piece_add.php';
     }
 
-    // -------------------------------------------------------
-    // BackOffice – Gestion des pièces (liste)
-    // -------------------------------------------------------
-    public function managePieces() {
-        $pieces = $this->pieceModel->getAll();
-        $success = isset($_GET['success']) ? htmlspecialchars($_GET['success']) : '';
-        $error   = isset($_GET['error'])   ? htmlspecialchars($_GET['error'])   : '';
-        require __DIR__ . '/../views/back/piece_list.php';
-    }
-
-    // -------------------------------------------------------
-    // BackOffice – Modifier une pièce
-    // -------------------------------------------------------
-    public function updatePiece() {
-        // Read id from URL and load current piece.
+    public function updatePiece()
+    {
         $errors = [];
         $success = '';
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        $piece = $this->pieceModel->getById($id);
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $piece = $this->getPieceById($id);
 
         if (!$piece) {
-            header('Location: index.php?action=managePieces&error=Pièce introuvable');
+            header('Location: index.php?action=managePieces&error=' . rawurlencode('Piece introuvable'));
             exit;
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $validation = $this->validateInput($_POST);
+            $validation = ValidationHelper::validatePiece($_POST);
             $errors = $validation['errors'];
+            $removeImage = isset($_POST['remove_image']) && $_POST['remove_image'] === '1';
 
             if (empty($errors)) {
-                $d = $validation['sanitized'];
-                $this->pieceModel->setIdPiece($id);
-                $this->pieceModel->setReference($d['reference']);
-                $this->pieceModel->setNom($d['nom']);
-                $this->pieceModel->setDescription($d['description']);
-                $this->pieceModel->setCategorie($d['categorie']);
-                $this->pieceModel->setMarque($d['marque']);
-                $this->pieceModel->setPrixUnitaire($d['prix_unitaire']);
-                $this->pieceModel->setQuantiteStock($d['quantite_stock']);
-                $this->pieceModel->setSeuilAlerte($d['seuil_alerte']);
+                $sanitized = $validation['sanitized'];
 
-                try {
-                    if ($this->pieceModel->update()) {
-                        $success = "Pièce mise à jour avec succès !";
-                        $piece = $this->pieceModel->getById($id); // refresh
-                    } else {
-                        $errors[] = "Erreur lors de la mise à jour.";
+                if ($removeImage) {
+                    $this->deleteImageFile(isset($piece['image']) ? $piece['image'] : null);
+                    $currentImage = null;
+                } else {
+                    $currentImage = isset($piece['image']) ? $piece['image'] : null;
+                }
+
+                $uploadedImage = $this->handleUploadedPieceImage(
+                    $_FILES['image_file'] ?? null,
+                    $sanitized['reference'],
+                    $errors,
+                    $currentImage
+                );
+
+                $sanitized['image'] = $uploadedImage;
+
+                if (empty($errors)) {
+                    try {
+                        $updated = $this->updatePieceById($id, $sanitized);
+
+                        if ($updated) {
+                            if (array_key_exists('image', $sanitized)) {
+                                $this->forcePieceImageUpdate($id, $sanitized['image']);
+                            }
+                            $success = 'Piece mise a jour avec succes.';
+                            $piece = $this->getPieceById($id);
+                        } else {
+                            $errors[] = 'Erreur lors de la mise a jour.';
+                            $piece = array_merge($piece, $_POST, ['image' => $sanitized['image']]);
+                        }
+                    } catch (PDOException $e) {
+                        if ((string) $e->getCode() === '23000') {
+                            $errors[] = 'Cette reference existe deja dans la base de donnees.';
+                        } else {
+                            $errors[] = 'Erreur lors de la mise a jour : ' . $e->getMessage();
+                        }
+                        $piece = array_merge($piece, $_POST, ['image' => $sanitized['image']]);
                     }
-                } catch (PDOException $e) {
-                    if ($e->getCode() == 23000) {
-                        $errors[] = "Cette référence existe déjà dans la base de données.";
-                    } else {
-                        $errors[] = "Erreur lors de la mise à jour : " . $e->getMessage();
-                    }
+                } else {
+                    $piece = array_merge($piece, $_POST, ['image' => $sanitized['image']]);
                 }
             } else {
-                // Keep POST data on the form when validation failed
                 $piece = array_merge($piece, $_POST);
             }
         }
@@ -443,58 +225,392 @@ class PieceController {
         require __DIR__ . '/../views/back/piece_edit.php';
     }
 
-    // -------------------------------------------------------
-    // BackOffice – Supprimer une pièce (confirmation page)
-    // -------------------------------------------------------
-    public function confirmDeletePiece() {
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
-        $piece = $this->pieceModel->getById($id);
+    public function confirmDeletePiece()
+    {
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $piece = $this->getPieceById($id);
 
         if (!$piece) {
-            header('Location: index.php?action=managePieces&error=Pièce introuvable');
+            header('Location: index.php?action=managePieces&error=' . rawurlencode('Piece introuvable'));
             exit;
         }
 
         require __DIR__ . '/../views/back/piece_delete.php';
     }
 
-    // -------------------------------------------------------
-    // BackOffice – Exécuter la suppression
-    // -------------------------------------------------------
-    public function deletePiece() {
-        // Delete by id then redirect with a success/error message.
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    public function deletePiece()
+    {
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $piece = $this->getPieceById($id);
 
-        if ($id > 0 && $this->pieceModel->delete($id)) {
-            header('Location: index.php?action=managePieces&success=Pièce supprimée avec succès');
+        if ($id > 0 && $piece && $this->deletePieceById($id)) {
+            $this->deleteImageFile(isset($piece['image']) ? $piece['image'] : null);
+            header('Location: index.php?action=managePieces&success=' . rawurlencode('Piece supprimee avec succes'));
         } else {
-            header('Location: index.php?action=managePieces&error=Erreur lors de la suppression');
+            header('Location: index.php?action=managePieces&error=' . rawurlencode('Erreur lors de la suppression'));
         }
         exit;
     }
 
-    // -------------------------------------------------------
-    // BackOffice – Gestion des commandes (liste)
-    // -------------------------------------------------------
-    public function manageCommandes() {
-        $commandes = $this->pieceModel->getAllCommandes();
-        $success = isset($_GET['success']) ? htmlspecialchars($_GET['success']) : '';
-        $error   = isset($_GET['error'])   ? htmlspecialchars($_GET['error'])   : '';
-        require __DIR__ . '/../views/back/commande_list.php';
+    private function getDemandesPiece()
+    {
+        $filePath = __DIR__ . '/../database/demandes_piece.json';
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            return [];
+        }
+
+        $raw = file_get_contents($filePath);
+        if ($raw === false || trim($raw) === '') {
+            return [];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        usort($decoded, function ($a, $b) {
+            $dateA = isset($a['date_demande']) ? strtotime((string) $a['date_demande']) : 0;
+            $dateB = isset($b['date_demande']) ? strtotime((string) $b['date_demande']) : 0;
+            return $dateB <=> $dateA;
+        });
+
+        return $decoded;
     }
 
-    // -------------------------------------------------------
-    // BackOffice – Supprimer une commande
-    // -------------------------------------------------------
-    public function deleteCommande() {
-        // Delete order by id then redirect with a success/error message.
-        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    private function getAllPieces()
+    {
+        $stmt = $this->conn->query('SELECT * FROM pieces ORDER BY date_ajout DESC, id_piece DESC');
+        return $stmt->fetchAll();
+    }
 
-        if ($id > 0 && $this->pieceModel->deleteCommande($id)) {
-            header('Location: index.php?action=manageCommandes&success=Commande supprimée avec succès');
-        } else {
-            header('Location: index.php?action=manageCommandes&error=Erreur lors de la suppression');
+    private function getPaginatedPieces($page, $perPage, array $filters)
+    {
+        [$whereSql, $params] = $this->buildPieceFilters($filters);
+
+        $countStmt = $this->conn->prepare('SELECT COUNT(*) FROM pieces' . $whereSql);
+        $countStmt->execute($params);
+        $totalItems = (int) $countStmt->fetchColumn();
+
+        $pagination = $this->buildPagination($page, $perPage, $totalItems);
+
+        $sql = 'SELECT * FROM pieces'
+            . $whereSql
+            . ' ORDER BY date_ajout DESC, id_piece DESC LIMIT :limit OFFSET :offset';
+
+        $stmt = $this->conn->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
         }
-        exit;
+        $stmt->bindValue(':limit', $pagination['per_page'], PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $pagination['offset'], PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'items' => $stmt->fetchAll(),
+            'pagination' => $pagination,
+        ];
+    }
+
+    private function buildPieceFilters(array $filters)
+    {
+        $conditions = [];
+        $params = [];
+        $search = isset($filters['q']) ? trim((string) $filters['q']) : '';
+        $categorie = isset($filters['categorie']) ? trim((string) $filters['categorie']) : '';
+        $stock = isset($filters['stock']) ? trim((string) $filters['stock']) : '';
+
+        if ($search !== '') {
+            $conditions[] = '(nom LIKE :q OR marque LIKE :q OR reference LIKE :q OR description LIKE :q)';
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        if ($categorie !== '') {
+            $conditions[] = 'categorie = :categorie';
+            $params[':categorie'] = $categorie;
+        }
+
+        if ($stock === 'in-stock') {
+            $conditions[] = 'quantite_stock > seuil_alerte';
+        } elseif ($stock === 'low-stock') {
+            $conditions[] = 'quantite_stock > 0 AND quantite_stock <= seuil_alerte';
+        } elseif ($stock === 'out-of-stock') {
+            $conditions[] = 'quantite_stock <= 0';
+        }
+
+        $whereSql = empty($conditions) ? '' : ' WHERE ' . implode(' AND ', $conditions);
+
+        return [$whereSql, $params];
+    }
+
+    private function getPieceCategories()
+    {
+        $stmt = $this->conn->query('SELECT DISTINCT categorie FROM pieces WHERE categorie IS NOT NULL AND categorie <> \'\' ORDER BY categorie ASC');
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    private function getPieceById($id)
+    {
+        $stmt = $this->conn->prepare('SELECT * FROM pieces WHERE id_piece = :id_piece');
+        $stmt->execute([':id_piece' => (int) $id]);
+        $row = $stmt->fetch();
+        return $row ?: false;
+    }
+
+    private function insertPiece(array $data)
+    {
+        $sql = 'INSERT INTO pieces (reference, nom, description, categorie, marque, prix_unitaire, quantite_stock, seuil_alerte, image)
+                VALUES (:reference, :nom, :description, :categorie, :marque, :prix_unitaire, :quantite_stock, :seuil_alerte, :image)';
+
+        $stmt = $this->conn->prepare($sql);
+        $saved = $stmt->execute([
+            ':reference' => $data['reference'],
+            ':nom' => $data['nom'],
+            ':description' => $data['description'],
+            ':categorie' => $data['categorie'],
+            ':marque' => $data['marque'],
+            ':prix_unitaire' => $data['prix_unitaire'],
+            ':quantite_stock' => $data['quantite_stock'],
+            ':seuil_alerte' => $data['seuil_alerte'],
+            ':image' => isset($data['image']) ? $data['image'] : null,
+        ]);
+
+        if (!$saved) {
+            return false;
+        }
+
+        return (int) $this->conn->lastInsertId();
+    }
+
+    private function updatePieceById($id, array $data)
+    {
+        $sql = 'UPDATE pieces
+                SET reference = :reference,
+                    nom = :nom,
+                    description = :description,
+                    categorie = :categorie,
+                    marque = :marque,
+                    prix_unitaire = :prix_unitaire,
+                    quantite_stock = :quantite_stock,
+                    seuil_alerte = :seuil_alerte,
+                    image = :image
+                WHERE id_piece = :id_piece';
+
+        $stmt = $this->conn->prepare($sql);
+        return $stmt->execute([
+            ':reference' => $data['reference'],
+            ':nom' => $data['nom'],
+            ':description' => $data['description'],
+            ':categorie' => $data['categorie'],
+            ':marque' => $data['marque'],
+            ':prix_unitaire' => $data['prix_unitaire'],
+            ':quantite_stock' => $data['quantite_stock'],
+            ':seuil_alerte' => $data['seuil_alerte'],
+            ':image' => isset($data['image']) ? $data['image'] : null,
+            ':id_piece' => (int) $id,
+        ]);
+    }
+
+    private function deletePieceById($id)
+    {
+        $stmt = $this->conn->prepare('DELETE FROM pieces WHERE id_piece = :id_piece');
+        return $stmt->execute([':id_piece' => (int) $id]);
+    }
+
+    private function getAllCommandes()
+    {
+        $sql = 'SELECT c.*, p.nom AS piece_nom, p.reference AS piece_reference
+                FROM commandes c
+                INNER JOIN pieces p ON p.id_piece = c.id_piece
+                ORDER BY c.date_commande DESC, c.id_commande DESC';
+
+        $stmt = $this->conn->query($sql);
+        return $stmt->fetchAll();
+    }
+
+    private function buildPagination($page, $perPage, $totalItems)
+    {
+        $totalPages = max(1, (int) ceil($totalItems / $perPage));
+        $currentPage = min(max(1, $page), $totalPages);
+
+        return [
+            'current_page' => $currentPage,
+            'per_page' => $perPage,
+            'total_items' => $totalItems,
+            'total_pages' => $totalPages,
+            'offset' => ($currentPage - 1) * $perPage,
+            'from' => $totalItems === 0 ? 0 : (($currentPage - 1) * $perPage) + 1,
+            'to' => min($totalItems, $currentPage * $perPage),
+        ];
+    }
+
+    private function getPageNumber()
+    {
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        return $page > 0 ? $page : 1;
+    }
+
+    private function handleUploadedPieceImage($file, $reference, array &$errors, $existingImage = null)
+    {
+        if (!is_array($file) || !isset($file['error'])) {
+            return $existingImage;
+        }
+
+        if ((int) $file['error'] === UPLOAD_ERR_NO_FILE) {
+            return $existingImage;
+        }
+
+        if ((int) $file['error'] !== UPLOAD_ERR_OK) {
+            $errors[] = 'Impossible de televerser l\'image selectionnee.';
+            return $existingImage;
+        }
+
+        if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
+            $errors[] = 'Le fichier image recu est invalide.';
+            return $existingImage;
+        }
+
+        if ((int) $file['size'] > 4 * 1024 * 1024) {
+            $errors[] = 'L\'image ne doit pas depasser 4 Mo.';
+            return $existingImage;
+        }
+
+        $mimeType = $this->detectMimeType($file['tmp_name']);
+        $extensions = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/gif' => 'gif',
+            'image/webp' => 'webp',
+        ];
+
+        if (!isset($extensions[$mimeType])) {
+            $errors[] = 'Formats autorises: JPG, PNG, GIF ou WEBP.';
+            return $existingImage;
+        }
+
+        if (!is_dir($this->uploadDir) && !mkdir($this->uploadDir, 0775, true) && !is_dir($this->uploadDir)) {
+            $errors[] = 'Le dossier de destination des images est inaccessible.';
+            return $existingImage;
+        }
+
+        $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $reference));
+        $slug = trim($slug, '-');
+        if ($slug === '') {
+            $slug = 'piece';
+        }
+
+        $filename = $slug . '-' . uniqid('', true) . '.' . $extensions[$mimeType];
+        $targetPath = $this->uploadDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            $errors[] = 'Le stockage de l\'image a echoue.';
+            return $existingImage;
+        }
+
+        if ($existingImage !== null && $existingImage !== '') {
+            $this->deleteImageFile($existingImage);
+        }
+
+        return $this->uploadWebPath . '/' . $filename;
+    }
+
+    private function detectMimeType($filePath)
+    {
+        if (function_exists('finfo_open')) {
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo !== false) {
+                $mimeType = finfo_file($finfo, $filePath);
+                finfo_close($finfo);
+                if (is_string($mimeType) && $mimeType !== '') {
+                    return $mimeType;
+                }
+            }
+        }
+
+        $imageInfo = @getimagesize($filePath);
+        return isset($imageInfo['mime']) ? $imageInfo['mime'] : '';
+    }
+
+    private function deleteImageFile($imagePath)
+    {
+        if (!is_string($imagePath) || $imagePath === '') {
+            return;
+        }
+
+        $basename = basename($imagePath);
+        $absolutePath = $this->uploadDir . '/' . $basename;
+
+        if (is_file($absolutePath)) {
+            @unlink($absolutePath);
+        }
+    }
+
+    private function ensurePieceImageColumn()
+    {
+        try {
+            $stmt = $this->conn->query("SHOW COLUMNS FROM pieces LIKE 'image'");
+            $column = $stmt->fetch();
+
+            if (!$column) {
+                $this->conn->exec('ALTER TABLE pieces ADD COLUMN image VARCHAR(255) NULL AFTER seuil_alerte');
+            }
+        } catch (Throwable $e) {
+            // Ignore schema checks on environments where ALTER is not allowed.
+        }
+    }
+
+    private function forcePieceImageUpdate($pieceId, $imagePath)
+    {
+        $stmt = $this->conn->prepare('UPDATE pieces SET image = :image WHERE id_piece = :id_piece');
+        $stmt->execute([
+            ':image' => $imagePath !== null ? (string) $imagePath : null,
+            ':id_piece' => (int) $pieceId,
+        ]);
+    }
+
+    private function syncStoredPieceImages()
+    {
+        if (!is_dir($this->uploadDir)) {
+            return;
+        }
+
+        try {
+            $stmt = $this->conn->query('SELECT id_piece, reference, image FROM pieces');
+            $pieces = $stmt->fetchAll();
+
+            foreach ($pieces as $piece) {
+                $imagePath = isset($piece['image']) ? (string) $piece['image'] : '';
+                if ($imagePath !== '') {
+                    continue;
+                }
+
+                $matchedImage = $this->findUploadedImageForReference((string) $piece['reference']);
+                if ($matchedImage !== null) {
+                    $this->forcePieceImageUpdate((int) $piece['id_piece'], $matchedImage);
+                }
+            }
+        } catch (Throwable $e) {
+            // Ignore sync issues to keep the application available.
+        }
+    }
+
+    private function findUploadedImageForReference($reference)
+    {
+        $slug = strtolower((string) preg_replace('/[^a-zA-Z0-9]+/', '-', $reference));
+        $slug = trim($slug, '-');
+        if ($slug === '') {
+            return null;
+        }
+
+        $matches = glob($this->uploadDir . '/' . $slug . '-*.*');
+        if (!is_array($matches) || empty($matches)) {
+            return null;
+        }
+
+        usort($matches, function ($a, $b) {
+            return filemtime($b) <=> filemtime($a);
+        });
+
+        return $this->uploadWebPath . '/' . basename($matches[0]);
     }
 }

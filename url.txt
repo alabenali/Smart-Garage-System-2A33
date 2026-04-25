@@ -1,1 +1,1 @@
-http://127.0.0.1/samrt%20nour/index.php?action=showCatalogue
+http://localhost/samrtnour/samrt%20nour/index.php?action=orderPiece

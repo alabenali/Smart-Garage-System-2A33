@@ -1,3 +1,8 @@
+<?php
+$styleVersion = is_file(__DIR__ . '/../assets/css/style.css')
+    ? (string) filemtime(__DIR__ . '/../assets/css/style.css')
+    : (string) time();
+?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -7,23 +12,25 @@
     <meta name="description" content="Smart Garage System – Panneau d'administration des pièces.">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="views/assets/css/style.css?v=<?php echo urlencode($styleVersion); ?>">
 </head>
 <body>
+<div class="app-shell">
+    <aside class="app-sidebar">
+        <a href="index.php?action=dashboard" class="brand-stack">
+            <img src="views/assets/images/logo-custom.png" alt="Smart Garage Logo">
+            <span>
+                <span class="brand-title">Smart Garage</span>
+                <span class="brand-subtitle">Admin</span>
+            </span>
+        </a>
+        <nav class="sidebar-nav">
+            <a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a href="index.php?action=managePieces" class="<?php echo in_array(($action ?? ''), ['managePieces', 'addPiece', 'editPiece', 'confirmDeletePiece'], true) ? 'active' : ''; ?>"><i class="bi bi-box-seam"></i> Pièces</a>
+            <a href="index.php?action=manageCommandes" class="<?php echo ($action ?? '') === 'manageCommandes' ? 'active' : ''; ?>"><i class="bi bi-cart3"></i> Commandes</a>
+            <a href="index.php?action=showCatalogue"><i class="bi bi-box-arrow-up-right"></i> FrontOffice</a>
+        </nav>
+    </aside>
 
-<!-- Navbar (BackOffice) -->
-<nav class="sg-navbar">
-    <a href="index.php?action=dashboard" class="brand">
-        <img src="assets/images/logo-custom.png" alt="Smart Garage Logo" class="logo-img">
-        Smart Garage <span style="color:var(--accent); font-weight:400; font-size:0.8rem; margin-left:4px;">Admin</span>
-    </a>
-    <ul class="nav-links">
-        <li><a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
-        <li><a href="index.php?action=managePieces" class="<?php echo in_array(($action ?? ''), ['managePieces','addPiece','editPiece','confirmDeletePiece'], true) ? 'active' : ''; ?>"><i class="bi bi-box-seam me-1"></i> Pièces</a></li>
-        <li><a href="index.php?action=manageCommandes" class="<?php echo ($action ?? '') === 'manageCommandes' ? 'active' : ''; ?>"><i class="bi bi-cart3 me-1"></i> Commandes</a></li>
-        <li><a href="index.php?action=showCatalogue"><i class="bi bi-box-arrow-up-right me-1"></i> FrontOffice</a></li>
-    </ul>
-</nav>
-
-<!-- Page Content -->
-<div class="page-wrapper">
+    <main class="app-main">
+        <div class="page-wrapper">

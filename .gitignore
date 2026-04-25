@@ -1,9 +1,0 @@
-# Local environment (credentials)
-.env
-
-# OS / editor
-Thumbs.db
-Desktop.ini
-*.swp
-.idea/
-.vscode/

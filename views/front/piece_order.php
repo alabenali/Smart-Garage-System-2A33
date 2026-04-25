@@ -1,19 +1,21 @@
 <?php
-// Variables used by shared layout and active navbar item.
-$pageTitle = 'Commander une Pièce';
+$pageTitle = 'Commander une Piece';
 $action = 'orderPiece';
 ?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
-<h1 class="page-title">Commander une Pièce</h1>
-<p class="page-subtitle">Remplissez le formulaire ci-dessous pour passer votre commande.</p>
+<div class="hero-panel">
+    <div>
+        <h1 class="page-title">Commander une Piece</h1>
+        <p class="page-subtitle">Choisissez votre piece, la quantite et votre mode de paiement.</p>
+    </div>
+</div>
 
 <?php if (!empty($success)): ?>
     <div class="sg-alert sg-alert-success"><i class="bi bi-check-circle-fill"></i> <?php echo $success; ?></div>
 <?php endif; ?>
 
 <?php if (!empty($errors)): ?>
-    <!-- Server-side validation errors are shown here -->
     <div class="sg-alert sg-alert-danger">
         <i class="bi bi-exclamation-triangle-fill"></i>
         <div>
@@ -25,84 +27,78 @@ $action = 'orderPiece';
 <?php endif; ?>
 
 <div class="sg-form-wrap">
-    <form method="POST" action="index.php?action=orderPiece" id="orderForm" novalidate
-          onsubmit="return validateOrderForm(this);">
-
+    <form method="POST" action="index.php?action=orderPiece" id="orderForm" novalidate onsubmit="return validateOrderForm(this);">
         <div class="sg-form-grid">
-            <!-- Nom du client -->
             <div class="sg-form-group">
                 <label for="nom_client">Nom</label>
-                <!-- Keep previously entered value after a failed submit -->
-                <?php $oldNom = isset($old['nom_client']) ? $old['nom_client'] : ''; ?>
-                <input type="text" name="nom_client" id="nom_client" placeholder="Ex: Ben Ahmed"
-                       value="<?php echo htmlspecialchars($oldNom); ?>">
+                <input type="text" name="nom_client" id="nom_client" placeholder="Ex: Ben Ahmed" value="<?php echo htmlspecialchars((string) ($old['nom_client'] ?? '')); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
-            <!-- Prénom du client -->
             <div class="sg-form-group">
-                <label for="prenom_client">Prénom</label>
-                <!-- Keep previously entered value after a failed submit -->
-                <?php $oldPrenom = isset($old['prenom_client']) ? $old['prenom_client'] : ''; ?>
-                <input type="text" name="prenom_client" id="prenom_client" placeholder="Ex: Karim"
-                       value="<?php echo htmlspecialchars($oldPrenom); ?>">
+                <label for="prenom_client">Prenom</label>
+                <input type="text" name="prenom_client" id="prenom_client" placeholder="Ex: Karim" value="<?php echo htmlspecialchars((string) ($old['prenom_client'] ?? '')); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
-            <!-- Téléphone -->
             <div class="sg-form-group">
-                <label for="telephone">Téléphone</label>
-                <!-- Keep previously entered value after a failed submit -->
-                <?php $oldTelephone = isset($old['telephone']) ? $old['telephone'] : ''; ?>
-                <input type="text" name="telephone" id="telephone" placeholder="Ex: 98 765 432"
-                       value="<?php echo htmlspecialchars($oldTelephone); ?>">
+                <label for="telephone">Telephone</label>
+                <input type="text" name="telephone" id="telephone" placeholder="Ex: 98 765 432" value="<?php echo htmlspecialchars((string) ($old['telephone'] ?? '')); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
-            <!-- Pièce à commander -->
             <div class="sg-form-group">
-                <label for="id_piece">Pièce à commander</label>
+                <label for="id_piece">Piece a commander</label>
                 <select name="id_piece" id="id_piece">
-                    <option value="">-- Sélectionner une pièce --</option>
-                    <?php foreach ($pieces as $p):
-                        // Prepare option state and stock label.
-                        $selected = (isset($old['id_piece']) && (int)$old['id_piece'] === (int)$p['id_piece']) ? 'selected' : '';
-                        $stockInfo = $p['quantite_stock'] > 0 ? '(Stock: ' . $p['quantite_stock'] . ')' : '(Rupture)';
-                        $disabled = $p['quantite_stock'] <= 0 ? 'disabled' : '';
-                    ?>
-                        <option value="<?php echo $p['id_piece']; ?>"
-                                data-prix="<?php echo $p['prix_unitaire']; ?>"
-                                data-stock="<?php echo $p['quantite_stock']; ?>"
-                                <?php echo $selected; ?> <?php echo $disabled; ?>>
-                            <?php echo htmlspecialchars($p['nom'] . ' – ' . $p['marque'] . ' – ' . number_format($p['prix_unitaire'], 2, ',', ' ') . ' DT ' . $stockInfo); ?>
+                    <option value="">-- Selectionner une piece --</option>
+                    <?php foreach ($pieces as $p): ?>
+                        <?php
+                        $selected = (isset($old['id_piece']) && (int) $old['id_piece'] === (int) $p['id_piece']) ? 'selected' : '';
+                        $stockInfo = (int) $p['quantite_stock'] > 0 ? '(Stock: ' . (int) $p['quantite_stock'] . ')' : '(Rupture)';
+                        $disabled = (int) $p['quantite_stock'] <= 0 ? 'disabled' : '';
+                        ?>
+                        <option value="<?php echo (int) $p['id_piece']; ?>" data-prix="<?php echo htmlspecialchars((string) $p['prix_unitaire']); ?>" data-stock="<?php echo (int) $p['quantite_stock']; ?>" <?php echo $selected; ?> <?php echo $disabled; ?>>
+                            <?php echo htmlspecialchars($p['nom'] . ' - ' . $p['marque'] . ' - ' . number_format((float) $p['prix_unitaire'], 2, ',', ' ') . ' DT ' . $stockInfo); ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
                 <div class="invalid-feedback"></div>
             </div>
 
-            <!-- Quantité -->
             <div class="sg-form-group">
-                <label for="quantite">Quantité</label>
-                <!-- Default quantity = 1 for easier first order -->
-                <?php $oldQuantite = isset($old['quantite']) ? $old['quantite'] : '1'; ?>
-                <input type="text" name="quantite" id="quantite" placeholder="Ex: 2"
-                       value="<?php echo htmlspecialchars($oldQuantite); ?>">
+                <label for="quantite">Quantite</label>
+                <input type="text" name="quantite" id="quantite" placeholder="Ex: 2" value="<?php echo htmlspecialchars((string) ($old['quantite'] ?? '1')); ?>">
                 <div class="invalid-feedback"></div>
             </div>
 
-            <!-- Montant estimé (read-only, dynamic) -->
             <div class="sg-form-group">
-                <label for="montant_estime">Montant Estimé</label>
-                <input type="text" id="montant_estime" readonly
-                       style="background: rgba(212,175,55,0.08); color: var(--gold); font-weight: 600; cursor: default;"
-                       value="0,00 DT">
+                <label for="montant_estime">Montant estime</label>
+                <input type="text" id="montant_estime" readonly value="0,00 DT">
             </div>
 
-            <!-- Submit -->
+            <div class="sg-form-group full-width">
+                <label>Mode de paiement</label>
+                <?php $selectedPayment = isset($old['payment_method']) ? (string) $old['payment_method'] : 'cash'; ?>
+                <div class="payment-choice-grid">
+                    <label class="payment-choice-card <?php echo $selectedPayment === 'cash' ? 'active' : ''; ?>">
+                        <input type="radio" name="payment_method" value="cash" <?php echo $selectedPayment === 'cash' ? 'checked' : ''; ?>>
+                        <span class="payment-choice-icon"><i class="bi bi-cash-coin"></i></span>
+                        <span class="payment-choice-title">Paiement a la livraison</span>
+                        <span class="payment-choice-text">La commande est enregistree tout de suite, puis vous reglez plus tard.</span>
+                    </label>
+                    <label class="payment-choice-card <?php echo $selectedPayment === 'konnect' ? 'active' : ''; ?>">
+                        <input type="radio" name="payment_method" value="konnect" <?php echo $selectedPayment === 'konnect' ? 'checked' : ''; ?>>
+                        <span class="payment-choice-icon"><i class="bi bi-credit-card"></i></span>
+                        <span class="payment-choice-title">Konnect</span>
+                        <span class="payment-choice-text">Paiement en ligne via Konnect. Vous serez redirige vers une page de paiement securisee.</span>
+                    </label>
+                </div>
+                <div class="field-help">Le paiement Konnect utilise la devise configuree dans vos variables d'environnement.</div>
+            </div>
+
             <div class="sg-form-actions">
                 <button type="submit" class="btn-sg btn-sg-primary">
-                    <i class="bi bi-cart-check"></i> Passer la Commande
+                    <i class="bi bi-cart-check"></i> Continuer
                 </button>
                 <a href="index.php?action=showCatalogue" class="btn-sg btn-sg-outline">Annuler</a>
             </div>
@@ -110,28 +106,36 @@ $action = 'orderPiece';
     </form>
 </div>
 
-<!-- Dynamic price calculation -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const pieceSelect = document.getElementById('id_piece');
     const quantiteInput = document.getElementById('quantite');
     const montantEstime = document.getElementById('montant_estime');
+    const paymentCards = document.querySelectorAll('.payment-choice-card');
 
     function updateMontant() {
-        // Read selected piece price and multiply by typed quantity.
         const selectedOption = pieceSelect.options[pieceSelect.selectedIndex];
         const prix = selectedOption ? parseFloat(selectedOption.getAttribute('data-prix')) || 0 : 0;
-        const qte = parseInt(quantiteInput.value) || 0;
+        const qte = parseInt(quantiteInput.value, 10) || 0;
         const total = prix * qte;
-        // Format like: 1 234,56 DT
         montantEstime.value = total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' DT';
+    }
+
+    function updatePaymentCards() {
+        paymentCards.forEach(function(card) {
+            const input = card.querySelector('input[type="radio"]');
+            card.classList.toggle('active', !!input && input.checked);
+        });
     }
 
     pieceSelect.addEventListener('change', updateMontant);
     quantiteInput.addEventListener('input', updateMontant);
+    document.querySelectorAll('input[name="payment_method"]').forEach(function(input) {
+        input.addEventListener('change', updatePaymentCards);
+    });
 
-    // Initial calculation
     updateMontant();
+    updatePaymentCards();
 });
 </script>
 
