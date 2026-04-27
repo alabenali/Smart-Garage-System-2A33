@@ -33,12 +33,12 @@ function validateVehicleForm(form) {
     }
 
     // Immatriculation – required + format
-    const immatVal = immatriculation.value.trim();
+    const immatVal = immatriculation.value.trim().toUpperCase();
     if (!immatVal) {
         showError(immatriculation, "L'immatriculation est obligatoire.");
         isValid = false;
-    } else if (!/^\d{1,4}\s?[A-Za-z]{1,4}\s?\d{1,4}$/.test(immatVal)) {
-        showError(immatriculation, 'Format invalide (ex: 123 TU 4567).');
+    } else if (!/^\d{3}TN\d{4}$/.test(immatVal)) {
+        showError(immatriculation, 'Format invalide (ex: 111TN9999).');
         isValid = false;
     }
 

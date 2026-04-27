@@ -18,8 +18,8 @@
     /* Blanc – titres & texte principal             */
     --text-primary: #f3f8ff;
     /* Gris Métal – texte secondaire & bordures    */
-    --text-secondary: #9cb4d6;
-    --text-muted: #6f89ad;
+    --text-secondary: #bdd0ea;
+    --text-muted: #b7c9df;
 
     /* Orange – accent principal (au lieu du Cyan) */
     --accent: #19d3ff;
@@ -64,6 +64,57 @@ body {
     color: var(--text-primary);
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
+}
+
+/* Higher-contrast text defaults on dark theme */
+.text-muted {
+    color: var(--text-muted) !important;
+}
+
+.card .text-muted,
+.table .text-muted,
+small.text-muted {
+    color: #bfd0e6 !important;
+}
+
+.text-secondary {
+    color: var(--text-secondary) !important;
+}
+
+.form-label,
+label,
+.form-text {
+    color: #d7e5f7;
+}
+
+.form-control,
+.form-select,
+textarea,
+input {
+    color: #eef5ff !important;
+}
+
+.form-control::placeholder,
+.form-select::placeholder,
+textarea::placeholder,
+input::placeholder {
+    color: #a9bfdc !important;
+    opacity: 1;
+}
+
+/* Dark Bootstrap table readability */
+.table-dark {
+    --bs-table-color: #eef5ff;
+    --bs-table-bg: #0d2b50;
+    --bs-table-striped-color: #eef5ff;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-hover-bg: rgba(255, 255, 255, 0.06);
+    --bs-table-border-color: rgba(169, 191, 220, 0.2);
+}
+
+.table-dark thead th {
+    color: #d9e9ff;
 }
 
 /* ---- Scrollbar ---- */
@@ -170,7 +221,7 @@ body {
 }
 
 .diagnostics-subtitle {
-    color: #8fb0d8 !important;
+    color: #c6d8ee !important;
 }
 
 /* ============================================

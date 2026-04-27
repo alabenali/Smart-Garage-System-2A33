@@ -17,10 +17,9 @@
         <img src="assets/images/logo.png" alt="Smart Garage Logo" class="logo-img">
         Smart Garage
     </a>
+    <?php $vehicleQuery = isset($vehicleId) && (int)$vehicleId > 0 ? ('&vehicle_id=' . (int)$vehicleId) : ''; ?>
     <ul class="nav-links">
-        <li><a href="index.php?action=showVehicles" class="<?php echo ($action ?? '') === 'showVehicles' ? 'active' : ''; ?>"><i class="bi bi-car-front me-1"></i> Véhicules</a></li>
-        <li><a href="index.php?action=mes_diagnostics" class="<?php echo ($action ?? '') === 'mes_diagnostics' ? 'active' : ''; ?>"><i class="bi bi-clipboard2-pulse me-1"></i> Mes Diagnostics</a></li>
-        <li><a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> BackOffice</a></li>
+        <li><a href="index.php?action=client_interventions<?php echo $vehicleQuery; ?>" class="<?php echo ($action ?? '') === 'client_interventions' ? 'active' : ''; ?>"><i class="bi bi-tools me-1"></i> Mes Interventions</a></li>
     </ul>
 </nav>
 

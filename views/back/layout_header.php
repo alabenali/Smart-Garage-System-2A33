@@ -13,15 +13,27 @@
 
 <!-- Navbar (BackOffice) -->
 <nav class="sg-navbar">
-    <a href="index.php?action=dashboard" class="brand">
+    <a href="index.php?action=diagnostics" class="brand">
         <img src="assets/images/logo.png" alt="Smart Garage Logo" class="logo-img">
         Smart Garage <span style="color:var(--accent); font-weight:400; font-size:0.8rem; margin-left:4px;">Admin</span>
     </a>
     <ul class="nav-links">
         <li><a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2 me-1"></i> Dashboard</a></li>
-        <li><a href="index.php?action=manageVehicles" class="<?php echo in_array(($action ?? ''), ['manageVehicles','editVehicle']) ? 'active' : ''; ?>"><i class="bi bi-car-front me-1"></i> Véhicules</a></li>
         <li><a href="index.php?action=diagnostics" class="<?php echo ($action ?? '') === 'diagnostics' ? 'active' : ''; ?>"><i class="bi bi-clipboard2-pulse me-1"></i> Diagnostics</a></li>
-        <li><a href="index.php?action=showVehicles"><i class="bi bi-box-arrow-up-right me-1"></i> FrontOffice</a></li>
+        <li><a href="index.php?action=admin_interventions" class="<?php echo ($action ?? '') === 'admin_interventions' ? 'active' : ''; ?>"><i class="bi bi-tools me-1"></i> Interventions</a></li>
+
+        <!-- ✅ Bouton Messages ajouté -->
+        <li>
+            <a href="index.php?action=messages" class="<?php echo ($action ?? '') === 'messages' ? 'active' : ''; ?>">
+                <i class="bi bi-chat-dots me-1"></i> Messages
+                <?php if (!empty($unreadCount) && $unreadCount > 0): ?>
+                    <span class="badge rounded-pill bg-danger ms-1" style="font-size:0.65rem;">
+                        <?php echo $unreadCount; ?>
+                    </span>
+                <?php endif; ?>
+            </a>
+        </li>
+
     </ul>
 </nav>
 
