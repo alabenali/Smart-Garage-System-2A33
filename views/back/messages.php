@@ -113,12 +113,18 @@ $action = 'messages';
 <style>
 .page-wrapper {
     max-width: 100%;
-    margin: 0;
-    padding: 0;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.back-office .page-wrapper {
+    margin-left: 300px !important;
+    padding: 0 !important;
+    height: 100vh;
 }
 
 .admin-messages-page {
-    height: calc(100vh - 64px);
+    height: 100vh;
     display: flex;
     flex-direction: column;
 }
@@ -137,6 +143,8 @@ $action = 'messages';
 }
 
 .admin-chat-sidebar {
+    display: flex;
+    flex-direction: column;
     background: linear-gradient(180deg, #f0f3f8 0%, #e8edf5 100%);
     border-right: 1px solid #d6dfeb;
 }
@@ -164,8 +172,8 @@ $action = 'messages';
 }
 
 .admin-chat-conversation-list {
-    max-height: none;
-    height: calc(100vh - 64px - 68px - 58px);
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
 }
 
@@ -379,6 +387,12 @@ $action = 'messages';
 }
 
 @media (max-width: 992px) {
+    .back-office .page-wrapper {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        height: auto;
+    }
+
     .admin-messages-page {
         height: auto;
         min-height: calc(100vh - 64px);
