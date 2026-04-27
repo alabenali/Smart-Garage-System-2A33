@@ -1,4 +1,5 @@
 <?php
+<<<<<<< HEAD
 // views/backoffice/admin_dashboard.php
 
 require_once __DIR__ . '/../../config.php';
@@ -12,6 +13,14 @@ if (!isset($_SESSION['admin_id'])) {
 $db = Database::getConnection();
 $totalUsers = (int) $db->query("SELECT COUNT(*) FROM user WHERE post = 'client'")->fetchColumn();
 $activeUsers = (int) $db->query("SELECT COUNT(*) FROM user WHERE post = 'client' AND statut = 'actif'")->fetchColumn();
+=======
+require_once __DIR__ . '/../../config.php';
+if (!isset($_SESSION['admin_id'])) { header('Location: admin_login.php'); exit; }
+require_once __DIR__ . '/../../models/User.php';
+$userModel   = new User();
+$totalUsers  = $userModel->countAll();
+$activeUsers = $userModel->countActive();
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -19,11 +28,16 @@ $activeUsers = (int) $db->query("SELECT COUNT(*) FROM user WHERE post = 'client'
     <meta charset="UTF-8">
     <title>Admin Dashboard - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/backoffice/style.css">
+=======
+    <link rel="stylesheet" href="style.css">
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body>
 <aside class="sidebar">
     <div class="logo"><i class="fas fa-car" style="color:#00E5FF;margin-right:8px;"></i><h2>Smart Garage Admin</h2></div>
+<<<<<<< HEAD
     <?php
     $adminPic = $_SESSION['admin_profile_pic'] ?? null;
     $adminPicUrl = null;
@@ -50,6 +64,14 @@ $activeUsers = (int) $db->query("SELECT COUNT(*) FROM user WHERE post = 'client'
             <li><a href="/projet_final/controllers/AdminController.php?action=showStatistics"><i class="fas fa-chart-bar"></i> Statistiques</a></li>
             <li><a href="/projet_final/controllers/AdminController.php?action=showAdminProfile"><i class="fas fa-user-cog"></i> Mon profil</a></li>
             <li><a href="/projet_final/controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+=======
+    <nav>
+        <ul>
+            <li><a href="admin_dashboard.php?action=showDashboard" class="active"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+            <li><a href="users_list.php?action=listUsers"><i class="fas fa-users"></i> Gestion Clients</a></li>
+            <li><a href="add_user.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
+            <li><a href="../../controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         </ul>
     </nav>
 </aside>
@@ -85,6 +107,7 @@ $activeUsers = (int) $db->query("SELECT COUNT(*) FROM user WHERE post = 'client'
 
     <div class="quick-actions">
         <h3><i class="fas fa-bolt"></i> Actions rapides</h3>
+<<<<<<< HEAD
         <a href="/projet_final/controllers/AdminController.php?action=listUsers" class="btn-action"><i class="fas fa-list"></i> Voir tous les clients</a>
         <a href="/projet_final/controllers/AdminController.php?action=showAddUser" class="btn-action"><i class="fas fa-user-plus"></i> Ajouter un client</a>
         <a href="/projet_final/controllers/AdminController.php?action=showStatistics" class="btn-action"><i class="fas fa-chart-bar"></i> Statistiques</a>
@@ -92,3 +115,11 @@ $activeUsers = (int) $db->query("SELECT COUNT(*) FROM user WHERE post = 'client'
 </main>
 </body>
 </html>
+=======
+        <a href="users_list.php?action=listUsers" class="btn-action"><i class="fas fa-list"></i> Voir tous les clients</a>
+        <a href="add_user.php?action=showAddUser" class="btn-action"><i class="fas fa-user-plus"></i> Ajouter un client</a>
+    </div>
+</main>
+</body>
+</html>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

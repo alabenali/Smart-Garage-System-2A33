@@ -1,4 +1,5 @@
 <?php
+<<<<<<< HEAD
 // views/frontoffice/profile.php
 
 require_once __DIR__ . '/../../config.php';
@@ -26,6 +27,13 @@ if ($profilePic) {
         $avatarPath = null; // Fichier absent → afficher l'initiale
     }
 }
+=======
+require_once __DIR__ . '/../../config.php';
+if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+require_once __DIR__ . '/../../models/User.php';
+$userModel = new User();
+$user = $userModel->getById($_SESSION['user_id']);
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -33,6 +41,7 @@ if ($profilePic) {
     <meta charset="UTF-8">
     <title>Mon Profil - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/frontoffice/style.css">
     <style>
         .avatar-section { text-align: center; margin-bottom: 20px; }
@@ -68,15 +77,25 @@ if ($profilePic) {
             cursor: pointer;
         }
     </style>
+=======
+    <link rel="stylesheet" href="style.css">
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body>
 <nav class="navbar">
     <div class="logo"><i class="fas fa-car" style="color:#00E5FF;margin-right:8px;"></i><h2>Smart Garage</h2></div>
     <ul class="nav-links">
+<<<<<<< HEAD
         <li><a href="/projet_final/controllers/UserController.php?action=showDashboard">Mon espace</a></li>
         <li><a href="/projet_final/controllers/UserController.php?action=showProfile" class="active">Mon profil</a></li>
     </ul>
     <a href="/projet_final/controllers/UserController.php?action=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+=======
+        <li><a href="dashboard.php">Mon espace</a></li>
+        <li><a href="profile.php" class="active">Mon profil</a></li>
+    </ul>
+    <a href="../../controllers/UserController.php?action=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </nav>
 
 <div class="container" style="max-width:700px;">
@@ -90,6 +109,7 @@ if ($profilePic) {
 
     <div class="card">
         <h2><i class="fas fa-user-edit"></i> Modifier mon profil</h2>
+<<<<<<< HEAD
         
         <!-- Profile Picture Section -->
         <div class="avatar-section">
@@ -101,6 +121,9 @@ if ($profilePic) {
         </div>
         
         <form id="profileForm" method="POST" action="/projet_final/controllers/UserController.php?action=updateProfile" novalidate enctype="multipart/form-data">
+=======
+        <form id="profileForm" method="POST" action="../../controllers/UserController.php?action=updateProfile" novalidate>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             <div class="row2">
                 <div class="form-group">
                     <label>Nom</label>
@@ -137,6 +160,7 @@ if ($profilePic) {
                     <input type="text" name="adresse" id="adresse" value="<?= htmlspecialchars($user['adresse'] ?? '') ?>">
                 </div>
             </div>
+<<<<<<< HEAD
             
             <!-- Profile Picture Upload -->
             <div class="upload-section">
@@ -195,3 +219,15 @@ document.getElementById('profile_picture').addEventListener('change', function(e
 </script>
 </body>
 </html>
+=======
+            <div class="form-actions">
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+                <a href="dashboard.php" class="btn-back"><i class="fas fa-arrow-left"></i> Retour</a>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="../../public/js/validate-profile.js"></script>
+</body>
+</html>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

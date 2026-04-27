@@ -1,15 +1,25 @@
 <?php
+<<<<<<< HEAD
 // config.php - Configuration générale et connexion PDO
 
 define('DB_HOST',    'localhost');
 define('DB_NAME',    'garage1');
 define('DB_USER',    'root');
 define('DB_PASS',    '');
+=======
+// config.php - Connexion PDO à la base de données garage1
+
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'garage1');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 define('DB_CHARSET', 'utf8mb4');
 
 // Démarrage de session global
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
+<<<<<<< HEAD
 }
 
 // ── Classe Database ───────────────────────────────────────────────────────────
@@ -45,3 +55,6 @@ define('RECAPTCHA_ENABLED',    true);                     // Active/désactive l
 define('RECAPTCHA_SITE_KEY',   '6LfDBswsAAAAAKmlGgnw2VEE1zmDS6CBNgziceXf'); // Clé réelle utilisateur
 define('RECAPTCHA_SECRET_KEY', '6LfDBswsAAAAAG7OUz8XuQeQs324OaujIa8Ywhti'); // Clé réelle utilisateur
 
+=======
+}
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

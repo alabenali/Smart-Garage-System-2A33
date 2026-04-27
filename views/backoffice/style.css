@@ -227,6 +227,7 @@ tr:hover td { background: rgba(0, 229, 255, 0.05); }
 }
 .search-wrap input:focus { outline: none; border-color: #00E5FF; }
 
+<<<<<<< HEAD
 /* ── Filters ── */
 .filter-row {
     display: flex;
@@ -261,6 +262,8 @@ tr:hover td { background: rgba(0, 229, 255, 0.05); }
     background: #1a1a1a;
 }
 
+=======
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 /* ── Forms ── */
 .form-group { margin-bottom: 1.1rem; }
 
@@ -405,6 +408,7 @@ tr:hover td { background: rgba(0, 229, 255, 0.05); }
 .back-link { text-align: center; margin-top: 1rem; }
 .back-link a { color: #6B6B6B; text-decoration: none; font-size: 0.9rem; }
 .back-link a:hover { color: #00E5FF; }
+<<<<<<< HEAD
 
 /* --- Recherche & Tri custom --- */
 .search-wrap {
@@ -471,3 +475,5 @@ tr:hover td { background: rgba(0, 229, 255, 0.05); }
     background: #0f2027;
     color: #00e5ff;
 }
+=======
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

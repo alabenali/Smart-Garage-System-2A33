@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../config.php';
+<<<<<<< HEAD
 if (!isset($_SESSION['user_id'])) { header('Location: /projet_final/controllers/UserController.php?action=showLogin'); exit; }
 
 // Get user data including profile picture
@@ -18,6 +19,11 @@ if ($profilePic) {
         $avatarPath = '/projet_final/' . $profilePic;
     }
 }
+=======
+if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+$prenom = htmlspecialchars($_SESSION['user_prenom']);
+$nom    = htmlspecialchars($_SESSION['user_nom']);
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -25,6 +31,7 @@ if ($profilePic) {
     <meta charset="UTF-8">
     <title>Mon Espace - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/frontoffice/style.css">
     <style>
         .nav-avatar {
@@ -47,11 +54,15 @@ if ($profilePic) {
             border: 2px solid #00E5FF;
         }
     </style>
+=======
+    <link rel="stylesheet" href="style.css">
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body>
 <nav class="navbar">
     <div class="logo"><i class="fas fa-car" style="color:#00E5FF;margin-right:8px;"></i><h2>Smart Garage</h2></div>
     <ul class="nav-links">
+<<<<<<< HEAD
         <li><a href="/projet_final/controllers/UserController.php?action=showDashboard" class="active">Mon espace</a></li>
         <li><a href="/projet_final/controllers/UserController.php?action=showProfile">Mon profil</a></li>
     </ul>
@@ -63,6 +74,15 @@ if ($profilePic) {
         <?php endif; ?>
         <span><?= $prenom ?></span>
         <a href="/projet_final/controllers/UserController.php?action=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+=======
+        <li><a href="dashboard.php" class="active">Mon espace</a></li>
+        <li><a href="profile.php">Mon profil</a></li>
+    </ul>
+    <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="avatar"><?= strtoupper(substr($prenom,0,1)) ?></div>
+        <span><?= $prenom ?></span>
+        <a href="../../controllers/UserController.php?action=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     </div>
 </nav>
 
@@ -105,7 +125,11 @@ if ($profilePic) {
         </div>
         <div class="info-row">
             <span class="info-label"></span>
+<<<<<<< HEAD
             <a href="/projet_final/controllers/UserController.php?action=showProfile" class="btn-edit"><i class="fas fa-edit"></i> Modifier mon profil</a>
+=======
+            <a href="profile.php" class="btn-edit"><i class="fas fa-edit"></i> Modifier mon profil</a>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         </div>
     </div>
 </div>

@@ -1,4 +1,5 @@
 <?php
+<<<<<<< HEAD
 // views/backoffice/users_list.php
 
 require_once __DIR__ . '/../../config.php';
@@ -7,6 +8,13 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 if (!isset($users)) { $users = []; }
+=======
+require_once __DIR__ . '/../../config.php';
+if (!isset($_SESSION['admin_id'])) { header('Location: admin_login.php'); exit; }
+require_once __DIR__ . '/../../models/User.php';
+$userModel = new User();
+$users = $userModel->getAll();
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -14,6 +22,7 @@ if (!isset($users)) { $users = []; }
     <meta charset="UTF-8">
     <title>Gestion Clients - Smart Garage Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/backoffice/style.css">
     <style>
         /* Styles pour les contrôles de tri */
@@ -102,17 +111,27 @@ if (!isset($users)) { $users = []; }
             margin-right: 0;
         }
     </style>
+=======
+    <link rel="stylesheet" href="style.css">
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body>
 <aside class="sidebar">
     <div class="logo"><h2><i class="fas fa-car" style="color:#00E5FF;"></i> Smart Garage</h2></div>
     <nav><ul>
+<<<<<<< HEAD
         <li><a href="/projet_final/controllers/AdminController.php?action=showDashboard"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=listUsers" class="active"><i class="fas fa-users"></i> Gestion Clients</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showStatistics"><i class="fas fa-chart-bar"></i> Statistiques</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAdminProfile"><i class="fas fa-user-cog"></i> Mon profil</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+=======
+        <li><a href="admin_dashboard.php"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
+        <li><a href="users_list.php?action=listUsers" class="active"><i class="fas fa-users"></i> Gestion Clients</a></li>
+        <li><a href="add_user.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
+        <li><a href="../../controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     </ul></nav>
 </aside>
 
@@ -124,7 +143,11 @@ if (!isset($users)) { $users = []; }
 
     <div class="top-bar">
         <h1><i class="fas fa-users" style="color:#00E5FF;"></i> Gestion des Clients</h1>
+<<<<<<< HEAD
         <a href="/projet_final/controllers/AdminController.php?action=showAddUser" class="btn-add"><i class="fas fa-user-plus"></i> Ajouter un client</a>
+=======
+        <a href="add_user.php?action=showAddUser" class="btn-add"><i class="fas fa-user-plus"></i> Ajouter un client</a>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     </div>
 
     <div class="search-wrap">
@@ -132,6 +155,7 @@ if (!isset($users)) { $users = []; }
         <input type="text" id="searchInput" placeholder="Rechercher par nom ou email..." oninput="filterTable()">
     </div>
 
+<<<<<<< HEAD
     <div class="sort-controls">
         <div class="sort-group">
             <label><i class="fas fa-sort-amount-down-alt"></i> Trier par :</label>
@@ -150,6 +174,8 @@ if (!isset($users)) { $users = []; }
         </button>
     </div>
 
+=======
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     <table id="usersTable">
         <thead>
             <tr>
@@ -170,14 +196,20 @@ if (!isset($users)) { $users = []; }
                     <td><span class="status-<?= $u['statut'] ?>"><?= ucfirst($u['statut']) ?></span></td>
                     <td><?= date('d/m/Y', strtotime($u['created_at'])) ?></td>
                     <td>
+<<<<<<< HEAD
                         <a href="/projet_final/controllers/AdminController.php?action=showEditUser&id=<?= $u['id'] ?>" class="btn-edit"><i class="fas fa-edit"></i> Modifier</a>
                         <a href="/projet_final/controllers/AdminController.php?action=deleteUser&id=<?= $u['id'] ?>" class="btn-delete" onclick="return confirm('Supprimer ce client ?')"><i class="fas fa-trash"></i> Suppr.</a>
+=======
+                        <a href="edit_user.php?action=showEditUser&id=<?= $u['id'] ?>" class="btn-edit"><i class="fas fa-edit"></i> Modifier</a>
+                        <a href="../../controllers/AdminController.php?action=deleteUser&id=<?= $u['id'] ?>" class="btn-delete" onclick="return confirm('Supprimer ce client ?')"><i class="fas fa-trash"></i> Suppr.</a>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
                     </td>
                 </tr>
             <?php endforeach; endif; ?>
         </tbody>
     </table>
 </main>
+<<<<<<< HEAD
 
 <script>
 let currentSortValue = 'id-desc';
@@ -187,12 +219,16 @@ let currentSortValue = 'id-desc';
 
 //// tri et recherche
 
+=======
+<script>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 function filterTable() {
     const search = document.getElementById('searchInput').value.toLowerCase();
     document.querySelectorAll('#usersTable tbody tr').forEach(row => {
         row.style.display = row.textContent.toLowerCase().includes(search) ? '' : 'none';
     });
 }
+<<<<<<< HEAD
 
 function sortTable() {
     currentSortValue = document.getElementById('sortSelect').value;
@@ -242,3 +278,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
+=======
+</script>
+</body>
+</html>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

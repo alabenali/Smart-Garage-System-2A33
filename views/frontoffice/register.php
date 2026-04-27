@@ -5,10 +5,14 @@
     <meta charset="UTF-8">
     <title>Inscription - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/frontoffice/style.css">
     <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <?php endif; ?>
+=======
+    <link rel="stylesheet" href="style.css">
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body class="auth-body">
 <div class="auth-card">
@@ -25,7 +29,11 @@
         </div>
     <?php endif; ?>
 
+<<<<<<< HEAD
     <form id="registerForm" method="POST" action="/projet_final/controllers/UserController.php?action=register" novalidate enctype="multipart/form-data">
+=======
+    <form id="registerForm" method="POST" action="../../controllers/UserController.php?action=register" novalidate>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         <div class="row">
             <div class="form-group">
                 <label>Nom</label>
@@ -76,6 +84,7 @@
             </div>
             <span class="error-msg" id="confirmError"></span>
         </div>
+<<<<<<< HEAD
         
         <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
         <div class="form-group" style="display:flex;justify-content:center;margin-bottom:16px;">
@@ -105,3 +114,13 @@ document.getElementById('registerForm').addEventListener('submit', function(e) {
 <?php endif; ?>
 </body>
 </html>
+=======
+        <button type="submit" class="btn-primary full"><i class="fas fa-user-plus"></i> Créer mon compte</button>
+    </form>
+    <?php unset($_SESSION['old']); ?>
+    <div class="links"><p>Déjà un compte ? <a href="login.php">Se connecter</a></p></div>
+</div>
+<script src="../../public/js/validate-register.js"></script>
+</body>
+</html>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

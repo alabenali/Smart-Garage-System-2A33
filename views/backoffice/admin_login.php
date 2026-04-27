@@ -5,10 +5,14 @@
     <meta charset="UTF-8">
     <title>Admin - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/backoffice/style.css">
     <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <?php endif; ?>
+=======
+    <link rel="stylesheet" href="style.css">
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body class="login-body">
 <div class="login-card">
@@ -27,7 +31,11 @@
         </div>
     <?php endif; ?>
 
+<<<<<<< HEAD
     <form id="adminLoginForm" method="POST" action="/projet_final/controllers/AdminController.php?action=login" novalidate>
+=======
+    <form id="adminLoginForm" method="POST" action="../../controllers/AdminController.php?action=login" novalidate>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         <div class="form-group">
             <label><i class="fas fa-envelope"></i> Email Administrateur</label>
             <div class="input-wrap">
@@ -44,6 +52,7 @@
             </div>
             <span class="error-msg" id="passwordError"></span>
         </div>
+<<<<<<< HEAD
         
         <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
         <div class="form-group" style="display:flex;justify-content:center;margin-bottom:16px;">
@@ -70,5 +79,12 @@ document.getElementById('adminLoginForm').addEventListener('submit', function(e)
 });
 </script>
 <?php endif; ?>
+=======
+        <button type="submit" class="btn-primary full"><i class="fas fa-sign-in-alt"></i> Accéder au panneau admin</button>
+    </form>
+    <div class="back-link"><a href="../frontoffice/login.php"><i class="fas fa-arrow-left"></i> Retour à l'espace client</a></div>
+</div>
+<script src="../../public/js/validate-login.js"></script>
+>>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </body>
 </html>
