@@ -3,29 +3,36 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mecaniciens - Smart Garage</title>
+    <title>Gestion des Mecaniciens - Smart Garage</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="./mecaniciens.css" />
+    <link rel="stylesheet" href="/smart_garage/public/css/style.css" />
   </head>
   <body>
     <div class="admin-container">
       <aside class="sidebar">
         <div class="logo">
+          <i class="fas fa-microchip logo-icon"></i>
           <h2>SMART<span style="color: white">GARAGE</span></h2>
         </div>
         <nav>
           <ul>
             <li>
-              <a href="./index.html"><i class="fas fa-house"></i> Accueil</a>
+              <a href="/smart_garage/view/back/mecaniciens.html" class="active">
+                <i class="fas fa-user-cog"></i> Gestion des Mecaniciens
+              </a>
             </li>
             <li>
-              <a href="./mecaniciens.html" class="active"><i class="fas fa-user-cog"></i> Mecaniciens</a>
+              <a href="/smart_garage/view/back/formations.html">
+                <i class="fas fa-graduation-cap"></i> Gestion des Formations
+              </a>
             </li>
             <li>
-              <a href="../front/dashboard.html"><i class="fas fa-display"></i> FrontOffice</a>
+              <a href="/smart_garage/view/front/dashboard.html">
+                <i class="fas fa-chart-network"></i> Dashboard
+              </a>
             </li>
           </ul>
         </nav>
@@ -33,12 +40,18 @@
 
       <main class="main-content">
         <div class="top-bar">
-          <h1><i class="fas fa-user-cog"></i> Gestion des mecaniciens</h1>
+          <h1><i class="fas fa-user-cog"></i> Gestion des Mecaniciens</h1>
+          <a class="button-secondary alt" href="/smart_garage/view/back/formations.html">
+            <i class="fas fa-arrow-right"></i> Aller aux Formations
+          </a>
         </div>
 
         <div class="actions-bar">
-          <button class="btn-add" id="btnAdd">
-            <i class="fas fa-plus"></i> Ajouter
+          <p class="page-note">
+            <i class="fas fa-database"></i> Base de donnees active : <strong>smart_garage</strong>
+          </p>
+          <button class="btn-add" id="btnAdd" type="button">
+            <i class="fas fa-plus"></i> Ajouter un mecanicien
           </button>
         </div>
 
@@ -46,15 +59,19 @@
           <table>
             <thead>
               <tr>
-                <th>id_mecanicien</th>
-                <th>nom</th>
-                <th>prenom</th>
-                <th>telephone</th>
-                <th>specialite</th>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Prenom</th>
+                <th>Telephone</th>
+                <th>Specialite</th>
                 <th>Actions</th>
               </tr>
             </thead>
-            <tbody id="tableBody"></tbody>
+            <tbody id="tableBody">
+              <tr>
+                <td colspan="6">Chargement des mecaniciens...</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </main>
@@ -69,26 +86,28 @@
           <div class="form-group">
             <label for="nom">Nom</label>
             <input type="text" id="nom" autocomplete="off" />
-            <div class="error" id="err_nom"></div>
           </div>
 
           <div class="form-group">
             <label for="prenom">Prenom</label>
             <input type="text" id="prenom" autocomplete="off" />
-            <div class="error" id="err_prenom"></div>
           </div>
 
           <div class="form-group">
             <label for="telephone">Telephone</label>
-            <input type="text" id="telephone" inputmode="numeric" maxlength="8" autocomplete="off" />
-            <div class="error" id="err_telephone"></div>
+            <input type="text" id="telephone" autocomplete="off" />
           </div>
 
           <div class="form-group">
             <label for="specialite">Specialite</label>
-            <input type="text" id="specialite" />
-            <div class="error" id="err_specialite"></div>
+            <select id="specialite">
+              <option value="Moteur">Moteur</option>
+              <option value="&#201;lectricit&#233;">&#201;lectricit&#233;</option>
+              <option value="Carrosserie">Carrosserie</option>
+            </select>
           </div>
+
+          <p id="formStatus" class="message-inline"></p>
 
           <div class="modal-buttons">
             <button type="submit" class="btn-save"><i class="fas fa-save"></i> Enregistrer</button>
@@ -100,6 +119,6 @@
       </div>
     </div>
 
-    <script src="./mecaniciens.js"></script>
+    <script src="/smart_garage/public/js/mecaniciens.js"></script>
   </body>
 </html>

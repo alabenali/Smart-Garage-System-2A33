@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestion des Formations - Smart Garage</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/smart_garage/public/css/style.css" />
+  </head>
+  <body>
+    <div class="admin-container">
+      <aside class="sidebar">
+        <div class="logo">
+          <i class="fas fa-microchip logo-icon"></i>
+          <h2>SMART<span style="color: white">GARAGE</span></h2>
+        </div>
+        <nav>
+          <ul>
+            <li>
+              <a href="/smart_garage/view/back/mecaniciens.html">
+                <i class="fas fa-user-cog"></i> Gestion des Mecaniciens
+              </a>
+            </li>
+            <li>
+              <a href="/smart_garage/view/back/formations.html" class="active">
+                <i class="fas fa-graduation-cap"></i> Gestion des Formations
+              </a>
+            </li>
+            <li>
+              <a href="/smart_garage/view/front/dashboard.html">
+                <i class="fas fa-chart-network"></i> Dashboard
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <div class="top-bar">
+          <h1><i class="fas fa-graduation-cap"></i> Gestion des Formations</h1>
+          <a class="button-secondary alt" href="/smart_garage/view/front/dashboard.html">
+            <i class="fas fa-chart-line"></i> Ouvrir le Dashboard
+          </a>
+        </div>
+
+        <div class="actions-bar">
+          <p class="page-note">
+            <i class="fas fa-database"></i> Base de donnees active : <strong>smart_garage</strong>
+          </p>
+          <button class="btn-add" id="btnAddFormation" type="button">
+            <i class="fas fa-plus"></i> Ajouter une formation
+          </button>
+        </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Description</th>
+                <th>Duree</th>
+                <th>Certificat</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="formationsTableBody">
+              <tr>
+                <td colspan="6">Chargement des formations...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="panel-grid">
+          <section class="section-card">
+            <h2><i class="fas fa-link"></i> Lier Mecanicien et Formation</h2>
+            <form id="relationForm" novalidate>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="relation_mecanicien">Mecanicien</label>
+                  <select id="relation_mecanicien"></select>
+                </div>
+                <div class="form-group">
+                  <label for="relation_formation">Formation</label>
+                  <select id="relation_formation"></select>
+                </div>
+                <div class="form-group">
+                  <label for="date_inscription">Date inscription</label>
+                  <input type="text" id="date_inscription" placeholder="YYYY-MM-DD" />
+                </div>
+                <div class="form-group">
+                  <label for="date_obtention">Date obtention</label>
+                  <input type="text" id="date_obtention" placeholder="YYYY-MM-DD" />
+                </div>
+                <div class="form-group full-width">
+                  <label for="note_obtenue">Note obtenue</label>
+                  <input type="text" id="note_obtenue" placeholder="Exemple : 18.5" />
+                </div>
+              </div>
+
+              <p id="relationStatus" class="message-inline"></p>
+
+              <div class="modal-buttons">
+                <button type="submit" class="btn-save"><i class="fas fa-link"></i> Enregistrer</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="section-card">
+            <h2><i class="fas fa-project-diagram"></i> Relations enregistrees</h2>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Mecanicien</th>
+                    <th>Formation</th>
+                    <th>Date inscription</th>
+                    <th>Date obtention</th>
+                    <th>Note</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="relationsTableBody">
+                  <tr>
+                    <td colspan="6">Chargement des relations...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div id="formationModal" class="modal" aria-hidden="true">
+      <div class="modal-content">
+        <h2 id="formationModalTitle"><i class="fas fa-graduation-cap"></i> Ajouter une formation</h2>
+        <form id="formationForm" novalidate>
+          <input type="hidden" id="id_formation" />
+
+          <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="duree_heures">Duree en heures</label>
+            <input type="text" id="duree_heures" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="certificat">Certificat</label>
+            <input type="text" id="certificat" autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label for="status">Statut</label>
+            <select id="status">
+              <option value="planifiee">planifiee</option>
+              <option value="en_cours">en_cours</option>
+              <option value="terminee">terminee</option>
+              <option value="annulee">annulee</option>
+            </select>
+          </div>
+
+          <p id="formationStatus" class="message-inline"></p>
+
+          <div class="modal-buttons">
+            <button type="submit" class="btn-save"><i class="fas fa-save"></i> Enregistrer</button>
+            <button type="button" class="btn-cancel" id="btnCancelFormation">
+              <i class="fas fa-times"></i> Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="/smart_garage/public/js/formations.js"></script>
+  </body>
+</html>
