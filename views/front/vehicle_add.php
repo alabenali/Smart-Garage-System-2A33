@@ -29,7 +29,15 @@
             <div class="sg-form-group">
                 <label for="marque">Marque</label>
                 <input type="text" name="marque" id="marque" placeholder="Ex: Peugeot"
-                       value="<?php echo htmlspecialchars($old['marque'] ?? ''); ?>">
+                       value="<?php echo htmlspecialchars($old['marque'] ?? ''); ?>"
+                       list="vehicle-brand-suggestions"
+                       autocomplete="off">
+                <datalist id="vehicle-brand-suggestions">
+                    <?php foreach (($brandSuggestions ?? []) as $brand): ?>
+                        <option value="<?php echo htmlspecialchars($brand); ?>"></option>
+                    <?php endforeach; ?>
+                </datalist>
+                <small style="display:block; margin-top:0.35rem; color:#6c757d;">Tapez la première lettre pour voir les marques suggérées.</small>
                 <div class="invalid-feedback"></div>
             </div>
 

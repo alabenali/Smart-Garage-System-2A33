@@ -6,7 +6,7 @@
     <div>
         <h1 class="page-title" style="margin-bottom:0.2rem;">Gestion des Véhicules</h1>
         <p class="page-subtitle" style="margin-bottom:0;">
-            <?php echo count($vehicles); ?> véhicule<?php echo count($vehicles) !== 1 ? 's' : ''; ?> dans le système
+            <?php echo (int) ($totalVehicles ?? count($vehicles)); ?> véhicule<?php echo (int) ($totalVehicles ?? count($vehicles)) !== 1 ? 's' : ''; ?> dans le système
         </p>
     </div>
     <a href="index.php?action=addVehicle" class="btn-sg btn-sg-primary">
@@ -22,20 +22,57 @@
     <div class="sg-alert sg-alert-danger"><i class="bi bi-exclamation-triangle-fill"></i> <?php echo $error; ?></div>
 <?php endif; ?>
 
+<div class="sg-form-wrap" style="margin-bottom:1.25rem;">
+    <form method="GET" action="index.php" style="display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:0.75rem; align-items:end;">
+        <input type="hidden" name="action" value="manageVehicles">
+        <div class="sg-form-group">
+            <label for="vehicleSearch">Recherche</label>
+            <input
+                type="search"
+                id="vehicleSearch"
+                name="search"
+                value="<?php echo htmlspecialchars($search ?? ''); ?>"
+                placeholder="ID, marque, modèle, immatriculation, couleur, année, carburant..."
+            >
+        </div>
+        <button type="submit" class="btn-sg btn-sg-primary">
+            <i class="bi bi-search"></i> Rechercher
+        </button>
+        <?php if (!empty($search)): ?>
+            <a href="index.php?action=manageVehicles" class="btn-sg btn-sg-outline">
+                <i class="bi bi-x-lg"></i> Réinitialiser
+            </a>
+        <?php endif; ?>
+    </form>
+</div>
+
 <?php if (empty($vehicles)): ?>
     <div class="sg-form-wrap empty-state">
-        <div class="empty-icon">📋</div>
-        <h3>Aucun véhicule trouvé</h3>
-        <p>Aucun véhicule n'est enregistré dans le système.</p>
-        <a href="index.php?action=addVehicle" class="btn-sg btn-sg-primary">
-            <i class="bi bi-plus-lg"></i> Ajouter un Véhicule
-        </a>
+        <div class="empty-icon"><i class="bi bi-search"></i></div>
+        <?php if (!empty($search)): ?>
+            <h3>Aucun résultat</h3>
+            <p>Aucun véhicule ne correspond à « <?php echo htmlspecialchars($search); ?> ».</p>
+            <a href="index.php?action=manageVehicles" class="btn-sg btn-sg-outline">
+                <i class="bi bi-arrow-counterclockwise"></i> Voir toute la liste
+            </a>
+        <?php else: ?>
+            <h3>Aucun véhicule trouvé</h3>
+            <p>Aucun véhicule n'est enregistré dans le système.</p>
+            <a href="index.php?action=addVehicle" class="btn-sg btn-sg-primary">
+                <i class="bi bi-plus-lg"></i> Ajouter un Véhicule
+            </a>
+        <?php endif; ?>
     </div>
 <?php else: ?>
     <div class="sg-table-wrap">
         <div class="table-header">
             <h3><i class="bi bi-list-ul me-2"></i>Liste Complète</h3>
-            <span style="color:var(--text-muted);font-size:0.85rem;"><?php echo count($vehicles); ?> résultats</span>
+            <span style="color:var(--text-muted);font-size:0.85rem;">
+                <?php echo count($vehicles); ?> résultat<?php echo count($vehicles) !== 1 ? 's' : ''; ?>
+                <?php if (!empty($search)): ?>
+                    sur <?php echo (int) ($totalVehicles ?? count($vehicles)); ?>
+                <?php endif; ?>
+            </span>
         </div>
         <table class="sg-table">
             <thead>

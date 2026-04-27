@@ -90,6 +90,7 @@ class VehicleController
         $errors = [];
         $success = '';
         $old = [];
+        $brandSuggestions = $this->getBrandSuggestions();
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $validation = $this->validateInput($_POST);
@@ -130,6 +131,7 @@ class VehicleController
         $success = '';
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         $vehicle = $this->findVehicleById($id);
+        $brandSuggestions = $this->getBrandSuggestions();
 
         if (!$vehicle) {
             header('Location: index.php?action=manageVehicles&error=Véhicule introuvable');
@@ -176,7 +178,9 @@ class VehicleController
     // -------------------------------------------------------
     public function manageVehicles()
     {
-        $vehicles = $this->listVehicles();
+        $search = trim((string) ($_GET['search'] ?? ''));
+        $vehicles = $this->listVehicles($search);
+        $totalVehicles = $this->countVehicles();
         $success = isset($_GET['success']) ? htmlspecialchars($_GET['success']) : '';
         $error = isset($_GET['error']) ? htmlspecialchars($_GET['error']) : '';
         require __DIR__ . '/../views/back/vehicle_list.php';
@@ -297,9 +301,42 @@ class VehicleController
         return $holidays;
     }
 
-    private function listVehicles(): array
+    private function listVehicles(string $search = ''): array
     {
-        $stmt = $this->db->query('SELECT * FROM vehicle ORDER BY date_ajout ASC, id ASC');
+        $search = trim($search);
+
+        if ($search === '') {
+            $stmt = $this->db->query('SELECT * FROM vehicle ORDER BY date_ajout ASC, id ASC');
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        $normalizedPlateSearch = strtoupper(preg_replace('/[\s\-.]+/', '', $search));
+        $sql = 'SELECT * FROM vehicle
+                WHERE CAST(id AS CHAR) LIKE :search_id
+                   OR marque LIKE :search_marque
+                   OR modele LIKE :search_modele
+                   OR immatriculation LIKE :search_immatriculation
+                   OR REPLACE(REPLACE(REPLACE(UPPER(immatriculation), " ", ""), "-", ""), ".", "") LIKE :plate_search
+                   OR couleur LIKE :search_couleur
+                   OR CAST(annee AS CHAR) LIKE :search_annee
+                   OR CAST(kilometrage AS CHAR) LIKE :search_kilometrage
+                   OR carburant LIKE :search_carburant
+                ORDER BY date_ajout ASC, id ASC';
+
+        $searchValue = '%' . $search . '%';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':search_id' => $searchValue,
+            ':search_marque' => $searchValue,
+            ':search_modele' => $searchValue,
+            ':search_immatriculation' => $searchValue,
+            ':plate_search' => '%' . $normalizedPlateSearch . '%',
+            ':search_couleur' => $searchValue,
+            ':search_annee' => $searchValue,
+            ':search_kilometrage' => $searchValue,
+            ':search_carburant' => $searchValue,
+        ]);
+
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
@@ -309,6 +346,12 @@ class VehicleController
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    private function countVehicles(): int
+    {
+        $stmt = $this->db->query('SELECT COUNT(*) FROM vehicle');
+        return (int) $stmt->fetchColumn();
     }
 
     private function updateVehicleRecord(int $id, array $data): bool
@@ -439,5 +482,38 @@ class VehicleController
         $stats['taux_remplissage'] = $capacity > 0 ? round(($totalRdv / $capacity) * 100, 2) : 0;
 
         return $stats;
+    }
+
+    private function getBrandSuggestions(): array
+    {
+        $defaultBrands = [
+            'Alfa Romeo', 'Audi', 'BMW', 'BYD', 'Chery', 'Chevrolet', 'Citroen', 'Cupra',
+            'Dacia', 'DFSK', 'Fiat', 'Ford', 'Geely', 'Great Wall', 'Honda', 'Hyundai',
+            'Isuzu', 'Jaguar', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Mahindra', 'Mazda',
+            'Mercedes-Benz', 'MG', 'Mini', 'Mitsubishi', 'Nissan', 'Opel', 'Peugeot',
+            'Porsche', 'Renault', 'Seat', 'Skoda', 'SsangYong', 'Suzuki', 'Tesla',
+            'Toyota', 'Volkswagen', 'Volvo'
+        ];
+
+        $brands = [];
+        foreach ($defaultBrands as $brand) {
+            $brands[strtolower($brand)] = $brand;
+        }
+
+        $stmt = $this->db->query('SELECT DISTINCT marque FROM vehicle WHERE marque IS NOT NULL AND TRIM(marque) <> "" ORDER BY marque ASC');
+        $existingBrands = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($existingBrands as $brand) {
+            $brand = trim((string) $brand);
+            if ($brand === '') {
+                continue;
+            }
+
+            $brands[strtolower($brand)] = $brand;
+        }
+
+        natcasesort($brands);
+
+        return array_values($brands);
     }
 }

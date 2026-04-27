@@ -26,6 +26,7 @@
     const photoDropzone = document.getElementById('panneDropzone');
     const photosPreview = document.getElementById('photosPreview');
     const photosError = document.getElementById('photosError');
+    const photoCount = document.getElementById('photoCount');
 
     const MAX_PHOTOS = 5;
     const MAX_PHOTO_SIZE = 10 * 1024 * 1024;
@@ -73,6 +74,28 @@
         photosError.style.display = message ? 'block' : 'none';
     }
 
+    function formatFileSize(bytes) {
+        if (!Number.isFinite(bytes) || bytes <= 0) {
+            return '0 Ko';
+        }
+
+        if (bytes < 1024 * 1024) {
+            return `${Math.max(1, Math.round(bytes / 1024))} Ko`;
+        }
+
+        return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} Mo`;
+    }
+
+    function updatePhotoState() {
+        if (photoCount) {
+            photoCount.textContent = `${selectedPhotos.length} / ${MAX_PHOTOS} photos`;
+        }
+
+        if (photoDropzone) {
+            photoDropzone.classList.toggle('has-files', selectedPhotos.length > 0);
+        }
+    }
+
     function syncPhotoInputFiles() {
         if (!photoInput) {
             return;
@@ -87,7 +110,7 @@
             selectedPhotos.forEach((file) => transfer.items.add(file));
             photoInput.files = transfer.files;
         } catch (error) {
-            setPhotosError('Votre navigateur limite la gestion avancee des fichiers.');
+            setPhotosError('Votre navigateur limite la gestion avancée des fichiers.');
         }
     }
 
@@ -115,6 +138,8 @@
     }
 
     function renderPhotos() {
+        updatePhotoState();
+
         if (!photosPreview) {
             return;
         }
@@ -143,8 +168,23 @@
                 refreshPanneDataField();
             });
 
+            const meta = document.createElement('div');
+            meta.className = 'photo-thumb-meta';
+
+            const name = document.createElement('span');
+            name.className = 'photo-thumb-name';
+            name.textContent = file.name;
+
+            const size = document.createElement('span');
+            size.className = 'photo-thumb-size';
+            size.textContent = formatFileSize(file.size);
+
+            meta.appendChild(name);
+            meta.appendChild(size);
+
             item.appendChild(image);
             item.appendChild(removeBtn);
+            item.appendChild(meta);
             photosPreview.appendChild(item);
         });
     }
@@ -156,7 +196,7 @@
         }
 
         if (source === 'drop' && !CAN_USE_DATA_TRANSFER) {
-            setPhotosError('Glisser-deposer non supporte sur ce navigateur. Utilisez le clic.');
+            setPhotosError('Glisser-déposer non supporté sur ce navigateur. Utilisez le clic.');
             return;
         }
 
@@ -164,17 +204,28 @@
 
         files.forEach((file) => {
             if (selectedPhotos.length >= MAX_PHOTOS) {
-                errorMessage = `Maximum ${MAX_PHOTOS} photos autorisees.`;
+                errorMessage = `Maximum ${MAX_PHOTOS} photos autorisées.`;
                 return;
             }
 
             if (!PHOTO_TYPES.includes(file.type)) {
-                errorMessage = 'Formats acceptes: JPG, PNG, WEBP uniquement.';
+                errorMessage = 'Formats acceptés : JPG, PNG, WEBP uniquement.';
                 return;
             }
 
             if (file.size > MAX_PHOTO_SIZE) {
                 errorMessage = 'Chaque photo doit faire 10 Mo maximum.';
+                return;
+            }
+
+            const alreadyAdded = selectedPhotos.some((existing) => (
+                existing.name === file.name
+                && existing.size === file.size
+                && existing.lastModified === file.lastModified
+            ));
+
+            if (alreadyAdded) {
+                errorMessage = 'Cette photo est déjà ajoutée.';
                 return;
             }
 
@@ -199,7 +250,7 @@
             valid = false;
         }
         if (!symptomes.value.trim()) {
-            showError(symptomes, 'Les symptomes observes sont obligatoires.');
+            showError(symptomes, 'Les symptômes observés sont obligatoires.');
             valid = false;
         }
 
@@ -380,6 +431,7 @@
     });
 
     window.getPanneData = getPanneData;
+    updatePhotoState();
     refreshPanneDataField();
 
     setStep(1);

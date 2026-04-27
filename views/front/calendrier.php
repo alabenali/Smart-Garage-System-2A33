@@ -141,8 +141,20 @@ require __DIR__ . '/layout_header.php';
         </div>
     </section>
 
-    <section class="calendar-block" data-step-panel="3">
-        <h3>Déclaration de panne</h3>
+    <section class="calendar-block panne-step" data-step-panel="3">
+        <div class="panne-form-header">
+            <div class="panne-title-row">
+                <span class="panne-title-icon" aria-hidden="true"><i class="bi bi-clipboard2-pulse"></i></span>
+                <div>
+                    <span class="panne-kicker">Diagnostic atelier</span>
+                    <h3>Déclaration de panne</h3>
+                </div>
+            </div>
+            <div class="panne-header-badges" aria-label="Contraintes photos">
+                <span><i class="bi bi-images"></i> 5 photos max</span>
+                <span><i class="bi bi-hdd"></i> 10 Mo / photo</span>
+            </div>
+        </div>
         <form id="rdvForm" method="POST" action="index.php?action=frontCreateRdv" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="id_creneau" id="id_creneau" value="<?php echo htmlspecialchars($old['id_creneau'] ?? ''); ?>">
             <input type="hidden" name="selected_date" id="selected_date" value="<?php echo htmlspecialchars($selectedDate); ?>">
@@ -152,64 +164,111 @@ require __DIR__ . '/layout_header.php';
             if (!is_array($oldTemoins)) {
                 $oldTemoins = [];
             }
+            $typeOptions = ['Moteur', 'Boîte de vitesse', 'Freinage', 'Électrique-Batterie', 'Suspension-Direction', 'Climatisation', 'Carrosserie', 'Autre'];
+            $circonstanceOptions = ['En roulant', 'À l\'arrêt', 'Au démarrage', 'Panne intermittente'];
+            $temoinsOptions = [
+                ['value' => 'Voyant allumé au tableau de bord', 'icon' => 'bi-speedometer2'],
+                ['value' => 'Bruit anormal', 'icon' => 'bi-volume-up'],
+                ['value' => 'Fumée', 'icon' => 'bi-cloud-fog2'],
+                ['value' => 'Fuite de liquide', 'icon' => 'bi-droplet-half'],
+                ['value' => 'Véhicule immobilisé', 'icon' => 'bi-cone-striped'],
+            ];
             ?>
 
-            <div class="separator-label">Déclaration de panne</div>
-            <div class="cal-form-grid">
-                <div class="sg-form-group">
-                    <label>Type de panne *</label>
-                    <select name="type_intervention">
-                        <option value="">-- Sélectionner --</option>
-                        <?php foreach (['Moteur', 'Boîte de vitesse', 'Freinage', 'Électrique-Batterie', 'Suspension-Direction', 'Climatisation', 'Carrosserie', 'Autre'] as $type): ?>
-                            <option value="<?php echo $type; ?>" <?php echo (($old['type_intervention'] ?? '') === $type) ? 'selected' : ''; ?>><?php echo $type; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="invalid-feedback"></div>
+            <div class="panne-form-grid">
+                <div class="panne-main-panel">
+                    <div class="panne-section-head">
+                        <span class="panne-section-icon" aria-hidden="true"><i class="bi bi-wrench-adjustable"></i></span>
+                        <div>
+                            <h4>Diagnostic principal</h4>
+                            <p>Nature de la panne, contexte et symptômes visibles.</p>
+                        </div>
+                    </div>
+
+                    <div class="cal-form-grid">
+                        <div class="sg-form-group">
+                            <label for="type_intervention">Type de panne *</label>
+                            <select name="type_intervention" id="type_intervention">
+                                <option value="">-- Sélectionner --</option>
+                                <?php foreach ($typeOptions as $type): ?>
+                                    <option value="<?php echo htmlspecialchars($type); ?>" <?php echo (($old['type_intervention'] ?? '') === $type) ? 'selected' : ''; ?>><?php echo htmlspecialchars($type); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="sg-form-group">
+                            <label for="circonstances_panne">Circonstances</label>
+                            <select name="circonstances_panne" id="circonstances_panne">
+                                <option value="">-- Sélectionner --</option>
+                                <?php foreach ($circonstanceOptions as $item): ?>
+                                    <option value="<?php echo htmlspecialchars($item); ?>" <?php echo (($old['circonstances_panne'] ?? '') === $item) ? 'selected' : ''; ?>><?php echo htmlspecialchars($item); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="sg-form-group full-width">
+                            <label for="symptomes_panne">Symptômes observés *</label>
+                            <textarea name="description_panne" id="symptomes_panne" rows="5" placeholder="Exemple : bruit au freinage, voyant moteur, vibrations à l'accélération, odeur inhabituelle..." required><?php echo htmlspecialchars($old['description_panne'] ?? ''); ?></textarea>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
                 </div>
-                <div class="sg-form-group">
-                    <label>Circonstances</label>
-                    <select name="circonstances_panne" id="circonstances_panne">
-                        <option value="">-- Sélectionner --</option>
-                        <?php foreach (['En roulant', 'À l\'arrêt', 'Au démarrage', 'Panne intermittente'] as $item): ?>
-                            <option value="<?php echo $item; ?>" <?php echo (($old['circonstances_panne'] ?? '') === $item) ? 'selected' : ''; ?>><?php echo $item; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group full-width">
-                    <label>Symptômes observés *</label>
-                    <textarea name="description_panne" id="symptomes_panne" rows="4" placeholder="Décrivez ce que vous avez observé : bruits, vibrations, comportement anormal..." required><?php echo htmlspecialchars($old['description_panne'] ?? ''); ?></textarea>
-                    <div class="invalid-feedback"></div>
-                </div>
-                <div class="sg-form-group full-width">
-                    <label>Témoins de panne</label>
+
+                <aside class="panne-side-panel">
+                    <div class="panne-section-head compact">
+                        <span class="panne-section-icon" aria-hidden="true"><i class="bi bi-exclamation-triangle"></i></span>
+                        <div>
+                            <h4>Témoins de panne</h4>
+                            <p>Signaux utiles pour préparer le diagnostic.</p>
+                        </div>
+                    </div>
+
                     <div class="temoins-grid" id="temoinsPanneGroup">
-                        <?php foreach (['Voyant allumé au tableau de bord', 'Bruit anormal', 'Fumée', 'Fuite de liquide', 'Véhicule immobilisé'] as $temoin): ?>
+                        <?php foreach ($temoinsOptions as $temoin): ?>
                             <label class="temoin-item">
-                                <input type="checkbox" name="temoins_panne[]" value="<?php echo $temoin; ?>" <?php echo in_array($temoin, $oldTemoins, true) ? 'checked' : ''; ?>>
-                                <span><?php echo $temoin; ?></span>
+                                <input type="checkbox" name="temoins_panne[]" value="<?php echo htmlspecialchars($temoin['value']); ?>" <?php echo in_array($temoin['value'], $oldTemoins, true) ? 'checked' : ''; ?>>
+                                <span class="temoin-check" aria-hidden="true"><i class="bi bi-check2"></i></span>
+                                <span class="temoin-icon" aria-hidden="true"><i class="bi <?php echo $temoin['icon']; ?>"></i></span>
+                                <span class="temoin-text"><?php echo htmlspecialchars($temoin['value']); ?></span>
                             </label>
                         <?php endforeach; ?>
                     </div>
-                </div>
+                </aside>
             </div>
 
-            <div class="section-divider" aria-hidden="true"></div>
-
-            <div class="separator-label">Photos</div>
-            <div class="cal-form-grid">
-                <div class="sg-form-group full-width">
-                    <label>Zone de panne ou témoin du tableau de bord - max 5 photos - 10 Mo chacune</label>
-                    <div id="panneDropzone" class="photo-dropzone" role="button" tabindex="0" aria-label="Ajouter des photos de la panne">
-                        <input type="file" id="pannePhotosInput" name="panne_photos[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden>
-                        <div class="photo-drop-content">
-                            <strong>Cliquez ou glissez vos photos ici</strong>
-                            <small>JPG, PNG, WEBP</small>
-                        </div>
+            <div class="panne-photo-panel">
+                <div class="panne-section-head">
+                    <span class="panne-section-icon" aria-hidden="true"><i class="bi bi-camera"></i></span>
+                    <div>
+                        <h4>Photos de la panne</h4>
+                        <p>Zone de panne, voyant tableau de bord ou fuite visible.</p>
                     </div>
-                    <div id="photosError" class="invalid-feedback photo-feedback"></div>
-                    <div id="photosPreview" class="photo-preview-list"></div>
-                    <input type="hidden" name="panne_data_json" id="panne_data_json" value="">
+                    <span class="photo-count" id="photoCount">0 / 5 photos</span>
+                </div>
+
+                <div class="photo-upload-layout">
+                    <div class="sg-form-group full-width">
+                        <label for="pannePhotosInput">Images jointes</label>
+                        <div id="panneDropzone" class="photo-dropzone" role="button" tabindex="0" aria-label="Ajouter des photos de la panne">
+                            <input type="file" id="pannePhotosInput" name="panne_photos[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple hidden>
+                            <div class="photo-drop-content">
+                                <span class="dropzone-icon" aria-hidden="true"><i class="bi bi-cloud-arrow-up"></i></span>
+                                <strong>Ajouter des photos</strong>
+                                <small>JPG, PNG ou WEBP - 10 Mo max par image</small>
+                                <span class="dropzone-action">Parcourir</span>
+                            </div>
+                        </div>
+                        <div id="photosError" class="invalid-feedback photo-feedback"></div>
+                        <div id="photosPreview" class="photo-preview-list"></div>
+                        <input type="hidden" name="panne_data_json" id="panne_data_json" value="">
+                    </div>
+
+                    <div class="photo-tips-panel" aria-label="Photos recommandées">
+                        <strong>À photographier</strong>
+                        <span><i class="bi bi-speedometer2"></i> Voyant affiché</span>
+                        <span><i class="bi bi-droplet"></i> Trace de liquide</span>
+                        <span><i class="bi bi-tools"></i> Zone abîmée</span>
+                    </div>
                 </div>
             </div>
         </form>
