@@ -2,7 +2,7 @@
 $pageTitle = 'Liste des RDV';
 $action = 'backRdvList';
 $extraCss = ['views/css/calendrier.css'];
-$extraJs = ['views/js/calendrier_back.js'];
+$extraJs = ['views/js/calendrier_back.js', 'views/js/urgence_live.js'];
 require __DIR__ . '/layout_header.php';
 
 $queryBase = [
@@ -15,6 +15,8 @@ $queryBase = [
 
 <h1 class="page-title">Liste des rendez-vous</h1>
 <p class="page-subtitle">Filtrez, recherchez et exportez les rendez-vous du garage.</p>
+
+<div id="urgenceStreamConfig" data-urgence-stream="api/rendez-vous/stream"></div>
 
 <div class="sg-form-wrap rdv-filter-wrap">
     <form method="GET" action="index.php" class="rdv-filter-grid">
@@ -58,12 +60,13 @@ $queryBase = [
                 <th>Circonstances</th>
                 <th>Symptômes</th>
                 <th>Témoins</th>
+                <th>Urgence</th>
                 <th>Statut</th>
             </tr>
         </thead>
-        <tbody>
+        <tbody id="rdvListBody">
             <?php if (empty($rdvs)): ?>
-                <tr><td colspan="6" style="text-align:center;">Aucun rendez-vous.</td></tr>
+                <tr><td colspan="7" style="text-align:center;">Aucun rendez-vous.</td></tr>
             <?php else: ?>
                 <?php foreach ($rdvs as $row): ?>
                     <?php
@@ -98,6 +101,24 @@ $queryBase = [
                     $rdvId = (int) ($row['id_rdv'] ?? 0);
                     $temoins = json_decode((string) ($row['temoins_panne'] ?? ''), true);
                     $temoinsLabel = is_array($temoins) && !empty($temoins) ? implode(', ', $temoins) : '-';
+                    $urgenceScore = (int) ($row['urgence_score'] ?? 0);
+                    $urgenceDetails = json_decode((string) ($row['urgence_details'] ?? ''), true);
+                    $urgenceDetails = is_array($urgenceDetails) ? $urgenceDetails : [];
+                    $urgenceParts = [];
+                    foreach ($urgenceDetails as $key => $value) {
+                        $urgenceParts[] = $key . ':' . (string) $value;
+                    }
+                    $urgenceDetailsLabel = !empty($urgenceParts) ? implode(', ', $urgenceParts) : '-';
+                    if ($urgenceScore >= 7) {
+                        $urgenceClass = 'urgence-high';
+                        $urgenceLabel = 'Critique';
+                    } elseif ($urgenceScore >= 4) {
+                        $urgenceClass = 'urgence-medium';
+                        $urgenceLabel = 'Elevee';
+                    } else {
+                        $urgenceClass = 'urgence-low';
+                        $urgenceLabel = 'Faible';
+                    }
                     $photos = json_decode((string) ($row['photos_json'] ?? ''), true);
                     $photos = is_array($photos) ? $photos : [];
 
@@ -110,21 +131,27 @@ $queryBase = [
                         }
                     }
                     ?>
-                    <tr class="rdv-summary-row" data-rdv-detail-id="rdv-detail-<?php echo $rdvId; ?>">
+                    <tr class="rdv-summary-row <?php echo $urgenceScore >= 7 ? 'rdv-urgent' : ''; ?>" data-rdv-detail-id="rdv-detail-<?php echo $rdvId; ?>" data-urgence-score="<?php echo $urgenceScore; ?>">
                         <td><?php echo htmlspecialchars(date('d/m/Y H:i', strtotime($row['date_heure']))); ?></td>
                         <td><?php echo htmlspecialchars($row['type_intervention']); ?></td>
                         <td><?php echo htmlspecialchars($row['circonstances_panne'] ?? '-'); ?></td>
                         <td><?php echo htmlspecialchars($row['description_panne'] ?? '-'); ?></td>
                         <td><?php echo htmlspecialchars($temoinsLabel); ?></td>
+                        <td>
+                            <span class="urgence-badge <?php echo $urgenceClass; ?>" title="<?php echo htmlspecialchars($urgenceLabel); ?>">
+                                <?php echo $urgenceScore; ?>/10
+                            </span>
+                        </td>
                         <td><span class="status-badge status-<?php echo $statusClass; ?>"><?php echo htmlspecialchars($statusLabel); ?></span></td>
                     </tr>
                     <tr id="rdv-detail-<?php echo $rdvId; ?>" class="rdv-detail-row" style="display:none;">
-                        <td colspan="6">
+                        <td colspan="7">
                             <div class="rdv-list-detail-box">
                                 <div><strong>Type de panne:</strong> <?php echo htmlspecialchars($row['type_intervention'] ?? '-'); ?></div>
                                 <div><strong>Circonstances:</strong> <?php echo htmlspecialchars($row['circonstances_panne'] ?? '-'); ?></div>
                                 <div><strong>Symptômes:</strong> <?php echo htmlspecialchars($row['description_panne'] ?? '-'); ?></div>
                                 <div><strong>Témoins:</strong> <?php echo htmlspecialchars($temoinsLabel); ?></div>
+                                <div><strong>Urgence:</strong> <?php echo $urgenceScore; ?>/10 (<?php echo htmlspecialchars($urgenceDetailsLabel); ?>)</div>
                                 <div><strong>Images de panne:</strong></div>
 
                                 <?php if (empty($photos)): ?>
@@ -151,24 +178,30 @@ $queryBase = [
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const summaryRows = document.querySelectorAll('.rdv-summary-row[data-rdv-detail-id]');
+    const tableBody = document.getElementById('rdvListBody');
+    if (!tableBody) {
+        return;
+    }
 
-    summaryRows.forEach(function (row) {
-        row.addEventListener('click', function () {
-            const detailId = row.getAttribute('data-rdv-detail-id');
-            if (!detailId) {
-                return;
-            }
+    tableBody.addEventListener('click', function (event) {
+        const row = event.target.closest('.rdv-summary-row[data-rdv-detail-id]');
+        if (!row || !tableBody.contains(row)) {
+            return;
+        }
 
-            const detailRow = document.getElementById(detailId);
-            if (!detailRow) {
-                return;
-            }
+        const detailId = row.getAttribute('data-rdv-detail-id');
+        if (!detailId) {
+            return;
+        }
 
-            const isOpen = detailRow.style.display !== 'none';
-            detailRow.style.display = isOpen ? 'none' : 'table-row';
-            row.classList.toggle('is-open', !isOpen);
-        });
+        const detailRow = document.getElementById(detailId);
+        if (!detailRow) {
+            return;
+        }
+
+        const isOpen = detailRow.style.display !== 'none';
+        detailRow.style.display = isOpen ? 'none' : 'table-row';
+        row.classList.toggle('is-open', !isOpen);
     });
 });
 </script>

@@ -853,12 +853,36 @@
     cursor: pointer;
 }
 
+.rdv-summary-row.rdv-urgent {
+    background: rgba(198, 40, 40, 0.08);
+}
+
+.rdv-summary-row.rdv-urgent:hover {
+    background: rgba(198, 40, 40, 0.12);
+}
+
+.rdv-summary-row.rdv-urgent .urgence-badge {
+    animation: urgencePulse 1.6s ease-in-out infinite;
+}
+
 .rdv-summary-row:hover {
     background: rgba(232, 71, 10, 0.06);
 }
 
 .rdv-summary-row.is-open {
     background: rgba(232, 71, 10, 0.09);
+}
+
+@keyframes urgencePulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(198, 40, 40, 0.3);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(198, 40, 40, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(198, 40, 40, 0);
+    }
 }
 
 .rdv-detail-row td {

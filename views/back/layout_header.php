@@ -35,7 +35,7 @@
         </a>
         <nav class="sidebar-nav">
             <a href="index.php?action=dashboard" class="<?php echo ($action ?? '') === 'dashboard' ? 'active' : ''; ?>"><i class="bi bi-speedometer2"></i> Dashboard</a>
-            <a href="index.php?action=manageVehicles" class="<?php echo in_array(($action ?? ''), ['manageVehicles', 'editVehicle']) ? 'active' : ''; ?>"><i class="bi bi-car-front"></i> Véhicules</a>
+            <a href="index.php?action=manageVehicles" class="<?php echo in_array(($action ?? ''), ['manageVehicles', 'vehicleDetail', 'editVehicle']) ? 'active' : ''; ?>"><i class="bi bi-car-front"></i> Véhicules</a>
             <a href="index.php?action=backCalendar" class="<?php echo ($action ?? '') === 'backCalendar' ? 'active' : ''; ?>"><i class="bi bi-calendar-week"></i> Calendrier RDV</a>
             <a href="index.php?action=backRdvList" class="<?php echo ($action ?? '') === 'backRdvList' ? 'active' : ''; ?>"><i class="bi bi-card-checklist"></i> Liste RDV</a>
             <a href="index.php?action=showVehicles"><i class="bi bi-box-arrow-up-right"></i> FrontOffice</a>

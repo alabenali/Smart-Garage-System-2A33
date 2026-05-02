@@ -1,4 +1,4 @@
-<?php $pageTitle = 'Dashboard'; $action = 'dashboard'; ?>
+<?php $pageTitle = 'Dashboard'; $action = 'dashboard'; $extraJs = ['views/js/urgence_live.js']; ?>
 <?php require_once __DIR__ . '/../../helpers/PlateHelper.php'; ?>
 <?php require __DIR__ . '/layout_header.php'; ?>
 
@@ -53,6 +53,23 @@
         <div class="stat-value"><?php echo $rdvStats['rdv_attente'] ?? 0; ?></div>
         <div class="stat-label">En Attente Confirmation</div>
     </div>
+</div>
+
+<div id="urgenceStreamConfig" data-urgence-stream="api/rendez-vous/stream"></div>
+
+<div class="sg-table-wrap" id="urgentRdvPanel" data-urgents-url="api/rendez-vous/urgents" data-urgence-stream="api/rendez-vous/stream" style="margin-bottom:2rem;">
+    <div class="table-header">
+        <h3><i class="bi bi-exclamation-triangle me-2"></i>RDV urgents (score >= 7)</h3>
+        <a href="index.php?action=backRdvList" class="btn-sg btn-sg-outline btn-sg-sm">Voir liste <i class="bi bi-arrow-right"></i></a>
+    </div>
+    <table class="sg-table">
+        <thead>
+            <tr><th>Date/Heure</th><th>Type panne</th><th>Statut</th><th>Urgence</th></tr>
+        </thead>
+        <tbody id="urgentRdvBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem;">Chargement...</td></tr>
+        </tbody>
+    </table>
 </div>
 
 <?php

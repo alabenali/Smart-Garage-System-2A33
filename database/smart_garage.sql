@@ -50,6 +50,8 @@ CREATE TABLE IF NOT EXISTS rendezvous_digital (
     temoins_panne TEXT NULL,
     panne_data_json LONGTEXT NULL,
     photos_json LONGTEXT NULL,
+    urgence_score INT NOT NULL DEFAULT 0,
+    urgence_details JSON NULL,
     remise_eco_appliquee DECIMAL(5,2) NOT NULL DEFAULT 0,
     statut ENUM('En attente','Confirmé','En cours','Terminé','Annulé') NOT NULL DEFAULT 'En attente',
     notes TEXT NULL,
@@ -58,7 +60,8 @@ CREATE TABLE IF NOT EXISTS rendezvous_digital (
     CONSTRAINT fk_rdv_creneau FOREIGN KEY (id_creneau) REFERENCES creneau_atelier(id_creneau) ON DELETE CASCADE,
     CONSTRAINT fk_rdv_vehicle FOREIGN KEY (id_vehicle) REFERENCES vehicle(id) ON DELETE SET NULL,
     INDEX idx_rdv_statut (statut),
-    INDEX idx_rdv_creation (date_creation)
+    INDEX idx_rdv_creation (date_creation),
+    INDEX idx_rdv_urgence (urgence_score)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
@@ -80,6 +83,10 @@ ALTER TABLE rendezvous_digital
 
 ALTER TABLE rendezvous_digital
     ADD COLUMN IF NOT EXISTS photos_json LONGTEXT NULL AFTER panne_data_json;
+
+ALTER TABLE rendezvous_digital
+    ADD COLUMN IF NOT EXISTS urgence_score INT NOT NULL DEFAULT 0 AFTER photos_json,
+    ADD COLUMN IF NOT EXISTS urgence_details JSON NULL AFTER urgence_score;
 
 -- ============================================
 -- Données d'exemple (optionnel – pour tests)

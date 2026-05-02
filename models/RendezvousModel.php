@@ -12,6 +12,8 @@ class RendezvousModel
     private $type_intervention;
     private $description_panne;
     private $remise_eco_appliquee;
+    private $urgence_score;
+    private $urgence_details;
     private $statut;
     private $notes;
     private $date_creation;
@@ -46,6 +48,12 @@ class RendezvousModel
 
     public function getRemiseEcoAppliquee() { return $this->remise_eco_appliquee; }
     public function setRemiseEcoAppliquee($remise_eco_appliquee) { $this->remise_eco_appliquee = $remise_eco_appliquee; }
+
+    public function getUrgenceScore() { return $this->urgence_score; }
+    public function setUrgenceScore($urgence_score) { $this->urgence_score = $urgence_score; }
+
+    public function getUrgenceDetails() { return $this->urgence_details; }
+    public function setUrgenceDetails($urgence_details) { $this->urgence_details = $urgence_details; }
 
     public function getStatut() { return $this->statut; }
     public function setStatut($statut) { $this->statut = $statut; }

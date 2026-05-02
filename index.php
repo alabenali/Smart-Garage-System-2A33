@@ -87,6 +87,10 @@ switch ($action) {
         $controller->manageVehicles();
         break;
 
+    case 'vehicleDetail':
+        $controller->vehicleDetail();
+        break;
+
     case 'editVehicle':
         $controller->updateVehicle();
         break;

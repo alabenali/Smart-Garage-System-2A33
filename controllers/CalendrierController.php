@@ -1,11 +1,17 @@
 <?php
 
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../services/UrgenceService.php';
+require_once __DIR__ . '/../services/UrgenceBroadcaster.php';
+require_once __DIR__ . '/../observers/RendezVousObserver.php';
+require_once __DIR__ . '/../events/RendezVousUrgenceUpdated.php';
+require_once __DIR__ . '/../listeners/RendezVousUrgenceListener.php';
 
 class CalendrierController
 {
     private PDO $db;
     private ?bool $hasPanneColumnsCache = null;
+    private ?bool $hasUrgenceColumnsCache = null;
 
     private array $allowedStatuses = ['En attente', 'Confirmé', 'En cours', 'Terminé', 'Annulé'];
     private array $allowedInterventions = [
@@ -174,6 +180,270 @@ class CalendrierController
         $slots = $this->getDaySlots($date);
 
         $this->jsonResponse(['success' => true, 'data' => $slots]);
+    }
+
+    public function apiRendezVous(): void
+    {
+        $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+        $scope = isset($_GET['scope']) ? trim((string) $_GET['scope']) : '';
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+        if ($method === 'GET') {
+            if ($scope === 'urgents') {
+                $this->apiRendezVousUrgents();
+                return;
+            }
+
+            $this->apiRendezVousList();
+            return;
+        }
+
+        if ($method === 'POST') {
+            $this->apiRendezVousCreate();
+            return;
+        }
+
+        if ($method === 'PUT') {
+            if ($id <= 0) {
+                $this->jsonResponse(['success' => false, 'message' => 'ID manquant'], 422);
+                return;
+            }
+
+            $this->apiRendezVousUpdate($id);
+            return;
+        }
+
+        $this->jsonResponse(['success' => false, 'message' => 'Method not allowed'], 405);
+    }
+
+    private function apiRendezVousList(): void
+    {
+        $filters = [
+            'status' => isset($_GET['status']) ? trim((string) $_GET['status']) : '',
+            'date' => isset($_GET['date']) ? trim((string) $_GET['date']) : '',
+            'search' => isset($_GET['search']) ? trim((string) $_GET['search']) : '',
+        ];
+
+        $limit = isset($_GET['limit']) ? max(1, min(100, (int) $_GET['limit'])) : 50;
+        $offset = isset($_GET['offset']) ? max(0, (int) $_GET['offset']) : 0;
+
+        $rows = $this->getFiltered($filters, $limit, $offset);
+        $data = array_map(fn($row) => $this->formatRdvApiRow($row), $rows);
+
+        $this->jsonResponse(['success' => true, 'data' => $data]);
+    }
+
+    private function apiRendezVousUrgents(): void
+    {
+        if (!$this->hasUrgenceColumns()) {
+            $this->jsonResponse(['success' => true, 'data' => []]);
+            return;
+        }
+
+        $urgenceService = new UrgenceService();
+        $minScore = isset($_GET['min']) ? (int) $_GET['min'] : $urgenceService->getUrgentMinScore();
+        $minScore = max(0, $minScore);
+        $limit = isset($_GET['limit']) ? max(1, min(100, (int) $_GET['limit'])) : 50;
+        $offset = isset($_GET['offset']) ? max(0, (int) $_GET['offset']) : 0;
+
+        $hasPanneColumns = $this->hasPanneColumns();
+        $urgenceSelect = 'r.urgence_score, r.urgence_details,';
+
+        if ($hasPanneColumns) {
+            $sql = "SELECT
+                        r.id_rdv,
+                        c.date_heure,
+                        r.type_intervention,
+                        r.description_panne,
+                        r.circonstances_panne,
+                        r.temoins_panne,
+                        {$urgenceSelect}
+                        r.statut,
+                        r.remise_eco_appliquee
+                    FROM rendezvous_digital r
+                    INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau
+                    WHERE r.urgence_score >= :min_score
+                    ORDER BY r.urgence_score DESC, c.date_heure DESC
+                    LIMIT :limit OFFSET :offset";
+        } else {
+            $sql = "SELECT
+                        r.id_rdv,
+                        c.date_heure,
+                        r.type_intervention,
+                        r.description_panne,
+                        '' AS circonstances_panne,
+                        '[]' AS temoins_panne,
+                        {$urgenceSelect}
+                        r.statut,
+                        r.remise_eco_appliquee
+                    FROM rendezvous_digital r
+                    INNER JOIN creneau_atelier c ON c.id_creneau = r.id_creneau
+                    WHERE r.urgence_score >= :min_score
+                    ORDER BY r.urgence_score DESC, c.date_heure DESC
+                    LIMIT :limit OFFSET :offset";
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':min_score', $minScore, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $data = array_map(fn($row) => $this->formatRdvApiRow($row), $rows);
+        $this->jsonResponse(['success' => true, 'data' => $data]);
+    }
+
+    private function apiRendezVousCreate(): void
+    {
+        $payload = $this->decodeJsonBody();
+
+        $idCreneau = isset($payload['id_creneau']) ? (int) $payload['id_creneau'] : 0;
+        $typeIntervention = $this->sanitize((string) ($payload['type_intervention'] ?? ''));
+        $statut = trim((string) ($payload['statut'] ?? 'En attente'));
+
+        if ($idCreneau <= 0) {
+            $this->jsonResponse(['success' => false, 'message' => 'id_creneau requis'], 422);
+            return;
+        }
+
+        if ($typeIntervention === '') {
+            $this->jsonResponse(['success' => false, 'message' => 'type_intervention requis'], 422);
+            return;
+        }
+
+        if (!in_array($statut, $this->allowedStatuses, true)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Statut invalide'], 422);
+            return;
+        }
+
+        $slot = $this->findCreneauById($idCreneau);
+        if (!$slot) {
+            $this->jsonResponse(['success' => false, 'message' => 'Creneau introuvable'], 404);
+            return;
+        }
+
+        $slotDate = date('Y-m-d', strtotime($slot['date_heure']));
+        $slotYear = (int) date('Y', strtotime($slot['date_heure']));
+        $slotHolidays = $this->getTunisianHolidays($slotYear);
+        if (isset($slotHolidays[$slotDate])) {
+            $this->jsonResponse(['success' => false, 'message' => 'Jour ferie, choisir un autre creneau'], 422);
+            return;
+        }
+
+        if (strtotime($slot['date_heure']) < time()) {
+            $this->jsonResponse(['success' => false, 'message' => 'Creneau deja passe'], 422);
+            return;
+        }
+
+        $activeCount = $this->countActiveByCreneau($idCreneau);
+        if ($activeCount >= (int) $slot['capacite_max']) {
+            $this->jsonResponse(['success' => false, 'message' => 'Creneau complet'], 422);
+            return;
+        }
+
+        $temoins = $this->normalizeTemoinsInput($payload['temoins_panne'] ?? []);
+        $panneJson = $this->buildPanneJson($payload, $typeIntervention, $temoins);
+
+        $data = [
+            'id_creneau' => $idCreneau,
+            'nom_client' => $this->sanitize((string) ($payload['nom_client'] ?? '')),
+            'prenom_client' => $this->sanitize((string) ($payload['prenom_client'] ?? '')),
+            'telephone_client' => preg_replace('/\D+/', '', (string) ($payload['telephone_client'] ?? '')),
+            'email_client' => trim((string) ($payload['email_client'] ?? '')),
+            'id_vehicle' => isset($payload['id_vehicle']) ? (int) $payload['id_vehicle'] : null,
+            'type_intervention' => $typeIntervention,
+            'description_panne' => $this->sanitize((string) ($payload['description_panne'] ?? '')),
+            'circonstances_panne' => $this->sanitize((string) ($payload['circonstances_panne'] ?? '')),
+            'temoins_panne' => $temoins,
+            'panne_data_json' => $panneJson,
+            'photos_json' => json_encode([], JSON_UNESCAPED_UNICODE),
+            'remise_eco_appliquee' => ((int) $slot['est_heure_creuse'] === 1) ? 15.00 : 0.00,
+            'statut' => $statut,
+            'notes' => isset($payload['notes']) ? $this->sanitize((string) $payload['notes']) : null,
+        ];
+
+        $rdvId = $this->createRendezvous($data);
+        $created = $this->findDetailedById($rdvId);
+        if (!$created) {
+            $this->jsonResponse(['success' => false, 'message' => 'Erreur creation RDV'], 500);
+            return;
+        }
+
+        $this->jsonResponse(['success' => true, 'data' => $this->formatRdvApiRow($created)]);
+    }
+
+    private function apiRendezVousUpdate(int $idRdv): void
+    {
+        $payload = $this->decodeJsonBody();
+        $existing = $this->findDetailedById($idRdv);
+
+        if (!$existing) {
+            $this->jsonResponse(['success' => false, 'message' => 'RDV introuvable'], 404);
+            return;
+        }
+
+        $idCreneau = isset($payload['id_creneau']) ? (int) $payload['id_creneau'] : (int) $existing['id_creneau'];
+        if ($idCreneau <= 0) {
+            $this->jsonResponse(['success' => false, 'message' => 'id_creneau requis'], 422);
+            return;
+        }
+
+        $slot = $this->findCreneauById($idCreneau);
+        if (!$slot) {
+            $this->jsonResponse(['success' => false, 'message' => 'Creneau introuvable'], 404);
+            return;
+        }
+
+        $statut = trim((string) ($payload['statut'] ?? ($existing['statut'] ?? 'En attente')));
+        if (!in_array($statut, $this->allowedStatuses, true)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Statut invalide'], 422);
+            return;
+        }
+
+        $temoins = $payload['temoins_panne'] ?? ($existing['temoins_panne'] ?? []);
+        $temoins = $this->normalizeTemoinsInput($temoins);
+        $typeIntervention = $this->sanitize((string) ($payload['type_intervention'] ?? ($existing['type_intervention'] ?? '')));
+        if ($typeIntervention === '') {
+            $this->jsonResponse(['success' => false, 'message' => 'type_intervention requis'], 422);
+            return;
+        }
+
+        $description = $this->sanitize((string) ($payload['description_panne'] ?? ($existing['description_panne'] ?? '')));
+        $circ = $this->sanitize((string) ($payload['circonstances_panne'] ?? ($existing['circonstances_panne'] ?? '')));
+
+        $panneJson = $this->buildPanneJson($payload, $typeIntervention, $temoins, (string) ($existing['panne_data_json'] ?? ''));
+        $photosJson = $payload['photos_json'] ?? ($existing['photos_json'] ?? '[]');
+        if (is_array($photosJson)) {
+            $photosJson = json_encode($photosJson, JSON_UNESCAPED_UNICODE);
+        }
+
+        $data = [
+            'id_creneau' => $idCreneau,
+            'nom_client' => $this->sanitize((string) ($payload['nom_client'] ?? ($existing['nom_client'] ?? ''))),
+            'prenom_client' => $this->sanitize((string) ($payload['prenom_client'] ?? ($existing['prenom_client'] ?? ''))),
+            'telephone_client' => preg_replace('/\D+/', '', (string) ($payload['telephone_client'] ?? ($existing['telephone_client'] ?? ''))),
+            'email_client' => trim((string) ($payload['email_client'] ?? ($existing['email_client'] ?? ''))),
+            'id_vehicle' => isset($payload['id_vehicle']) ? (int) $payload['id_vehicle'] : ($existing['id_vehicle'] ?? null),
+            'type_intervention' => $typeIntervention,
+            'description_panne' => $description,
+            'circonstances_panne' => $circ,
+            'temoins_panne' => $temoins,
+            'panne_data_json' => $panneJson,
+            'photos_json' => $photosJson,
+            'remise_eco_appliquee' => ((int) $slot['est_heure_creuse'] === 1) ? 15.00 : 0.00,
+            'statut' => $statut,
+            'notes' => isset($payload['notes']) ? $this->sanitize((string) $payload['notes']) : ($existing['notes'] ?? null),
+        ];
+
+        $ok = $this->updateRendezvous($idRdv, $data);
+        if (!$ok) {
+            $this->jsonResponse(['success' => false, 'message' => 'Mise a jour impossible'], 500);
+            return;
+        }
+
+        $updated = $this->findDetailedById($idRdv);
+        $this->jsonResponse(['success' => true, 'data' => $this->formatRdvApiRow($updated ?: $data)]);
     }
 
     public function backCalendar(): void
@@ -703,6 +973,86 @@ class CalendrierController
         exit;
     }
 
+    private function decodeJsonBody(): array
+    {
+        $rawBody = file_get_contents('php://input') ?: '';
+        if (trim($rawBody) === '') {
+            return is_array($_POST) ? $_POST : [];
+        }
+
+        $decoded = json_decode($rawBody, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [];
+    }
+
+    private function normalizeTemoinsInput($raw): array
+    {
+        if (is_string($raw) && trim($raw) !== '') {
+            $decoded = json_decode($raw, true);
+            $raw = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $items = array_values(array_filter(array_map(fn($item) => $this->sanitize((string) $item), $raw), static fn($item) => $item !== ''));
+        return $items;
+    }
+
+    private function buildPanneJson(array $payload, string $typeIntervention, array $temoins, string $fallback = ''): string
+    {
+        if (isset($payload['panne_data_json'])) {
+            if (is_array($payload['panne_data_json'])) {
+                return json_encode($payload['panne_data_json'], JSON_UNESCAPED_UNICODE);
+            }
+
+            $raw = trim((string) $payload['panne_data_json']);
+            if ($raw !== '') {
+                return $raw;
+            }
+        }
+
+        if ($fallback !== '') {
+            return $fallback;
+        }
+
+        $data = [
+            'typePanne' => $typeIntervention,
+            'circonstances' => $this->sanitize((string) ($payload['circonstances_panne'] ?? '')),
+            'symptomes' => $this->sanitize((string) ($payload['description_panne'] ?? '')),
+            'temoins' => $temoins,
+            'photos' => [],
+        ];
+
+        return json_encode($data, JSON_UNESCAPED_UNICODE);
+    }
+
+    private function formatRdvApiRow(array $row): array
+    {
+        $temoins = json_decode((string) ($row['temoins_panne'] ?? ''), true);
+        $temoins = is_array($temoins) ? $temoins : [];
+
+        $urgenceDetails = json_decode((string) ($row['urgence_details'] ?? ''), true);
+        $urgenceDetails = is_array($urgenceDetails) ? $urgenceDetails : [];
+
+        return [
+            'id' => (int) ($row['id_rdv'] ?? 0),
+            'date_heure' => $row['date_heure'] ?? null,
+            'type_intervention' => $row['type_intervention'] ?? '',
+            'description_panne' => $row['description_panne'] ?? '',
+            'circonstances_panne' => $row['circonstances_panne'] ?? '',
+            'temoins_panne' => $temoins,
+            'statut' => $row['statut'] ?? '',
+            'urgence_score' => (int) ($row['urgence_score'] ?? 0),
+            'urgence_details' => $urgenceDetails,
+            'remise_eco_appliquee' => isset($row['remise_eco_appliquee']) ? (float) $row['remise_eco_appliquee'] : 0.0,
+        ];
+    }
+
     private function normalizePlate(string $plate): string
     {
         $plate = strtoupper(trim($plate));
@@ -932,43 +1282,40 @@ class CalendrierController
 
     private function createRendezvous(array $data): int
     {
-        $sql = "INSERT INTO rendezvous_digital (
-                    id_creneau,
-                    nom_client,
-                    prenom_client,
-                    telephone_client,
-                    email_client,
-                    id_vehicle,
-                    type_intervention,
-                    description_panne,
-                    circonstances_panne,
-                    temoins_panne,
-                    panne_data_json,
-                    photos_json,
-                    remise_eco_appliquee,
-                    statut,
-                    notes,
-                    date_creation,
-                    date_modification
-                ) VALUES (
-                    :id_creneau,
-                    :nom_client,
-                    :prenom_client,
-                    :telephone_client,
-                    :email_client,
-                    :id_vehicle,
-                    :type_intervention,
-                    :description_panne,
-                    :circonstances_panne,
-                    :temoins_panne,
-                    :panne_data_json,
-                    :photos_json,
-                    :remise_eco_appliquee,
-                    :statut,
-                    :notes,
-                    NOW(),
-                    NOW()
-                )";
+        $urgence = $this->computeUrgencePayload($data);
+        $hasUrgenceColumns = $this->hasUrgenceColumns();
+
+        $columns = [
+            'id_creneau',
+            'nom_client',
+            'prenom_client',
+            'telephone_client',
+            'email_client',
+            'id_vehicle',
+            'type_intervention',
+            'description_panne',
+            'circonstances_panne',
+            'temoins_panne',
+            'panne_data_json',
+            'photos_json',
+        ];
+
+        if ($hasUrgenceColumns) {
+            $columns[] = 'urgence_score';
+            $columns[] = 'urgence_details';
+        }
+
+        $columns = array_merge($columns, [
+            'remise_eco_appliquee',
+            'statut',
+            'notes',
+            'date_creation',
+            'date_modification',
+        ]);
+
+        $placeholders = array_map(static fn($col) => ':' . $col, $columns);
+
+        $sql = "INSERT INTO rendezvous_digital (" . implode(", ", $columns) . ") VALUES (" . implode(", ", $placeholders) . ")";
 
         $params = [
             ':id_creneau' => (int) $data['id_creneau'],
@@ -986,7 +1333,14 @@ class CalendrierController
             ':remise_eco_appliquee' => $data['remise_eco_appliquee'],
             ':statut' => $data['statut'] ?? 'En attente',
             ':notes' => $data['notes'] ?? null,
+            ':date_creation' => date('Y-m-d H:i:s'),
+            ':date_modification' => date('Y-m-d H:i:s'),
         ];
+
+        if ($hasUrgenceColumns) {
+            $params[':urgence_score'] = (int) $urgence['score'];
+            $params[':urgence_details'] = json_encode($urgence['details'], JSON_UNESCAPED_UNICODE);
+        }
 
         try {
             $stmt = $this->db->prepare($sql);
@@ -998,7 +1352,12 @@ class CalendrierController
             throw $e;
         }
 
-        return (int) $this->db->lastInsertId();
+        $id = (int) $this->db->lastInsertId();
+        if ($hasUrgenceColumns) {
+            $this->maybeBroadcastUrgence($id, $urgence);
+        }
+
+        return $id;
     }
 
     private function createRendezvousLegacy(array $data): int
@@ -1049,6 +1408,79 @@ class CalendrierController
         ]);
 
         return (int) $this->db->lastInsertId();
+    }
+
+    private function updateRendezvous(int $idRdv, array $data): bool
+    {
+        $urgence = $this->computeUrgencePayload($data, $idRdv);
+        $hasPanneColumns = $this->hasPanneColumns();
+        $hasUrgenceColumns = $this->hasUrgenceColumns();
+
+        $fields = [
+            'id_creneau = :id_creneau',
+            'nom_client = :nom_client',
+            'prenom_client = :prenom_client',
+            'telephone_client = :telephone_client',
+            'email_client = :email_client',
+            'id_vehicle = :id_vehicle',
+            'type_intervention = :type_intervention',
+            'description_panne = :description_panne',
+        ];
+
+        if ($hasPanneColumns) {
+            $fields[] = 'circonstances_panne = :circonstances_panne';
+            $fields[] = 'temoins_panne = :temoins_panne';
+            $fields[] = 'panne_data_json = :panne_data_json';
+            $fields[] = 'photos_json = :photos_json';
+        }
+
+        if ($hasUrgenceColumns) {
+            $fields[] = 'urgence_score = :urgence_score';
+            $fields[] = 'urgence_details = :urgence_details';
+        }
+
+        $fields[] = 'remise_eco_appliquee = :remise_eco_appliquee';
+        $fields[] = 'statut = :statut';
+        $fields[] = 'notes = :notes';
+        $fields[] = 'date_modification = NOW()';
+
+        $sql = 'UPDATE rendezvous_digital SET ' . implode(', ', $fields) . ' WHERE id_rdv = :id_rdv';
+
+        $params = [
+            ':id_rdv' => $idRdv,
+            ':id_creneau' => (int) $data['id_creneau'],
+            ':nom_client' => $data['nom_client'],
+            ':prenom_client' => $data['prenom_client'],
+            ':telephone_client' => $data['telephone_client'],
+            ':email_client' => $data['email_client'] !== '' ? $data['email_client'] : null,
+            ':id_vehicle' => isset($data['id_vehicle']) ? (int) $data['id_vehicle'] : null,
+            ':type_intervention' => $data['type_intervention'],
+            ':description_panne' => $data['description_panne'] !== '' ? $data['description_panne'] : null,
+            ':remise_eco_appliquee' => $data['remise_eco_appliquee'],
+            ':statut' => $data['statut'] ?? 'En attente',
+            ':notes' => $data['notes'] ?? null,
+        ];
+
+        if ($hasPanneColumns) {
+            $params[':circonstances_panne'] = $data['circonstances_panne'] !== '' ? $data['circonstances_panne'] : null;
+            $params[':temoins_panne'] = isset($data['temoins_panne']) ? json_encode($data['temoins_panne'], JSON_UNESCAPED_UNICODE) : json_encode([], JSON_UNESCAPED_UNICODE);
+            $params[':panne_data_json'] = $data['panne_data_json'] ?? json_encode([], JSON_UNESCAPED_UNICODE);
+            $params[':photos_json'] = $data['photos_json'] ?? json_encode([], JSON_UNESCAPED_UNICODE);
+        }
+
+        if ($hasUrgenceColumns) {
+            $params[':urgence_score'] = (int) $urgence['score'];
+            $params[':urgence_details'] = json_encode($urgence['details'], JSON_UNESCAPED_UNICODE);
+        }
+
+        $stmt = $this->db->prepare($sql);
+        $ok = $stmt->execute($params);
+
+        if ($ok && $hasUrgenceColumns) {
+            $this->maybeBroadcastUrgence($idRdv, $urgence);
+        }
+
+        return $ok;
     }
 
     private function findDetailedById(int $idRdv): ?array
@@ -1161,6 +1593,10 @@ class CalendrierController
 
     private function getByCreneau(int $idCreneau): array
     {
+        $urgenceSelect = $this->hasUrgenceColumns()
+            ? 'r.urgence_score, r.urgence_details,'
+            : "0 AS urgence_score, '{}' AS urgence_details,";
+
         if ($this->hasPanneColumns()) {
             $sql = "SELECT
                         r.id_rdv,
@@ -1169,6 +1605,7 @@ class CalendrierController
                         r.circonstances_panne,
                         r.temoins_panne,
                         r.photos_json,
+                        {$urgenceSelect}
                         r.statut,
                         r.remise_eco_appliquee,
                         r.notes,
@@ -1184,6 +1621,7 @@ class CalendrierController
                         '' AS circonstances_panne,
                         '[]' AS temoins_panne,
                         '[]' AS photos_json,
+                        {$urgenceSelect}
                         r.statut,
                         r.remise_eco_appliquee,
                         r.notes,
@@ -1253,6 +1691,10 @@ class CalendrierController
         $where = [];
         $params = [];
         $hasPanneColumns = $this->hasPanneColumns();
+        $hasUrgenceColumns = $this->hasUrgenceColumns();
+        $urgenceSelect = $hasUrgenceColumns
+            ? 'r.urgence_score, r.urgence_details,'
+            : "0 AS urgence_score, '{}' AS urgence_details,";
 
         if (!empty($filters['status'])) {
             $where[] = 'r.statut = :status';
@@ -1288,6 +1730,7 @@ class CalendrierController
                         r.circonstances_panne,
                         r.temoins_panne,
                         r.photos_json,
+                        {$urgenceSelect}
                         r.statut,
                         r.remise_eco_appliquee
                     FROM rendezvous_digital r
@@ -1301,6 +1744,7 @@ class CalendrierController
                         '' AS circonstances_panne,
                         '[]' AS temoins_panne,
                         '[]' AS photos_json,
+                        {$urgenceSelect}
                         r.statut,
                         r.remise_eco_appliquee
                     FROM rendezvous_digital r
@@ -1311,7 +1755,10 @@ class CalendrierController
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= ' ORDER BY c.date_heure DESC LIMIT :limit OFFSET :offset';
+        $orderBy = $hasUrgenceColumns
+            ? ' ORDER BY r.urgence_score DESC, c.date_heure DESC'
+            : ' ORDER BY c.date_heure DESC';
+        $sql .= $orderBy . ' LIMIT :limit OFFSET :offset';
 
         $stmt = $this->db->prepare($sql);
         foreach ($params as $key => $value) {
@@ -1372,6 +1819,10 @@ class CalendrierController
         $where = [];
         $params = [];
         $hasPanneColumns = $this->hasPanneColumns();
+        $hasUrgenceColumns = $this->hasUrgenceColumns();
+        $urgenceSelect = $hasUrgenceColumns
+            ? 'r.urgence_score, r.urgence_details,'
+            : "0 AS urgence_score, '{}' AS urgence_details,";
 
         if (!empty($filters['status'])) {
             $where[] = 'r.statut = :status';
@@ -1405,6 +1856,7 @@ class CalendrierController
                         r.description_panne,
                         r.circonstances_panne,
                         r.temoins_panne,
+                        {$urgenceSelect}
                         r.statut,
                         r.remise_eco_appliquee
                     FROM rendezvous_digital r
@@ -1416,6 +1868,7 @@ class CalendrierController
                         r.description_panne,
                         '' AS circonstances_panne,
                         '[]' AS temoins_panne,
+                        {$urgenceSelect}
                         r.statut,
                         r.remise_eco_appliquee
                     FROM rendezvous_digital r
@@ -1448,6 +1901,52 @@ class CalendrierController
         }
 
         return $this->hasPanneColumnsCache;
+    }
+
+    private function hasUrgenceColumns(): bool
+    {
+        if ($this->hasUrgenceColumnsCache !== null) {
+            return $this->hasUrgenceColumnsCache;
+        }
+
+        try {
+            $stmt = $this->db->query("SHOW COLUMNS FROM rendezvous_digital LIKE 'urgence_score'");
+            $this->hasUrgenceColumnsCache = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            $this->hasUrgenceColumnsCache = false;
+        }
+
+        return $this->hasUrgenceColumnsCache;
+    }
+
+    private function computeUrgencePayload(array $data, ?int $rdvId = null): array
+    {
+        $observer = new RendezVousObserver($this->db);
+        return $observer->computeUrgence($data, $rdvId);
+    }
+
+    private function maybeBroadcastUrgence(int $rdvId, array $urgence): void
+    {
+        if (empty($urgence['score'])) {
+            return;
+        }
+
+        $observer = new RendezVousObserver($this->db);
+        if (!$observer->shouldBroadcast((int) $urgence['score'])) {
+            return;
+        }
+
+        $summary = $observer->fetchRdvSummary($rdvId);
+        if (!$summary) {
+            return;
+        }
+
+        $urgenceService = new UrgenceService();
+        $config = $urgenceService->getConfig();
+        $broadcaster = new UrgenceBroadcaster((array) ($config['broadcast'] ?? []));
+        $listener = new RendezVousUrgenceListener($broadcaster);
+        $event = new RendezVousUrgenceUpdated($rdvId, (int) $urgence['score'], (array) $urgence['details'], $summary);
+        $listener->handle($event);
     }
 
     private function getQuickStats(string $dayStart, string $dayEnd, string $weekStart, string $weekEnd): array

@@ -74,7 +74,7 @@
                 <?php endif; ?>
             </span>
         </div>
-        <table class="sg-table">
+        <table class="sg-table" id="vehiclesTable">
             <thead>
                 <tr>
                     <th>ID</th>
@@ -100,9 +100,14 @@
                         ];
                         $dotColor = $colorMap[strtolower($v['couleur'])] ?? '#6b7280';
                     ?>
-                    <tr>
+                    <?php $detailUrl = 'index.php?action=vehicleDetail&id=' . (int) $v['id']; ?>
+                    <tr class="vehicle-click-row" data-href="<?php echo htmlspecialchars($detailUrl); ?>" tabindex="0" title="Voir la fiche et l'historique">
                         <td style="color:var(--text-muted);">#<?php echo $v['id']; ?></td>
-                        <td><strong><?php echo htmlspecialchars($v['marque']); ?></strong></td>
+                        <td>
+                            <a href="<?php echo htmlspecialchars($detailUrl); ?>" class="vehicle-table-link">
+                                <strong><?php echo htmlspecialchars($v['marque']); ?></strong>
+                            </a>
+                        </td>
                         <td><?php echo htmlspecialchars($v['modele']); ?></td>
                         <td><?php echo formatPlate($v['immatriculation'] ?? ''); ?></td>
                         <td>
@@ -117,6 +122,9 @@
                         <td style="color:var(--text-secondary);font-size:0.82rem;"><?php echo date('d/m/Y', strtotime($v['date_ajout'])); ?></td>
                         <td>
                             <div class="btn-group-actions">
+                                <a href="<?php echo htmlspecialchars($detailUrl); ?>" class="btn-sg btn-sg-outline btn-sg-sm" title="Voir fiche">
+                                    <i class="bi bi-eye"></i>
+                                </a>
                                 <a href="index.php?action=editVehicle&id=<?php echo $v['id']; ?>" class="btn-sg btn-sg-success btn-sg-sm" title="Modifier">
                                     <i class="bi bi-pencil-square"></i>
                                 </a>
@@ -133,5 +141,43 @@
         </table>
     </div>
 <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const table = document.getElementById('vehiclesTable');
+    if (!table) {
+        return;
+    }
+
+    function openVehicle(row) {
+        const href = row ? row.getAttribute('data-href') : '';
+        if (href) {
+            window.location.href = href;
+        }
+    }
+
+    table.addEventListener('click', function (event) {
+        if (event.target.closest('a, button, input, select, textarea')) {
+            return;
+        }
+
+        openVehicle(event.target.closest('.vehicle-click-row[data-href]'));
+    });
+
+    table.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+
+        const row = event.target.closest('.vehicle-click-row[data-href]');
+        if (!row) {
+            return;
+        }
+
+        event.preventDefault();
+        openVehicle(row);
+    });
+});
+</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../config/Database.php';
 class VehicleController
 {
     private PDO $db;
+    private array $rdvColumnCache = [];
 
     public function __construct()
     {
@@ -187,6 +188,25 @@ class VehicleController
     }
 
     // -------------------------------------------------------
+    // Back Office - fiche vehicule + historique interventions
+    // -------------------------------------------------------
+    public function vehicleDetail(): void
+    {
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $vehicle = $this->findVehicleById($id);
+
+        if (!$vehicle) {
+            header('Location: index.php?action=manageVehicles&error=Véhicule introuvable');
+            exit;
+        }
+
+        $history = $this->getVehicleInterventionHistory($id);
+        $historyStats = $this->buildVehicleHistoryStats($history);
+
+        require __DIR__ . '/../views/back/vehicle_detail.php';
+    }
+
+    // -------------------------------------------------------
     // Tableau de bord (Back Office)
     // -------------------------------------------------------
     public function dashboard()
@@ -348,6 +368,92 @@ class VehicleController
         return $row ?: null;
     }
 
+    private function getVehicleInterventionHistory(int $vehicleId): array
+    {
+        $select = [
+            'r.id_rdv',
+            'r.id_creneau',
+            'r.type_intervention',
+            'r.description_panne',
+            $this->hasRendezvousColumn('circonstances_panne') ? 'r.circonstances_panne' : 'NULL AS circonstances_panne',
+            $this->hasRendezvousColumn('temoins_panne') ? 'r.temoins_panne' : "'[]' AS temoins_panne",
+            $this->hasRendezvousColumn('photos_json') ? 'r.photos_json' : "'[]' AS photos_json",
+            $this->hasRendezvousColumn('urgence_score') ? 'r.urgence_score' : '0 AS urgence_score',
+            $this->hasRendezvousColumn('urgence_details') ? 'r.urgence_details' : "'{}' AS urgence_details",
+            'r.remise_eco_appliquee',
+            'r.statut',
+            'r.notes',
+            'r.date_creation',
+            'r.date_modification',
+            'c.date_heure',
+            'c.est_heure_creuse',
+        ];
+
+        $sql = 'SELECT ' . implode(', ', $select) . '
+                FROM rendezvous_digital r
+                LEFT JOIN creneau_atelier c ON c.id_creneau = r.id_creneau
+                WHERE r.id_vehicle = :id_vehicle
+                ORDER BY COALESCE(c.date_heure, r.date_creation) DESC, r.id_rdv DESC';
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id_vehicle' => $vehicleId]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    private function buildVehicleHistoryStats(array $history): array
+    {
+        $stats = [
+            'total' => count($history),
+            'active' => 0,
+            'done' => 0,
+            'canceled' => 0,
+            'urgent' => 0,
+            'last_date' => null,
+        ];
+
+        foreach ($history as $row) {
+            $statusKey = $this->normalizeKey((string) ($row['statut'] ?? ''));
+            if (in_array($statusKey, ['en attente', 'confirme', 'en cours'], true)) {
+                $stats['active']++;
+            } elseif ($statusKey === 'termine') {
+                $stats['done']++;
+            } elseif ($statusKey === 'annule') {
+                $stats['canceled']++;
+            }
+
+            if ((int) ($row['urgence_score'] ?? 0) >= 7) {
+                $stats['urgent']++;
+            }
+
+            if ($stats['last_date'] === null) {
+                $date = $row['date_heure'] ?? $row['date_creation'] ?? null;
+                if (!empty($date)) {
+                    $stats['last_date'] = (string) $date;
+                }
+            }
+        }
+
+        return $stats;
+    }
+
+    private function hasRendezvousColumn(string $column): bool
+    {
+        if (array_key_exists($column, $this->rdvColumnCache)) {
+            return $this->rdvColumnCache[$column];
+        }
+
+        try {
+            $stmt = $this->db->prepare('SHOW COLUMNS FROM rendezvous_digital LIKE :column_name');
+            $stmt->execute([':column_name' => $column]);
+            $this->rdvColumnCache[$column] = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            $this->rdvColumnCache[$column] = false;
+        }
+
+        return $this->rdvColumnCache[$column];
+    }
+
     private function countVehicles(): int
     {
         $stmt = $this->db->query('SELECT COUNT(*) FROM vehicle');
@@ -396,6 +502,30 @@ class VehicleController
         }
 
         return $plate;
+    }
+
+    private function normalizeKey(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '') {
+            return '';
+        }
+
+        if (function_exists('mb_strtolower')) {
+            $value = mb_strtolower($value, 'UTF-8');
+        } else {
+            $value = strtolower($value);
+        }
+
+        $translit = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $value);
+        if ($translit !== false) {
+            $value = $translit;
+        }
+
+        $value = preg_replace('/[^a-z0-9\s-]+/', '', $value) ?? $value;
+        $value = preg_replace('/\s+/', ' ', $value) ?? $value;
+
+        return trim($value);
     }
 
     private function findByImmatriculation(string $immatriculation): ?array

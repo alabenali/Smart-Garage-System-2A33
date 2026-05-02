@@ -42,6 +42,14 @@
 
             $statusClass = $statusMap[$statusKey] ?? 'en-attente';
             $statusLabel = $statusLabelMap[$statusKey] ?? ($statusRaw !== '' ? $statusRaw : 'En attente');
+            $urgenceScore = (int) ($rdv['urgence_score'] ?? 0);
+            if ($urgenceScore >= 7) {
+                $urgenceClass = 'urgence-high';
+            } elseif ($urgenceScore >= 4) {
+                $urgenceClass = 'urgence-medium';
+            } else {
+                $urgenceClass = 'urgence-low';
+            }
             ?>
             <div class="rdv-card" data-rdv-id="<?php echo (int) $rdv['id_rdv']; ?>">
                 <div class="rdv-main">
@@ -71,6 +79,7 @@
                             Photos: <?php echo count($photos); ?>
                         </span>
                     <?php endif; ?>
+                    <span class="urgence-badge <?php echo $urgenceClass; ?>"><?php echo $urgenceScore; ?>/10</span>
                     <span class="status-badge status-<?php echo $statusClass; ?>" data-status-label><?php echo htmlspecialchars($statusLabel); ?></span>
                 </div>
                 <div class="rdv-actions-inline">
