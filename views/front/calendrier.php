@@ -2,7 +2,7 @@
 $pageTitle = 'Prendre un rendez-vous';
 $action = 'frontCalendar';
 $extraCss = ['views/css/calendrier.css'];
-$extraJs = ['views/js/calendrier_front.js'];
+$extraJs = ['views/js/calendrier_front.js', 'js/symptomes-suggestions.js'];
 
 $monthDate = DateTime::createFromFormat('!m', (string) $month);
 $monthLabel = $monthDate ? $monthDate->format('F') : date('F');
@@ -32,7 +32,7 @@ require __DIR__ . '/layout_header.php';
 ?>
 
 <h1 class="page-title">Calendrier des rendez-vous</h1>
-<p class="page-subtitle">Sélectionnez un jour, un créneau puis confirmez votre demande en ligne.</p>
+<p class="page-subtitle">Sélectionnez un jour, remplissez le formulaire puis choisissez un créneau avant confirmation.</p>
 
 <?php if (!empty($errors)): ?>
     <div class="sg-alert sg-alert-danger">
@@ -48,8 +48,8 @@ require __DIR__ . '/layout_header.php';
 <div class="calendar-shell" id="frontCalendarApp" data-month="<?php echo (int) $month; ?>" data-year="<?php echo (int) $year; ?>" data-selected-date="<?php echo htmlspecialchars($selectedDate); ?>">
     <div class="stepper">
         <div class="step-item is-active" data-step="1">1. Jour</div>
-        <div class="step-item" data-step="2">2. Créneau</div>
-        <div class="step-item" data-step="3">3. Formulaire</div>
+        <div class="step-item" data-step="2">2. Formulaire</div>
+        <div class="step-item" data-step="3">3. Créneau</div>
         <div class="step-item" data-step="4">4. Confirmation</div>
     </div>
 
@@ -109,39 +109,19 @@ require __DIR__ . '/layout_header.php';
         </div>
     </section>
 
-    <section class="calendar-block" data-step-panel="2">
+    <section class="calendar-block" data-step-panel="3">
         <div class="slots-header">
             <h3>Créneaux du <span id="selectedDayLabel"><?php echo htmlspecialchars(date('d/m/Y', strtotime($selectedDate))); ?></span></h3>
-            <p>Choisissez un créneau disponible pour continuer.</p>
+            <p>Choisissez un créneau disponible avant confirmation.</p>
         </div>
 
-        <div id="slotsContainer" class="slot-list">
-            <?php if (empty($daySlots)): ?>
-                <div class="empty-inline">Aucun créneau disponible pour cette date.</div>
-            <?php else: ?>
-                <?php foreach ($daySlots as $slot): ?>
-                    <?php
-                    $remaining = max(0, (int) $slot['places_restantes']);
-                    $isFull = $remaining <= 0 || (int) $slot['capacite_max'] <= 0;
-                    ?>
-                    <button type="button"
-                            class="slot-item <?php echo $isFull ? 'is-full' : ''; ?>"
-                            data-slot-id="<?php echo (int) $slot['id_creneau']; ?>"
-                            data-slot-datetime="<?php echo htmlspecialchars($slot['date_heure']); ?>"
-                            data-offpeak="<?php echo (int) $slot['est_heure_creuse']; ?>"
-                            <?php echo $isFull ? 'disabled' : ''; ?>>
-                        <strong><?php echo htmlspecialchars(date('H:i', strtotime($slot['date_heure']))); ?></strong>
-                        <span><?php echo $remaining; ?> place(s) restante(s)</span>
-                        <?php if ((int) $slot['est_heure_creuse'] === 1): ?>
-                            <em>🌙 Heure creuse (remise possible)</em>
-                        <?php endif; ?>
-                    </button>
-                <?php endforeach; ?>
-            <?php endif; ?>
+        <div id="slots-recommendation-info" class="alert alert-light border d-none"></div>
+        <div id="slots-container" class="slots-recommendation-list">
+            <div class="empty-inline">Complétez le formulaire pour afficher les créneaux recommandés.</div>
         </div>
     </section>
 
-    <section class="calendar-block panne-step" data-step-panel="3">
+    <section class="calendar-block panne-step" data-step-panel="2">
         <div class="panne-form-header">
             <div class="panne-title-row">
                 <span class="panne-title-icon" aria-hidden="true"><i class="bi bi-clipboard2-pulse"></i></span>
@@ -158,13 +138,29 @@ require __DIR__ . '/layout_header.php';
         <form id="rdvForm" method="POST" action="index.php?action=frontCreateRdv" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="id_creneau" id="id_creneau" value="<?php echo htmlspecialchars($old['id_creneau'] ?? ''); ?>">
             <input type="hidden" name="selected_date" id="selected_date" value="<?php echo htmlspecialchars($selectedDate); ?>">
+            <input type="hidden" id="type_panne_session" value="<?php echo htmlspecialchars($_SESSION['step2']['type_intervention'] ?? ($old['type_intervention'] ?? '')); ?>">
 
             <?php
             $oldTemoins = $old['temoins_panne'] ?? [];
             if (!is_array($oldTemoins)) {
                 $oldTemoins = [];
             }
-            $typeOptions = ['Moteur', 'Boîte de vitesse', 'Freinage', 'Électrique-Batterie', 'Suspension-Direction', 'Climatisation', 'Carrosserie', 'Autre'];
+            $typeOptions = [
+                'Vidange',
+                'Révision',
+                'Changement de pneu',
+                'Pneumatiques',
+                'Batterie',
+                'Freinage',
+                'Moteur',
+                'Boîte de vitesse',
+                'Électrique-Batterie',
+                'Suspension-Direction',
+                'Climatisation',
+                'Carrosserie',
+                'Diagnostic général',
+                'Autre',
+            ];
             $circonstanceOptions = ['En roulant', 'À l\'arrêt', 'Au démarrage', 'Panne intermittente'];
             $temoinsOptions = [
                 ['value' => 'Voyant allumé au tableau de bord', 'icon' => 'bi-speedometer2'],
@@ -207,8 +203,10 @@ require __DIR__ . '/layout_header.php';
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="sg-form-group full-width">
-                            <label for="symptomes_panne">Symptômes observés *</label>
-                            <textarea name="description_panne" id="symptomes_panne" rows="5" placeholder="Exemple : bruit au freinage, voyant moteur, vibrations à l'accélération, odeur inhabituelle..." required><?php echo htmlspecialchars($old['description_panne'] ?? ''); ?></textarea>
+                            <label for="description_panne">Symptômes observés *</label>
+                            <div id="symptomes-chips-container" class="mb-2"></div>
+                            <textarea name="description_panne" id="description_panne" rows="5" placeholder="Exemple : bruit au freinage, voyant moteur, vibrations à l'accélération, odeur inhabituelle..." required><?php echo htmlspecialchars($old['description_panne'] ?? ''); ?></textarea>
+                            <div id="panne-suggestion" class="mt-2"></div>
                             <div class="invalid-feedback"></div>
                         </div>
                     </div>

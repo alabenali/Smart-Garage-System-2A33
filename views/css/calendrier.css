@@ -173,6 +173,59 @@
     font-size: 0.8rem;
 }
 
+.slots-recommendation-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.slot-card {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.slot-card:hover:not(.is-full),
+.slot-card.selected {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(232, 71, 10, 0.14);
+    transform: translateY(-1px);
+}
+
+.slot-card.is-full {
+    cursor: not-allowed;
+    opacity: 0.68;
+}
+
+.slot-card.recommended {
+    animation: slotRecommendedPulse 0.7s ease-out 1;
+}
+
+.slot-card.recommended .card-body {
+    padding: 1.05rem 1.1rem;
+}
+
+.slot-card-main {
+    min-width: 0;
+}
+
+.slot-card-badges {
+    flex: 0 0 auto;
+}
+
+@keyframes slotRecommendedPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0.28);
+    }
+    50% {
+        transform: scale(1.015);
+        box-shadow: 0 0 0 7px rgba(243, 156, 18, 0.14);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(243, 156, 18, 0);
+    }
+}
+
 .cal-form-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -935,5 +988,14 @@
 
     .photo-preview-list {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .slot-card .card-body {
+        align-items: flex-start !important;
+        flex-direction: column;
+    }
+
+    .slot-card-badges {
+        text-align: left !important;
     }
 }

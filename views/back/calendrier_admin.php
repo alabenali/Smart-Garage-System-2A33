@@ -188,7 +188,7 @@ const holidays = <?php echo json_encode($holidays ?? [], JSON_UNESCAPED_UNICODE 
             <label>Type intervention *</label>
             <select name="type_intervention" required>
                 <option value="">-- Sélectionner --</option>
-                <?php foreach (['Vidange', 'Révision', 'Freinage', 'Climatisation', 'Carrosserie', 'Autre'] as $type): ?>
+                <?php foreach (['Vidange', 'Révision', 'Changement de pneu', 'Pneumatiques', 'Batterie', 'Freinage', 'Moteur', 'Boîte de vitesse', 'Électrique-Batterie', 'Suspension-Direction', 'Climatisation', 'Carrosserie', 'Diagnostic général', 'Autre'] as $type): ?>
                     <option value="<?php echo $type; ?>" <?php echo (($manualOld['type_intervention'] ?? '') === $type) ? 'selected' : ''; ?>><?php echo $type; ?></option>
                 <?php endforeach; ?>
             </select>

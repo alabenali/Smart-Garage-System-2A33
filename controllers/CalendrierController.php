@@ -11,9 +11,13 @@ class CalendrierController
     private array $allowedInterventions = [
         'Vidange',
         'Révision',
+        'Changement de pneu',
+        'Pneumatiques',
+        'Batterie',
         'Freinage',
         'Climatisation',
         'Carrosserie',
+        'Diagnostic général',
         'Autre',
         'Moteur',
         'Boîte de vitesse',

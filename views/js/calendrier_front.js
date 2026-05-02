@@ -12,16 +12,20 @@
     const stepPanels = app.querySelectorAll('[data-step-panel]');
     const btnPrev = document.getElementById('prevStep');
     const btnNext = document.getElementById('nextStep');
-    const slotsContainer = document.getElementById('slotsContainer');
+    const slotsContainer = document.getElementById('slots-container') || document.getElementById('slotsContainer');
+    const slotsRecommendationInfo = document.getElementById('slots-recommendation-info');
     const selectedDayLabel = document.getElementById('selectedDayLabel');
     const hiddenSlot = document.getElementById('id_creneau');
     const hiddenDate = document.getElementById('selected_date');
+    const hiddenTypePanne = document.getElementById('type_panne_session');
     const form = document.getElementById('rdvForm');
     const confirmBtn = document.getElementById('confirmRdvBtn');
+    const interventionField = form ? form.querySelector('[name="type_intervention"]') : null;
     const circonstancesField = form ? form.querySelector('[name="circonstances_panne"]') : null;
-    const symptomesField = form ? form.querySelector('[name="description_panne"]') : null;
+    const symptomesField = document.getElementById('description_panne') || (form ? form.querySelector('[name="description_panne"]') : null);
     const temoinsFields = form ? form.querySelectorAll('input[name="temoins_panne[]"]') : [];
     const panneDataField = document.getElementById('panne_data_json');
+    const panneSuggestion = document.getElementById('panne-suggestion');
     const photoInput = document.getElementById('pannePhotosInput');
     const photoDropzone = document.getElementById('panneDropzone');
     const photosPreview = document.getElementById('photosPreview');
@@ -33,6 +37,11 @@
     const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
     const CAN_USE_DATA_TRANSFER = typeof DataTransfer !== 'undefined';
     let selectedPhotos = [];
+    let panneAnalysisTimer = null;
+    let panneAnalysisRequestId = 0;
+    let panneAnalysisController = null;
+    let internalTypeSelection = false;
+    let manualTypeSelected = interventionField ? interventionField.value.trim() !== '' : false;
 
     function setStep(step) {
         currentStep = Math.min(4, Math.max(1, step));
@@ -116,7 +125,7 @@
 
     function getPanneData() {
         return {
-            typePanne: form.querySelector('[name="type_intervention"]').value || '',
+            typePanne: interventionField ? interventionField.value : '',
             circonstances: circonstancesField ? circonstancesField.value : '',
             symptomes: symptomesField ? symptomesField.value.trim() : '',
             temoins: Array.from(temoinsFields)
@@ -238,15 +247,14 @@
         refreshPanneDataField();
     }
 
-    function validateStepThree() {
+    function validateFormStep() {
         clearFormErrors();
         let valid = true;
 
-        const intervention = form.querySelector('[name="type_intervention"]');
         const symptomes = form.querySelector('[name="description_panne"]');
 
-        if (!intervention.value.trim()) {
-            showError(intervention, 'Type de panne obligatoire.');
+        if (interventionField && !interventionField.value.trim()) {
+            showError(interventionField, 'Type de panne obligatoire.');
             valid = false;
         }
         if (!symptomes.value.trim()) {
@@ -259,9 +267,160 @@
         return valid;
     }
 
+    function normalizeOptionText(value) {
+        return String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim();
+    }
+
+    function getConfidenceLabel(confidence) {
+        const labels = {
+            high: 'élevée',
+            medium: 'moyenne',
+            low: 'faible',
+        };
+
+        return labels[confidence] || labels.low;
+    }
+
+    function getSuggestionBadgeClass(confidence) {
+        if (confidence === 'high') {
+            return 'badge rounded-pill bg-success';
+        }
+
+        if (confidence === 'medium') {
+            return 'badge rounded-pill bg-warning text-dark';
+        }
+
+        return 'badge rounded-pill bg-secondary';
+    }
+
+    function renderPanneSuggestion(result) {
+        if (!panneSuggestion) {
+            return;
+        }
+
+        panneSuggestion.innerHTML = '';
+
+        if (!result || !result.type) {
+            return;
+        }
+
+        const confidence = ['high', 'medium', 'low'].includes(result.confidence) ? result.confidence : 'low';
+        const badge = document.createElement('span');
+        badge.className = getSuggestionBadgeClass(confidence);
+        badge.textContent = `🔍 Type détecté : ${result.type} (confiance : ${getConfidenceLabel(confidence)})`;
+
+        if (Array.isArray(result.keywords_found) && result.keywords_found.length > 0) {
+            badge.title = `Mots-clés : ${result.keywords_found.join(', ')}`;
+        }
+
+        panneSuggestion.appendChild(badge);
+    }
+
+    function renderPanneAnalysisError() {
+        if (!panneSuggestion) {
+            return;
+        }
+
+        panneSuggestion.innerHTML = '';
+        const badge = document.createElement('span');
+        badge.className = 'badge rounded-pill bg-secondary';
+        badge.textContent = 'Analyse indisponible pour le moment';
+        panneSuggestion.appendChild(badge);
+    }
+
+    function selectSuggestedIntervention(type) {
+        if (!interventionField || manualTypeSelected) {
+            return;
+        }
+
+        const aliases = {
+            'Électronique': ['Électrique-Batterie'],
+            Transmission: ['Boîte de vitesse'],
+            'Diagnostic général': ['Autre'],
+        };
+        const candidates = [type].concat(aliases[type] || []).map(normalizeOptionText);
+        const option = Array.from(interventionField.options).find((item) => {
+            return candidates.includes(normalizeOptionText(item.value)) || candidates.includes(normalizeOptionText(item.textContent));
+        });
+
+        if (!option || option.value === interventionField.value) {
+            return;
+        }
+
+        internalTypeSelection = true;
+        interventionField.value = option.value;
+        interventionField.dispatchEvent(new Event('change', { bubbles: true }));
+        internalTypeSelection = false;
+        refreshPanneDataField();
+    }
+
+    async function analyzePanneDescription() {
+        if (!symptomesField) {
+            return;
+        }
+
+        const description = symptomesField.value.trim();
+        const requestId = ++panneAnalysisRequestId;
+
+        if (panneAnalysisController) {
+            panneAnalysisController.abort();
+        }
+
+        if (description.length < 3) {
+            renderPanneSuggestion(null);
+            return;
+        }
+
+        panneAnalysisController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+
+        try {
+            const response = await fetch('api/analyze-panne.php', {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ description }),
+                signal: panneAnalysisController ? panneAnalysisController.signal : undefined,
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (requestId !== panneAnalysisRequestId) {
+                return;
+            }
+
+            renderPanneSuggestion(result);
+
+            if (['high', 'medium'].includes(result.confidence)) {
+                selectSuggestedIntervention(result.type);
+            }
+        } catch (error) {
+            if (error.name === 'AbortError') {
+                return;
+            }
+
+            if (requestId === panneAnalysisRequestId) {
+                renderPanneAnalysisError();
+            }
+        }
+    }
+
+    function schedulePanneAnalysis() {
+        window.clearTimeout(panneAnalysisTimer);
+        panneAnalysisTimer = window.setTimeout(analyzePanneDescription, 400);
+    }
+
     function updateRecap() {
         const slotDateTime = selectedSlot ? selectedSlot.dataset.slotDatetime : '';
-        const intervention = form.querySelector('[name="type_intervention"]').value || '-';
+        const intervention = interventionField ? (interventionField.value || '-') : '-';
         const circonstances = (circonstancesField && circonstancesField.value) ? circonstancesField.value : '-';
 
         let dateLabel = '-';
@@ -288,13 +447,47 @@
     }
 
     function selectSlot(button) {
-        app.querySelectorAll('.slot-item').forEach((item) => item.classList.remove('selected'));
+        app.querySelectorAll('.slot-card, .slot-item').forEach((item) => item.classList.remove('selected'));
         button.classList.add('selected');
         selectedSlot = button;
         hiddenSlot.value = button.dataset.slotId;
     }
 
-    function renderSlots(slots) {
+    function getCurrentTypePanne() {
+        const typeValue = interventionField ? interventionField.value.trim() : '';
+        if (hiddenTypePanne) {
+            hiddenTypePanne.value = typeValue;
+        }
+
+        return typeValue || 'Diagnostic général';
+    }
+
+    function setSlotsInfo(payload) {
+        if (!slotsRecommendationInfo) {
+            return;
+        }
+
+        if (!payload || !payload.type_panne) {
+            slotsRecommendationInfo.classList.add('d-none');
+            slotsRecommendationInfo.textContent = '';
+            return;
+        }
+
+        slotsRecommendationInfo.classList.remove('d-none');
+        slotsRecommendationInfo.textContent = `⏱️ Durée estimée pour ${payload.type_panne} : ${payload.duree_label} — Les créneaux recommandés sont mis en avant`;
+    }
+
+    function createBadge(text, className) {
+        const badge = document.createElement('span');
+        badge.className = className;
+        badge.textContent = text;
+        return badge;
+    }
+
+    function renderSlots(payload) {
+        const slots = payload && Array.isArray(payload.slots) ? payload.slots : [];
+        setSlotsInfo(payload);
+
         if (!Array.isArray(slots) || slots.length === 0) {
             slotsContainer.innerHTML = '<div class="empty-inline">Aucun créneau disponible pour cette date.</div>';
             selectedSlot = null;
@@ -304,28 +497,72 @@
 
         slotsContainer.innerHTML = '';
         slots.forEach((slot) => {
-            const remaining = Math.max(0, Number(slot.places_restantes));
+            const remaining = Math.max(0, Number(slot.capacite_restante));
             const isFull = remaining <= 0 || Number(slot.capacite_max) <= 0;
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = `slot-item ${isFull ? 'is-full' : ''}`;
-            btn.dataset.slotId = slot.id_creneau;
-            btn.dataset.slotDatetime = slot.date_heure;
-            btn.dataset.offpeak = slot.est_heure_creuse;
-            btn.disabled = isFull;
-            btn.innerHTML = `<strong>${slot.date_heure.slice(11, 16)}</strong><span>${remaining} place(s) restante(s)</span>${Number(slot.est_heure_creuse) === 1 ? '<em>🌙 Heure creuse (remise possible)</em>' : ''}`;
-            slotsContainer.appendChild(btn);
+            const isRecommended = Boolean(slot.recommande) && !isFull;
+            const card = document.createElement('div');
+            card.className = isRecommended
+                ? 'card border-warning shadow-sm mb-2 slot-card recommended'
+                : `card ${isFull ? 'border-light bg-light text-muted is-full' : 'border-light'} mb-1 slot-card`;
+            card.dataset.slotId = slot.id_creneau;
+            card.dataset.slotDatetime = slot.date_heure || `${selectedDate} ${slot.heure}:00`;
+            card.dataset.offpeak = slot.est_heure_creuse ? '1' : '0';
+            card.dataset.score = slot.score || 0;
+            card.dataset.disabled = isFull ? '1' : '0';
+            card.setAttribute('title', slot.raison || '');
+            card.setAttribute('role', 'button');
+            card.setAttribute('tabindex', isFull ? '-1' : '0');
+            card.setAttribute('aria-disabled', isFull ? 'true' : 'false');
+
+            const body = document.createElement('div');
+            body.className = 'card-body d-flex justify-content-between align-items-center gap-2';
+
+            const left = document.createElement('div');
+            left.className = 'slot-card-main';
+            if (isRecommended) {
+                left.appendChild(createBadge('⭐ Recommandé', 'badge bg-warning text-dark me-2'));
+            }
+
+            const hour = document.createElement('strong');
+            hour.textContent = slot.heure;
+            left.appendChild(hour);
+
+            const reason = document.createElement('small');
+            reason.className = 'text-muted ms-2';
+            reason.textContent = slot.raison || '';
+            left.appendChild(reason);
+
+            const right = document.createElement('div');
+            right.className = 'slot-card-badges text-end';
+            right.appendChild(createBadge(`${remaining} place(s)`, isFull ? 'badge bg-secondary' : 'badge bg-success'));
+            right.appendChild(createBadge(payload.duree_label || '~1h', 'badge bg-light text-dark ms-1'));
+
+            if (slot.est_heure_creuse) {
+                right.appendChild(createBadge('Heure creuse', 'badge bg-info text-dark ms-1'));
+            }
+
+            body.appendChild(left);
+            body.appendChild(right);
+            card.appendChild(body);
+            slotsContainer.appendChild(card);
         });
     }
 
     async function loadSlots(dateValue) {
-        const response = await fetch(`index.php?action=apiDaySlots&date=${encodeURIComponent(dateValue)}`);
+        selectedSlot = null;
+        hiddenSlot.value = '';
+        setSlotsInfo(null);
+        slotsContainer.innerHTML = '<div class="empty-inline">Chargement des créneaux recommandés...</div>';
+
+        const typePanne = getCurrentTypePanne();
+        const response = await fetch(`api/recommend-slot.php?type_panne=${encodeURIComponent(typePanne)}&date=${encodeURIComponent(dateValue)}`);
         const payload = await response.json();
-        if (!payload.success) {
+        if (!payload.success && payload.success !== undefined) {
+            slotsContainer.innerHTML = '<div class="empty-inline">Impossible de charger les recommandations pour cette date.</div>';
             return;
         }
 
-        renderSlots(payload.data || []);
+        renderSlots(payload);
     }
 
     app.addEventListener('click', async (event) => {
@@ -338,15 +575,30 @@
             hiddenDate.value = selectedDate;
             selectedDayLabel.textContent = new Date(`${selectedDate}T08:00:00`).toLocaleDateString('fr-FR');
 
-            await loadSlots(selectedDate);
+            selectedSlot = null;
+            hiddenSlot.value = '';
+            setSlotsInfo(null);
+            slotsContainer.innerHTML = '<div class="empty-inline">Complétez le formulaire pour afficher les créneaux recommandés.</div>';
             setStep(2);
             return;
         }
 
-        const slotBtn = event.target.closest('.slot-item');
-        if (slotBtn && !slotBtn.disabled) {
+        const slotBtn = event.target.closest('.slot-card, .slot-item');
+        if (slotBtn && !slotBtn.classList.contains('is-full') && slotBtn.dataset.disabled !== '1') {
             selectSlot(slotBtn);
             return;
+        }
+    });
+
+    app.addEventListener('keydown', function (event) {
+        const slotBtn = event.target.closest('.slot-card, .slot-item');
+        if (!slotBtn || slotBtn.classList.contains('is-full') || slotBtn.dataset.disabled === '1') {
+            return;
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            selectSlot(slotBtn);
         }
     });
 
@@ -354,13 +606,27 @@
         setStep(currentStep - 1);
     });
 
-    btnNext.addEventListener('click', function () {
-        if (currentStep === 2 && !hiddenSlot.value) {
-            alert('Veuillez sélectionner un créneau.');
+    btnNext.addEventListener('click', async function () {
+        if (currentStep === 2) {
+            if (!validateFormStep()) {
+                return;
+            }
+
+            btnNext.disabled = true;
+            try {
+                await loadSlots(selectedDate);
+                setStep(3);
+            } catch (error) {
+                slotsContainer.innerHTML = '<div class="empty-inline">Erreur réseau pendant le chargement des créneaux.</div>';
+                setStep(3);
+            } finally {
+                btnNext.disabled = false;
+            }
             return;
         }
         if (currentStep === 3) {
-            if (!validateStepThree()) {
+            if (!hiddenSlot.value) {
+                alert('Veuillez sélectionner un créneau.');
                 return;
             }
             updateRecap();
@@ -371,11 +637,11 @@
     confirmBtn.addEventListener('click', function () {
         if (!hiddenSlot.value) {
             alert('Créneau non sélectionné.');
-            setStep(2);
+            setStep(3);
             return;
         }
-        if (!validateStepThree()) {
-            setStep(3);
+        if (!validateFormStep()) {
+            setStep(2);
             return;
         }
         refreshPanneDataField();
@@ -415,16 +681,32 @@
     }
 
     if (symptomesField) {
-        symptomesField.addEventListener('input', refreshPanneDataField);
+        symptomesField.addEventListener('input', function () {
+            refreshPanneDataField();
+            schedulePanneAnalysis();
+        });
     }
     if (circonstancesField) {
         circonstancesField.addEventListener('change', refreshPanneDataField);
     }
-    if (form) {
-        const panneTypeField = form.querySelector('[name="type_intervention"]');
-        if (panneTypeField) {
-            panneTypeField.addEventListener('change', refreshPanneDataField);
-        }
+    if (interventionField) {
+        interventionField.addEventListener('change', function () {
+            if (!internalTypeSelection) {
+                manualTypeSelected = interventionField.value.trim() !== '';
+            }
+
+            getCurrentTypePanne();
+            refreshPanneDataField();
+
+            if (currentStep === 3 && selectedDate) {
+                loadSlots(selectedDate).catch(() => {
+                    slotsContainer.innerHTML = '<div class="empty-inline">Erreur réseau pendant le chargement des créneaux.</div>';
+                });
+            }
+        });
+    }
+    if (symptomesField && symptomesField.value.trim() !== '') {
+        schedulePanneAnalysis();
     }
     Array.from(temoinsFields).forEach((item) => {
         item.addEventListener('change', refreshPanneDataField);
@@ -432,6 +714,7 @@
 
     window.getPanneData = getPanneData;
     updatePhotoState();
+    getCurrentTypePanne();
     refreshPanneDataField();
 
     setStep(1);
