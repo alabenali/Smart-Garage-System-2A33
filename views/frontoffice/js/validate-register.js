@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
     form.addEventListener('submit', function (e) {
         let valid = true;
 
-        const errorIds = ['nomError', 'prenomError', 'emailError', 'telephoneError', 'passwordError', 'confirmError'];
+        const errorIds = ['nomError', 'prenomError', 'emailError', 'telephoneError', 'passwordError', 'confirmError', 'photoError'];
         errorIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) { el.textContent = ''; el.style.display = 'none'; }
@@ -78,6 +78,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const telephone = document.getElementById('telephone').value.trim();
         const password  = document.getElementById('password').value;
         const confirm   = document.getElementById('confirmPassword').value;
+        const photo     = document.getElementById('profile_picture');
 
         if (!nom || nom.length < 2)
             show('nomError', 'Le nom doit contenir au moins 2 caractères (lettres uniquement).');
@@ -91,6 +92,8 @@ document.addEventListener('DOMContentLoaded', function () {
             show('passwordError', 'Minimum 6 caractères.');
         if (password !== confirm)
             show('confirmError', 'Les mots de passe ne correspondent pas.');
+        if (!photo || !photo.files || photo.files.length === 0)
+            show('photoError', 'La photo de profil est obligatoire.');
 
         if (!valid) e.preventDefault();
     });

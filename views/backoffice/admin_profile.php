@@ -65,8 +65,8 @@ if ($pic) {
     <nav><ul>
         <li><a href="/projet_final/controllers/AdminController.php?action=showDashboard"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=listUsers"><i class="fas fa-users"></i> Gestion Clients</a></li>
-        <li><a href="/projet_final/controllers/AdminController.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
-        <li><a href="/projet_final/controllers/AdminController.php?action=showStatistics"><i class="fas fa-chart-bar"></i> Statistiques</a></li>
+        <li><a href="/projet_final/controllers/AIController.php?action=showAssistant" style="color:#a78bfa;"><i class="fas fa-robot"></i> AI Helper</a></li>
+            <li><a href="/projet_final/controllers/AdminController.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAdminProfile" class="active"><i class="fas fa-user-cog"></i> Mon profil</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
     </ul></nav>
@@ -189,5 +189,6 @@ document.getElementById('adminProfilePic').addEventListener('change', function()
     }
 });
 </script>
+<?php require_once __DIR__ . "/darkmode_back.php"; ?>
 </body>
 </html>

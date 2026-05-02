@@ -5,17 +5,15 @@
     <meta charset="UTF-8">
     <title>Inscription - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/frontoffice/style.css">
     <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <!-- ✅ reCAPTCHA v3 : script invisible, aucune case à cocher -->
+    <script src="https://www.google.com/recaptcha/api.js?render=<?= htmlspecialchars(RECAPTCHA_SITE_KEY) ?>"></script>
     <?php endif; ?>
-=======
-    <link rel="stylesheet" href="style.css">
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body class="auth-body">
 <div class="auth-card">
+    <div style="position:absolute;top:16px;right:16px;"><button class="dm-toggle-nav" onclick="toggleDarkMode()" title="Mode clair/sombre"><i class="dm-icon fas fa-moon"></i></button></div>
     <div class="auth-logo">
         <i class="fas fa-user-plus" style="font-size:2rem;color:#00E5FF;"></i>
         <h2>Créer un compte</h2>
@@ -29,11 +27,12 @@
         </div>
     <?php endif; ?>
 
-<<<<<<< HEAD
     <form id="registerForm" method="POST" action="/projet_final/controllers/UserController.php?action=register" novalidate enctype="multipart/form-data">
-=======
-    <form id="registerForm" method="POST" action="../../controllers/UserController.php?action=register" novalidate>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+        <!-- ✅ reCAPTCHA v3 : champ caché rempli automatiquement par JS avant envoi -->
+        <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
+        <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response-register">
+        <?php endif; ?>
+
         <div class="row">
             <div class="form-group">
                 <label>Nom</label>
@@ -84,43 +83,63 @@
             </div>
             <span class="error-msg" id="confirmError"></span>
         </div>
-<<<<<<< HEAD
-        
-        <?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
-        <div class="form-group" style="display:flex;justify-content:center;margin-bottom:16px;">
-            <div class="g-recaptcha" data-sitekey="<?= htmlspecialchars(RECAPTCHA_SITE_KEY) ?>"></div>
+        <div class="form-group">
+            <label>Photo de profil <span style="color:#ff4d4d;">*</span></label>
+            <div class="input-wrap" style="flex-direction:column; align-items:flex-start; padding:10px 14px; gap:8px;">
+                <label for="profile_picture" id="photoLabel" style="cursor:pointer; display:flex; align-items:center; gap:8px; color:#00E5FF; font-weight:500;">
+                    <i class="fas fa-camera"></i> Choisir une photo
+                </label>
+                <input type="file" name="profile_picture" id="profile_picture" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;">
+                <div id="photoPreviewWrap" style="display:none; margin-top:6px;">
+                    <img id="photoPreview" src="#" alt="Aperçu" style="width:80px; height:80px; border-radius:50%; object-fit:cover; border:2px solid #00E5FF;">
+                </div>
+            </div>
+            <span class="error-msg" id="photoError"></span>
         </div>
-        <span class="error-msg" id="captchaError" style="display:block;text-align:center;margin-bottom:8px;"></span>
-        <?php endif; ?>
-        
-        <button type="submit" class="btn-primary full"><i class="fas fa-user-plus"></i> Créer mon compte</button>
+
+        <!-- ✅ Plus de bloc g-recaptcha visible ici — tout est invisible avec v3 -->
+
+        <button type="submit" class="btn-primary full" id="registerBtn">
+            <i class="fas fa-user-plus"></i> Créer mon compte
+        </button>
     </form>
     <?php unset($_SESSION['old']); ?>
     <div class="links"><p>Déjà un compte ? <a href="/projet_final/views/frontoffice/login.php">Se connecter</a></p></div>
 </div>
 <script src="/projet_final/views/frontoffice/js/validate-register.js"></script>
-<?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
 <script>
-document.getElementById('registerForm').addEventListener('submit', function(e) {
-    var recaptchaResponse = document.querySelector('.g-recaptcha-response');
-    if (recaptchaResponse && !recaptchaResponse.value) {
-        document.getElementById('captchaError').textContent = 'Veuillez valider le CAPTCHA.';
-        document.getElementById('captchaError').style.display = 'block';
-        e.preventDefault();
-        return false;
+// Preview photo de profil
+document.getElementById('profile_picture').addEventListener('change', function() {
+    const file = this.files[0];
+    const label = document.getElementById('photoLabel');
+    const wrap  = document.getElementById('photoPreviewWrap');
+    const prev  = document.getElementById('photoPreview');
+    if (file) {
+        label.innerHTML = '<i class="fas fa-check-circle" style="color:#00ff88;"></i> ' + file.name;
+        const reader = new FileReader();
+        reader.onload = e => { prev.src = e.target.result; wrap.style.display = 'block'; };
+        reader.readAsDataURL(file);
     }
 });
 </script>
+<?php if (defined('RECAPTCHA_ENABLED') && RECAPTCHA_ENABLED): ?>
+<script>
+// ✅ reCAPTCHA v3 : génère un token invisible au moment du submit
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var form = this;
+    grecaptcha.ready(function() {
+        grecaptcha.execute('<?= htmlspecialchars(RECAPTCHA_SITE_KEY) ?>', {action: 'register'})
+            .then(function(token) {
+                document.getElementById('g-recaptcha-response-register').value = token;
+                form.submit();
+            });
+    });
+});
+</script>
 <?php endif; ?>
+<?php require_once __DIR__ . "/darkmode.php"; ?>
+<?php require_once __DIR__ . "/password_eye.php"; ?>
+<?php require_once __DIR__ . "/chatbot_widget.php"; ?>
 </body>
 </html>
-=======
-        <button type="submit" class="btn-primary full"><i class="fas fa-user-plus"></i> Créer mon compte</button>
-    </form>
-    <?php unset($_SESSION['old']); ?>
-    <div class="links"><p>Déjà un compte ? <a href="login.php">Se connecter</a></p></div>
-</div>
-<script src="../../public/js/validate-register.js"></script>
-</body>
-</html>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

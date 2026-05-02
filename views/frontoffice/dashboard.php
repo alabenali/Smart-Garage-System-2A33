@@ -1,29 +1,20 @@
 <?php
 require_once __DIR__ . '/../../config.php';
-<<<<<<< HEAD
 if (!isset($_SESSION['user_id'])) { header('Location: /projet_final/controllers/UserController.php?action=showLogin'); exit; }
 
-// Get user data including profile picture
-$db = Database::getConnection();
+$db   = Database::getConnection();
 $stmt = $db->prepare("SELECT * FROM user WHERE id = :id");
 $stmt->execute([':id' => $_SESSION['user_id']]);
 $user = $stmt->fetch();
 
-$prenom = htmlspecialchars($_SESSION['user_prenom']);
-$nom    = htmlspecialchars($_SESSION['user_nom']);
+$prenom     = htmlspecialchars($_SESSION['user_prenom']);
+$nom        = htmlspecialchars($_SESSION['user_nom']);
 $profilePic = $_SESSION['user_profile_pic'] ?? $user['profile_picture'] ?? null;
 $avatarPath = null;
 if ($profilePic) {
-    $serverPath = __DIR__ . '/../../' . $profilePic;
-    if (file_exists($serverPath)) {
-        $avatarPath = '/projet_final/' . $profilePic;
-    }
+    $sp = __DIR__ . '/../../' . $profilePic;
+    if (file_exists($sp)) $avatarPath = '/projet_final/' . $profilePic;
 }
-=======
-if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
-$prenom = htmlspecialchars($_SESSION['user_prenom']);
-$nom    = htmlspecialchars($_SESSION['user_nom']);
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -31,38 +22,54 @@ $nom    = htmlspecialchars($_SESSION['user_nom']);
     <meta charset="UTF-8">
     <title>Mon Espace - Smart Garage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/frontoffice/style.css">
     <style>
-        .nav-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #00E5FF;
-        }
-        .nav-avatar-placeholder {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            color: white;
-            border: 2px solid #00E5FF;
-        }
+    .nav-avatar { width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid #00E5FF; }
+    .nav-avatar-placeholder { width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;border:2px solid #00E5FF; }
+
+    /* ── Stats ── */
+    .stat-card:hover { transform:translateY(-4px);border-color:rgba(0,229,255,0.4); }
+    .stat-card i { font-size:1.8rem;color:#00E5FF;margin-bottom:10px; }
+    .stat-card h3 { font-size:0.7rem;color:#888;letter-spacing:1px;margin:0 0 8px; }
+    .stat-card .value { font-size:2rem;font-weight:700;color:#e0e0e0; }
+    .stat-card .sub { font-size:0.72rem;color:#555;margin-top:4px; }
+
+    /* ── Section header ── */
+    .section-header { display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin:28px 0 16px; }
+    .section-header h2 { margin:0;font-size:1.1rem;color:#e0e0e0; }
+    .section-header h2 i { color:#00E5FF;margin-right:8px; }
+
+    /* ── Toolbar ── */
+    .toolbar { display:flex;gap:10px;align-items:center;flex-wrap:wrap; }
+    .search-wrap { position:relative; }
+    .search-wrap i { position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#555;font-size:0.85rem; }
+    #searchInput { background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:8px 12px 8px 32px;color:#e0e0e0;font-size:0.83rem;outline:none;width:200px;transition:border 0.2s; }
+    #searchInput:focus { border-color:rgba(0,229,255,0.4); }
+    #searchInput::placeholder { color:#444; }
+
+    
+    
+    
+
+    
+    @media(max-width:700px){.charts-row{grid-template-columns:1fr;}}
+    .chart-card { background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:20px; }
+    .chart-card h4 { margin:0 0 16px;color:#aaa;font-size:0.85rem; }
+    .bar-row { display:flex;align-items:center;gap:10px;margin-bottom:10px; }
+    .bar-label { color:#888;font-size:0.75rem;width:120px;flex-shrink:0; }
+    .bar-bg { flex:1;background:rgba(255,255,255,0.06);border-radius:6px;height:8px;overflow:hidden; }
+    .bar-fill { height:100%;border-radius:6px;background:linear-gradient(90deg,#00E5FF,#0284c7);transition:width 1s ease; }
+    .bar-val { color:#e0e0e0;font-size:0.75rem;width:60px;text-align:right;flex-shrink:0; }
+    .donut-wrap { display:flex;align-items:center;gap:20px; }
+    .donut-legend { display:flex;flex-direction:column;gap:8px; }
+    .legend-item { display:flex;align-items:center;gap:8px;font-size:0.75rem;color:#aaa; }
+    .legend-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
     </style>
-=======
-    <link rel="stylesheet" href="style.css">
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body>
 <nav class="navbar">
     <div class="logo"><i class="fas fa-car" style="color:#00E5FF;margin-right:8px;"></i><h2>Smart Garage</h2></div>
     <ul class="nav-links">
-<<<<<<< HEAD
         <li><a href="/projet_final/controllers/UserController.php?action=showDashboard" class="active">Mon espace</a></li>
         <li><a href="/projet_final/controllers/UserController.php?action=showProfile">Mon profil</a></li>
     </ul>
@@ -73,16 +80,8 @@ $nom    = htmlspecialchars($_SESSION['user_nom']);
             <div class="nav-avatar-placeholder"><?= strtoupper(substr($prenom,0,1)) ?></div>
         <?php endif; ?>
         <span><?= $prenom ?></span>
+        <button class="dm-toggle-nav" onclick="toggleDarkMode()" title="Mode clair/sombre"><i class="dm-icon fas fa-moon"></i></button>
         <a href="/projet_final/controllers/UserController.php?action=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
-=======
-        <li><a href="dashboard.php" class="active">Mon espace</a></li>
-        <li><a href="profile.php">Mon profil</a></li>
-    </ul>
-    <div style="display:flex;align-items:center;gap:1rem;">
-        <div class="avatar"><?= strtoupper(substr($prenom,0,1)) ?></div>
-        <span><?= $prenom ?></span>
-        <a href="../../controllers/UserController.php?action=logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Déconnexion</a>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     </div>
 </nav>
 
@@ -97,41 +96,7 @@ $nom    = htmlspecialchars($_SESSION['user_nom']);
         <p class="greeting">Bienvenue sur votre espace Smart Garage — Gestion intelligente de vos véhicules</p>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card"><i class="fas fa-wrench"></i><h3>INTERVENTIONS</h3><div class="value">4</div></div>
-        <div class="stat-card"><i class="fas fa-bell"></i><h3>RAPPELS REÇUS</h3><div class="value">6</div></div>
-        <div class="stat-card"><i class="fas fa-calendar-check"></i><h3>RDV À VENIR</h3><div class="value">1</div></div>
-        <div class="stat-card"><i class="fas fa-leaf"></i><h3>CO₂ ÉCONOMISÉ</h3><div class="value" style="font-size:1.5rem;">3.4 kg</div></div>
-    </div>
-
-    <div class="ia-card">
-        <h3><i class="fas fa-robot"></i> Recommandation IA Personnalisée</h3>
-        <p style="margin-top:0.5rem;">
-            <span class="ia-tag"><i class="fas fa-brain"></i> Analyse prédictive</span>
-            D'après votre historique, nous vous recommandons de planifier un contrôle périodique.
-        </p>
-        <p style="margin-top:0.8rem;"><a href="#" class="btn-edit" style="margin-left:0;"><i class="fas fa-clock"></i> Planifier un rendez-vous</a></p>
-    </div>
-
-    <div class="info-card">
-        <h3><i class="fas fa-user-circle"></i> Mes informations</h3>
-        <div class="info-row">
-            <span class="info-label"><i class="fas fa-user"></i> Nom complet</span>
-            <span class="info-value"><?= $prenom . ' ' . $nom ?></span>
-        </div>
-        <div class="info-row">
-            <span class="info-label"><i class="fas fa-envelope"></i> Email</span>
-            <span class="info-value"><?= htmlspecialchars($_SESSION['user_email']) ?></span>
-        </div>
-        <div class="info-row">
-            <span class="info-label"></span>
-<<<<<<< HEAD
-            <a href="/projet_final/controllers/UserController.php?action=showProfile" class="btn-edit"><i class="fas fa-edit"></i> Modifier mon profil</a>
-=======
-            <a href="profile.php" class="btn-edit"><i class="fas fa-edit"></i> Modifier mon profil</a>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
-        </div>
-    </div>
-</div>
+<?php require_once __DIR__ . "/darkmode.php"; ?>
+<?php require_once __DIR__ . "/chatbot_widget.php"; ?>
 </body>
 </html>

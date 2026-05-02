@@ -5,7 +5,6 @@ require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../models/User.php';
 
 class AdminController {
-<<<<<<< HEAD
     private PDO $db;
 
     public function __construct() {
@@ -111,7 +110,7 @@ class AdminController {
 
     // ── reCAPTCHA Validation Helper ─────────────────────────────────────────
     
-    private function verifyRecaptcha(string $recaptchaResponse): bool {  //   // . Appeler l'API Google pour vérifier le token
+    private function verifyRecaptcha(string $recaptchaResponse): bool {
         if (!defined('RECAPTCHA_ENABLED') || !RECAPTCHA_ENABLED) {
             return true;
         }
@@ -189,17 +188,6 @@ class AdminController {
     private function requireAdmin(): void {
         if (!isset($_SESSION['admin_id'])) {
             header('Location: /projet_final/controllers/AdminController.php?action=showLogin');
-=======
-    private User $userModel;
-
-    public function __construct() {
-        $this->userModel = new User();
-    }
-
-    private function requireAdmin(): void {
-        if (!isset($_SESSION['admin_id'])) {
-            header('Location: ../views/backoffice/admin_login.php');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             exit;
         }
     }
@@ -212,7 +200,6 @@ class AdminController {
         $errors   = [];
         $email    = trim($_POST['email'] ?? '');
         $password = trim($_POST['mot_de_passe'] ?? '');
-<<<<<<< HEAD
         $recaptcha = $_POST['g-recaptcha-response'] ?? '';
 
         // Validate reCAPTCHA
@@ -221,8 +208,6 @@ class AdminController {
                 $errors[] = "Veuillez valider le CAPTCHA.";
             }
         }
-=======
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL))
             $errors[] = "Email invalide.";
@@ -231,7 +216,6 @@ class AdminController {
 
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
-<<<<<<< HEAD
             header('Location: /projet_final/controllers/AdminController.php?action=showLogin');
             exit;
         }
@@ -247,46 +231,20 @@ class AdminController {
         } else {
             $_SESSION['errors'] = ["Identifiants administrateur incorrects."];
             header('Location: /projet_final/controllers/AdminController.php?action=showLogin');
-=======
-            header('Location: ../views/backoffice/admin_login.php');
-            exit;
-        }
-
-        // Vérification : post = 'admin' obligatoire
-        $user = $this->userModel->verifyPassword($email, $password);
-        if ($user && $user['post'] === 'admin') {
-            $_SESSION['admin_id']  = $user['id'];
-            $_SESSION['admin_nom'] = $user['nom'] . ' ' . $user['prenom'];
-            $_SESSION['role']      = 'admin';
-            header('Location: ../views/backoffice/admin_dashboard.php');
-            exit;
-        } else {
-            $_SESSION['errors'] = ["Identifiants administrateur incorrects."];
-            header('Location: ../views/backoffice/admin_login.php');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             exit;
         }
     }
 
     public function showDashboard(): void {
         $this->requireAdmin();
-<<<<<<< HEAD
         $totalUsers  = $this->countAll();
         $activeUsers = $this->countActive();
-=======
-        $totalUsers  = $this->userModel->countAll();
-        $activeUsers = $this->userModel->countActive();
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         require_once __DIR__ . '/../views/backoffice/admin_dashboard.php';
     }
 
     public function listUsers(): void {
         $this->requireAdmin();
-<<<<<<< HEAD
         $users = $this->getAll();
-=======
-        $users = $this->userModel->getAll();
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         require_once __DIR__ . '/../views/backoffice/users_list.php';
     }
 
@@ -306,67 +264,39 @@ class AdminController {
         $password  = trim($_POST['mot_de_passe'] ?? '');
         $statut    = $_POST['statut'] ?? 'actif';
 
-<<<<<<< HEAD
         if (empty($nom) || strlen($nom) < 2 || !preg_match('/^[a-zA-ZÀ-ÖØ-öø-ÿ \'\\-]+$/', $nom))       $errors[] = "Nom invalide (lettres uniquement, min. 2 caractères).";
         if (empty($prenom) || strlen($prenom) < 2 || !preg_match('/^[a-zA-ZÀ-ÖØ-öø-ÿ \'\\-]+$/', $prenom)) $errors[] = "Prénom invalide (lettres uniquement).";
-=======
-        if (empty($nom) || strlen($nom) < 2)          $errors[] = "Nom invalide (min. 2 caractères).";
-        if (empty($prenom) || strlen($prenom) < 2)    $errors[] = "Prénom invalide.";
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Email invalide.";
         if (!empty($telephone) && !preg_match('/^\+?[0-9\s\-]{8,15}$/', $telephone)) $errors[] = "Téléphone invalide.";
         if (strlen($password) < 6)                    $errors[] = "Mot de passe trop court (min. 6 caractères).";
         if (!in_array($statut, ['actif', 'inactif']))  $errors[] = "Statut invalide.";
-<<<<<<< HEAD
         if ($this->emailExists($email))                $errors[] = "Email déjà utilisé.";
-=======
-        if ($this->userModel->emailExists($email))     $errors[] = "Email déjà utilisé.";
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 
         if (!empty($errors)) {
             $_SESSION['errors'] = $errors;
             $_SESSION['old']    = $_POST;
-<<<<<<< HEAD
             header('Location: /projet_final/controllers/AdminController.php?action=showAddUser');
             exit;
         }
 
         $this->create([
-=======
-            header('Location: ../views/backoffice/add_user.php');
-            exit;
-        }
-
-        $this->userModel->create([
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             'nom' => $nom, 'prenom' => $prenom, 'email' => $email,
             'telephone' => $telephone, 'adresse' => $adresse,
             'mot_de_passe' => $password, 'statut' => $statut, 'post' => 'client',
         ]);
 
         $_SESSION['success'] = "Utilisateur ajouté avec succès !";
-<<<<<<< HEAD
         header('Location: /projet_final/controllers/AdminController.php?action=listUsers');
-=======
-        header('Location: ../views/backoffice/users_list.php?action=listUsers');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         exit;
     }
 
     public function showEditUser(): void {
         $this->requireAdmin();
         $id   = (int)($_GET['id'] ?? 0);
-<<<<<<< HEAD
         $user = $this->getById($id);
         if (!$user) {
             $_SESSION['errors'] = ["Utilisateur introuvable."];
             header('Location: /projet_final/controllers/AdminController.php?action=listUsers');
-=======
-        $user = $this->userModel->getById($id);
-        if (!$user) {
-            $_SESSION['errors'] = ["Utilisateur introuvable."];
-            header('Location: ../views/backoffice/users_list.php?action=listUsers');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             exit;
         }
         require_once __DIR__ . '/../views/backoffice/edit_user.php';
@@ -383,7 +313,6 @@ class AdminController {
         $adresse   = trim($_POST['adresse'] ?? '');
         $statut    = $_POST['statut'] ?? 'actif';
 
-<<<<<<< HEAD
         if (empty($nom) || strlen($nom) < 2 || !preg_match('/^[a-zA-ZÀ-ÖØ-öø-ÿ \'\\-]+$/', $nom))       $errors[] = "Nom invalide (lettres uniquement, min. 2 caractères).";
         if (empty($prenom) || strlen($prenom) < 2 || !preg_match('/^[a-zA-ZÀ-ÖØ-öø-ÿ \'\\-]+$/', $prenom)) $errors[] = "Prénom invalide (lettres uniquement).";
         if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Email invalide.";
@@ -397,26 +326,10 @@ class AdminController {
         }
 
         $this->update($id, [
-=======
-        if (empty($nom) || strlen($nom) < 2)           $errors[] = "Nom invalide.";
-        if (empty($prenom) || strlen($prenom) < 2)     $errors[] = "Prénom invalide.";
-        if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) $errors[] = "Email invalide.";
-        if (!in_array($statut, ['actif', 'inactif']))   $errors[] = "Statut invalide.";
-        if ($this->userModel->emailExists($email, $id)) $errors[] = "Email déjà utilisé.";
-
-        if (!empty($errors)) {
-            $_SESSION['errors'] = $errors;
-            header('Location: ../views/backoffice/edit_user.php?action=showEditUser&id=' . $id);
-            exit;
-        }
-
-        $this->userModel->update($id, [
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             'nom' => $nom, 'prenom' => $prenom, 'email' => $email,
             'telephone' => $telephone, 'adresse' => $adresse, 'statut' => $statut,
         ]);
 
-<<<<<<< HEAD
         // Gestion photo de profil du client
         $profilePic = $this->handleProfilePictureUpload($id);
         if ($profilePic) {
@@ -426,10 +339,6 @@ class AdminController {
 
         $_SESSION['success'] = "Utilisateur modifié avec succès !";
         header('Location: /projet_final/controllers/AdminController.php?action=listUsers');
-=======
-        $_SESSION['success'] = "Utilisateur modifié avec succès !";
-        header('Location: ../views/backoffice/users_list.php?action=listUsers');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         exit;
     }
 
@@ -437,26 +346,18 @@ class AdminController {
         $this->requireAdmin();
         $id = (int)($_GET['id'] ?? 0);
         if ($id > 0) {
-<<<<<<< HEAD
             $this->delete($id);
             $_SESSION['success'] = "Utilisateur supprimé.";
         }
         header('Location: /projet_final/controllers/AdminController.php?action=listUsers');
-=======
-            $this->userModel->delete($id);
-            $_SESSION['success'] = "Utilisateur supprimé.";
-        }
-        header('Location: ../views/backoffice/users_list.php?action=listUsers');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
         exit;
     }
 
     public function logout(): void {
-<<<<<<< HEAD
-    session_destroy();
-    header('Location: /projet_final/views/frontoffice/login.php');
-    exit;
-}
+        session_destroy();
+        header('Location: /projet_final/views/frontoffice/login.php');
+        exit;
+    }
 
     // ── Profil Admin ──────────────────────────────────────────────────
 
@@ -520,79 +421,16 @@ class AdminController {
         exit;
     }
 
-    
-    
-    
 
-    
-    // ── Statistiques ─────────────────────────────────────────────────
-
-    public function showStatistics(): void {
-        $this->requireAdmin();
-        
-        // Statistiques des clients
-        $totalClients = (int) $this->db->query("SELECT COUNT(*) FROM user WHERE post = 'client'")->fetchColumn();
-        $activeClients = (int) $this->db->query("SELECT COUNT(*) FROM user WHERE post = 'client' AND statut = 'actif'")->fetchColumn();
-        $inactiveClients = $totalClients - $activeClients;
-        
-        // Statistiques par mois (inscriptions des 12 derniers mois)
-        $monthlyStats = $this->db->query("
-            SELECT DATE_FORMAT(created_at, '%Y-%m') as month, COUNT(*) as count 
-            FROM user 
-            WHERE post = 'client' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-            GROUP BY DATE_FORMAT(created_at, '%Y-%m')
-            ORDER BY month ASC
-        ")->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Statistiques par jour de la semaine
-        $dayStats = $this->db->query("
-            SELECT DAYOFWEEK(created_at) as day_num, COUNT(*) as count 
-            FROM user 
-            WHERE post = 'client' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-            GROUP BY DAYOFWEEK(created_at)
-        ")->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Répartition par statut
-        $statutStats = $this->db->query("
-            SELECT statut, COUNT(*) as count 
-            FROM user 
-            WHERE post = 'client'
-            GROUP BY statut
-        ")->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Clients avec email vérifié
-        $verifiedClients = (int) $this->db->query("SELECT COUNT(*) FROM user WHERE post = 'client' AND email_verified = 1")->fetchColumn();
-        
-        // Clients avec photo de profil
-        $clientsWithPhoto = (int) $this->db->query("SELECT COUNT(*) FROM user WHERE post = 'client' AND profile_picture IS NOT NULL")->fetchColumn();
-        
-        require_once __DIR__ . '/../views/backoffice/statistics.php';
-    }
-
-
-=======
-        session_destroy();
-        header('Location: ../views/backoffice/admin_login.php');
-        exit;
-    }
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 }
 
 // ── ROUTEUR BACK ──────────────────────────────────────────────────
 $controller = new AdminController();
 $action = $_GET['action'] ?? 'showLogin';
 
-<<<<<<< HEAD
-$allowedActions = ['showLogin','login','showDashboard','listUsers','showAddUser','addUser','showEditUser','editUser','deleteUser','logout','showAdminProfile','updateAdminProfile','showStatistics'];
-=======
-$allowedActions = ['showLogin','login','showDashboard','listUsers','showAddUser','addUser','showEditUser','editUser','deleteUser','logout'];
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+$allowedActions = ['showLogin','login','showDashboard','listUsers','showAddUser','addUser','showEditUser','editUser','deleteUser','logout','showAdminProfile','updateAdminProfile'];
 if (in_array($action, $allowedActions)) {
     $controller->$action();
 } else {
     $controller->showLogin();
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

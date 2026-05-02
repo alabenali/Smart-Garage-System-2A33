@@ -1,25 +1,15 @@
 <?php
-<<<<<<< HEAD
 // config.php - Configuration générale et connexion PDO
 
 define('DB_HOST',    'localhost');
 define('DB_NAME',    'garage1');
 define('DB_USER',    'root');
 define('DB_PASS',    '');
-=======
-// config.php - Connexion PDO à la base de données garage1
-
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'garage1');
-define('DB_USER', 'root');
-define('DB_PASS', '');
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 define('DB_CHARSET', 'utf8mb4');
 
 // Démarrage de session global
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
-<<<<<<< HEAD
 }
 
 // ── Classe Database ───────────────────────────────────────────────────────────
@@ -47,14 +37,36 @@ class Database {
     private function __clone() {}
 }
 
-// ── reCAPTCHA v2 ──────────────────────────────────────────────────────────────
-// 1. Obtenez vos clés sur https://www.google.com/recaptcha/admin/create
-// 2. Remplacez les valeurs ci-dessous
-// 3. Laissez RECAPTCHA_ENABLED à true
-define('RECAPTCHA_ENABLED',    true);                     // Active/désactive le système
-define('RECAPTCHA_SITE_KEY',   '6LfDBswsAAAAAKmlGgnw2VEE1zmDS6CBNgziceXf'); // Clé réelle utilisateur
-define('RECAPTCHA_SECRET_KEY', '6LfDBswsAAAAAG7OUz8XuQeQs324OaujIa8Ywhti'); // Clé réelle utilisateur
+// ── reCAPTCHA v3 (INVISIBLE — aucune image, aucun clic) ───────────────────────
+// 1. Allez sur https://www.google.com/recaptcha/admin/create
+// 2. Choisissez le TYPE : "Score (v3)"  ← important, pas v2 !
+// 3. Ajoutez votre domaine (ex: localhost ou votre domaine en prod)
+// 4. Copiez les deux clés ci-dessous
+// ── Google Gemini API (AI Helper — 100% Gratuit) ───────────────────────────
+// 1. Allez sur https://aistudio.google.com/app/apikey
+// 2. Cliquez "Create API key" → copiez la clé ci-dessous
 
-=======
-}
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+
+// ── Google OAuth 2.0 ──────────────────────────────────────────────────────────
+// 1. Allez sur https://console.cloud.google.com/
+// 2. Créez un projet → APIs & Services → Identifiants → Créer des identifiants → ID client OAuth 2.0
+// 3. Type : Application Web
+// 4. URI de redirection autorisée : http://localhost/projet_final/controllers/UserController.php?action=googleCallback
+// 5. Copiez les deux valeurs ci-dessous
+define('GOOGLE_CLIENT_ID', 'YOUR_GOOGLE_CLIENT_ID');
+define('GOOGLE_CLIENT_SECRET', 'YOUR_GOOGLE_CLIENT_SECRET');
+define('GOOGLE_REDIRECT_URI',  'http://localhost/projet_final/controllers/UserController.php?action=googleCallback');
+
+define('RECAPTCHA_ENABLED',    true);
+define('RECAPTCHA_VERSION',    'v3');                        // ✅ NOUVEAU : indique v3
+define('RECAPTCHA_SITE_KEY', '[RECAPTCHA_SITE_KEY]');
+define('RECAPTCHA_SECRET_KEY', '[RECAPTCHA_SECRET_KEY]');
+define('RECAPTCHA_MIN_SCORE',  0.5);                        // ✅ Seuil : 0.0 (bot) → 1.0 (humain)
+// ── Google Gemini API (gratuit) ───────────────────────────────────────────────
+// 1. Allez sur https://aistudio.google.com/apikey
+// 2. Cliquez "Create API Key" → copiez la clé ci-dessous
+define('GEMINI_API_KEY', 'YOUR_GEMINI_API_KEY');
+
+// ── Groq API (gratuit, rapide) ────────────────────────────────────────────────
+define('GROQ_API_KEY', 'YOUR_GROQ_API_KEY');
+

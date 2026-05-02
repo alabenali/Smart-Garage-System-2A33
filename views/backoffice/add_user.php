@@ -8,29 +8,17 @@ if (!isset($_SESSION['admin_id'])) { header('Location: admin_login.php'); exit; 
     <meta charset="UTF-8">
     <title>Ajouter Client - Admin</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<<<<<<< HEAD
     <link rel="stylesheet" href="/projet_final/views/backoffice/style.css">
-=======
-    <link rel="stylesheet" href="style.css">
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
 </head>
 <body>
 <aside class="sidebar">
     <div class="logo"><h2><i class="fas fa-car" style="color:#00E5FF;"></i> Smart Garage</h2></div>
     <nav><ul>
-<<<<<<< HEAD
         <li><a href="/projet_final/controllers/AdminController.php?action=showDashboard"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=listUsers"><i class="fas fa-users"></i> Gestion Clients</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAddUser" class="active"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
-        <li><a href="/projet_final/controllers/AdminController.php?action=showStatistics"><i class="fas fa-chart-bar"></i> Statistiques</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAdminProfile"><i class="fas fa-user-cog"></i> Mon profil</a></li>
             <li><a href="/projet_final/controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
-=======
-        <li><a href="admin_dashboard.php"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-        <li><a href="users_list.php?action=listUsers"><i class="fas fa-users"></i> Gestion Clients</a></li>
-        <li><a href="add_user.php?action=showAddUser" class="active"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
-        <li><a href="../../controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     </ul></nav>
 </aside>
 
@@ -98,20 +86,15 @@ if (!isset($_SESSION['admin_id'])) { header('Location: admin_login.php'); exit; 
             </div>
             <div class="form-actions">
                 <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
-<<<<<<< HEAD
                 <a href="/projet_final/controllers/AdminController.php?action=listUsers" class="btn-back"><i class="fas fa-arrow-left"></i> Annuler</a>
-=======
-                <a href="users_list.php?action=listUsers" class="btn-back"><i class="fas fa-arrow-left"></i> Annuler</a>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
             </div>
         </form>
         <?php unset($_SESSION['old']); ?>
     </div>
 </main>
-<<<<<<< HEAD
 <script src="/projet_final/views/backoffice/js/validate-add-user.js"></script>
-=======
-<script src="../../public/js/validate-add-user.js"></script>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<?php require_once __DIR__ . "/../../views/frontoffice/password_eye.php"; ?>
+<?php require_once __DIR__ . "/darkmode_back.php"; ?>
 </body>
 </html>

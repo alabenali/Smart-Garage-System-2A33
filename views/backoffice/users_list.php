@@ -1,137 +1,91 @@
 <?php
-<<<<<<< HEAD
-// views/backoffice/users_list.php
-
 require_once __DIR__ . '/../../config.php';
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: /projet_final/controllers/AdminController.php?action=showLogin');
-    exit;
-}
+if (!isset($_SESSION['admin_id'])) { header('Location: /projet_final/controllers/AdminController.php?action=showLogin'); exit; }
 if (!isset($users)) { $users = []; }
-=======
-require_once __DIR__ . '/../../config.php';
-if (!isset($_SESSION['admin_id'])) { header('Location: admin_login.php'); exit; }
-require_once __DIR__ . '/../../models/User.php';
-$userModel = new User();
-$users = $userModel->getAll();
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+$total   = count($users);
+$actifs  = count(array_filter($users, fn($u) => $u['statut'] === 'actif'));
+$bloques = $total - $actifs;
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Gestion Clients - Smart Garage Admin</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<<<<<<< HEAD
-    <link rel="stylesheet" href="/projet_final/views/backoffice/style.css">
-    <style>
-        /* Styles pour les contrôles de tri */
-        .sort-controls {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .sort-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            background: rgba(26, 26, 26, 0.5);
-            padding: 0.5rem 1rem;
-            border-radius: 12px;
-            border: 1px solid rgba(0, 229, 255, 0.2);
-        }
-        
-        .sort-group label {
-            color: #00E5FF;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        
-        .sort-group select {
-            background: rgba(0, 229, 255, 0.1);
-            border: 1px solid rgba(0, 229, 255, 0.3);
-            color: #fff;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .sort-group select:hover {
-            background: rgba(0, 229, 255, 0.2);
-            border-color: #00E5FF;
-        }
-        
-        .sort-group select:focus {
-            outline: none;
-            border-color: #00E5FF;
-            box-shadow: 0 0 5px rgba(0, 229, 255, 0.3);
-        }
-        
-        .sort-group select option {
-            background: #0D1F3A;
-            color: #fff;
-        }
-        
-        .reset-sort {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #ccc;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.85rem;
-        }
-        
-        .reset-sort:hover {
-            background: rgba(0, 229, 255, 0.15);
-            border-color: #00E5FF;
-            color: #00E5FF;
-        }
+<meta charset="UTF-8">
+<title>Gestion Clients - Smart Garage Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="/projet_final/views/backoffice/style.css">
+<style>
+/* ── Stats Cards ── */
+.stats-bar { display:flex; gap:14px; margin-bottom:20px; flex-wrap:wrap; }
+.stat-card { flex:1; min-width:130px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:14px 18px; display:flex; align-items:center; gap:12px; }
+.stat-card .sc-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0; }
+.stat-card .sc-val  { font-size:1.6rem; font-weight:700; color:#e0e0e0; line-height:1; }
+.stat-card .sc-lbl  { font-size:0.72rem; color:#888; margin-top:2px; }
+.sc-total  .sc-icon { background:rgba(0,229,255,0.15); color:#00E5FF; }
+.sc-actif  .sc-icon { background:rgba(0,230,118,0.15); color:#00e676; }
+.sc-bloque .sc-icon { background:rgba(255,82,82,0.15);  color:#ff5252; }
 
-        /* CORRECTION : Aligner les boutons d'action horizontalement */
-        td:last-child {
-            white-space: nowrap;
-        }
+/* ── Toolbar ── */
+.toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
+.search-box { display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:8px 14px; flex:1; min-width:200px; }
+.search-box input { background:none; border:none; outline:none; color:#e0e0e0; font-size:0.88rem; width:100%; }
+.search-box input::placeholder { color:#555; }
+.search-box i { color:#555; }
 
-        td:last-child .btn-edit,
-        td:last-child .btn-delete {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            margin-right: 8px;
-        }
+.sort-select { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; padding:8px 14px; color:#ccc; font-size:0.85rem; outline:none; cursor:pointer; }
+.sort-select option { background:#1a1a2e; }
 
-        td:last-child .btn-delete {
-            margin-right: 0;
-        }
-    </style>
-=======
-    <link rel="stylesheet" href="style.css">
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+.filter-btns { display:flex; gap:7px; }
+.flt-btn { padding:7px 14px; border-radius:9px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:#aaa; font-size:0.8rem; cursor:pointer; transition:all 0.2s; }
+.flt-btn:hover,.flt-btn.active { background:rgba(0,229,255,0.15); color:#00E5FF; border-color:rgba(0,229,255,0.3); }
+.flt-btn.fa  { color:#00e676; border-color:rgba(0,230,118,0.2); background:rgba(0,230,118,0.08); }
+.flt-btn.fb  { color:#ff5252; border-color:rgba(255,82,82,0.2);  background:rgba(255,82,82,0.08); }
+
+.export-btn { padding:8px 16px; border-radius:10px; border:1px solid rgba(167,139,250,0.3); background:rgba(167,139,250,0.1); color:#a78bfa; font-size:0.82rem; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.export-btn:hover { background:rgba(167,139,250,0.2); }
+
+/* ── Table ── */
+.table-wrap { overflow-x:auto; border-radius:14px; border:1px solid rgba(255,255,255,0.08); }
+#usersTable { width:100%; border-collapse:collapse; }
+#usersTable thead tr { background:rgba(0,229,255,0.08); }
+#usersTable th { padding:12px 14px; text-align:left; color:#00E5FF; font-size:0.82rem; font-weight:600; white-space:nowrap; cursor:pointer; user-select:none; }
+#usersTable th:hover { color:#fff; }
+#usersTable th .sort-arrow { color:#555; margin-left:4px; font-size:0.7rem; }
+#usersTable th.sorted-asc  .sort-arrow:before { content:'▲'; color:#00E5FF; }
+#usersTable th.sorted-desc .sort-arrow:before { content:'▼'; color:#00E5FF; }
+#usersTable th:not(.sorted-asc):not(.sorted-desc) .sort-arrow:before { content:'⇅'; }
+#usersTable tbody tr { border-top:1px solid rgba(255,255,255,0.05); transition:background 0.15s; }
+#usersTable tbody tr:hover { background:rgba(255,255,255,0.03); }
+#usersTable td { padding:11px 14px; color:#ccc; font-size:0.85rem; }
+#usersTable td strong { color:#e0e0e0; }
+.status-actif  { background:rgba(0,230,118,0.15); color:#00e676; padding:3px 10px; border-radius:20px; font-size:0.75rem; white-space:nowrap; }
+.status-bloque { background:rgba(255,82,82,0.15);  color:#ff5252; padding:3px 10px; border-radius:20px; font-size:0.75rem; white-space:nowrap; }
+.btn-edit   { background:rgba(0,229,255,0.1); color:#00E5FF; border:1px solid rgba(0,229,255,0.2); padding:5px 10px; border-radius:7px; font-size:0.78rem; text-decoration:none; transition:all 0.2s; display:inline-block; }
+.btn-edit:hover { background:rgba(0,229,255,0.2); }
+.btn-delete { background:rgba(255,82,82,0.1); color:#ff5252; border:1px solid rgba(255,82,82,0.2); padding:5px 10px; border-radius:7px; font-size:0.78rem; text-decoration:none; transition:all 0.2s; display:inline-block; margin-left:4px; }
+.btn-delete:hover { background:rgba(255,82,82,0.2); }
+.no-results { text-align:center; padding:40px; color:#555; }
+
+/* ── Result count ── */
+.result-count { font-size:0.78rem; color:#666; margin-bottom:8px; }
+.result-count span { color:#00E5FF; }
+</style>
 </head>
 <body>
 <aside class="sidebar">
-    <div class="logo"><h2><i class="fas fa-car" style="color:#00E5FF;"></i> Smart Garage</h2></div>
+    <div class="logo"><i class="fas fa-car" style="color:#00E5FF;margin-right:8px;"></i><h2>Smart Garage Admin</h2></div>
+    <div style="text-align:center;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:10px;">
+        <div style="width:55px;height:55px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:white;margin:0 auto 6px;border:3px solid #00E5FF;">
+            <?= strtoupper(substr($_SESSION['admin_nom']??'A',0,1)) ?>
+        </div>
+        <div style="color:#ccc;font-size:0.85rem;"><?= htmlspecialchars($_SESSION['admin_nom']??'Admin') ?></div>
+    </div>
     <nav><ul>
-<<<<<<< HEAD
         <li><a href="/projet_final/controllers/AdminController.php?action=showDashboard"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=listUsers" class="active"><i class="fas fa-users"></i> Gestion Clients</a></li>
+        <li><a href="/projet_final/controllers/AIController.php?action=showAssistant" style="color:#a78bfa;"><i class="fas fa-robot"></i> AI Helper</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
-        <li><a href="/projet_final/controllers/AdminController.php?action=showStatistics"><i class="fas fa-chart-bar"></i> Statistiques</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=showAdminProfile"><i class="fas fa-user-cog"></i> Mon profil</a></li>
         <li><a href="/projet_final/controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
-=======
-        <li><a href="admin_dashboard.php"><i class="fas fa-tachometer-alt"></i> Tableau de bord</a></li>
-        <li><a href="users_list.php?action=listUsers" class="active"><i class="fas fa-users"></i> Gestion Clients</a></li>
-        <li><a href="add_user.php?action=showAddUser"><i class="fas fa-user-plus"></i> Ajouter un client</a></li>
-        <li><a href="../../controllers/AdminController.php?action=logout" style="color:#ff6b6b;"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
     </ul></nav>
 </aside>
 
@@ -143,143 +97,160 @@ $users = $userModel->getAll();
 
     <div class="top-bar">
         <h1><i class="fas fa-users" style="color:#00E5FF;"></i> Gestion des Clients</h1>
-<<<<<<< HEAD
-        <a href="/projet_final/controllers/AdminController.php?action=showAddUser" class="btn-add"><i class="fas fa-user-plus"></i> Ajouter un client</a>
-=======
-        <a href="add_user.php?action=showAddUser" class="btn-add"><i class="fas fa-user-plus"></i> Ajouter un client</a>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+        <a href="/projet_final/controllers/AdminController.php?action=showAddUser" class="btn-add"><i class="fas fa-user-plus"></i> Ajouter</a>
     </div>
 
-    <div class="search-wrap">
-        <i class="fas fa-search"></i>
-        <input type="text" id="searchInput" placeholder="Rechercher par nom ou email..." oninput="filterTable()">
-    </div>
-
-<<<<<<< HEAD
-    <div class="sort-controls">
-        <div class="sort-group">
-            <label><i class="fas fa-sort-amount-down-alt"></i> Trier par :</label>
-            <select id="sortSelect" onchange="sortTable()">
-                <option value="id-desc">ID (Plus récent)</option>
-                <option value="id-asc">ID (Plus ancien)</option>
-                <option value="nom-asc">Nom (A → Z)</option>
-                <option value="nom-desc">Nom (Z → A)</option>
-                <option value="email-asc">Email (A → Z)</option>
-                <option value="date-desc">Date d'inscription (Plus récent)</option>
-                <option value="date-asc">Date d'inscription (Plus ancien)</option>
-            </select>
+    <!-- ── STATS ── -->
+    <div class="stats-bar">
+        <div class="stat-card sc-total">
+            <div class="sc-icon"><i class="fas fa-users"></i></div>
+            <div><div class="sc-val"><?= $total ?></div><div class="sc-lbl">Total clients</div></div>
         </div>
-        <button class="reset-sort" onclick="resetSort()">
-            <i class="fas fa-undo-alt"></i> Réinitialiser le tri
-        </button>
+        <div class="stat-card sc-actif">
+            <div class="sc-icon"><i class="fas fa-user-check"></i></div>
+            <div><div class="sc-val"><?= $actifs ?></div><div class="sc-lbl">Actifs</div></div>
+        </div>
+        <div class="stat-card sc-bloque">
+            <div class="sc-icon"><i class="fas fa-user-lock"></i></div>
+            <div><div class="sc-val"><?= $bloques ?></div><div class="sc-lbl">Bloqués</div></div>
+        </div>
+        <div class="stat-card" style="border-color:rgba(167,139,250,0.2);">
+            <div class="sc-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;"><i class="fas fa-percent"></i></div>
+            <div>
+                <div class="sc-val" style="color:#a78bfa;"><?= $total > 0 ? round($actifs/$total*100) : 0 ?>%</div>
+                <div class="sc-lbl">Taux d'activité</div>
+            </div>
+        </div>
     </div>
 
-=======
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
-    <table id="usersTable">
-        <thead>
-            <tr>
-                <th>#</th><th>Nom complet</th><th>Email</th><th>Téléphone</th>
-                <th>Adresse</th><th>Statut</th><th>Inscrit le</th><th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php if (empty($users)): ?>
-                <tr><td colspan="8"><div class="empty"><i class="fas fa-user-slash" style="font-size:3rem;display:block;margin-bottom:1rem;"></i>Aucun client enregistré</div></td></tr>
-            <?php else: foreach ($users as $u): ?>
+    <!-- ── TOOLBAR ── -->
+    <div class="toolbar">
+        <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Rechercher par nom, email, téléphone..." oninput="applyFilters()">
+        </div>
+        <select class="sort-select" id="sortSelect" onchange="applyFilters()">
+            <option value="">🔃 Trier par...</option>
+            <option value="nom-asc">Nom A→Z</option>
+            <option value="nom-desc">Nom Z→A</option>
+            <option value="email-asc">Email A→Z</option>
+            <option value="date-desc">Plus récents</option>
+            <option value="date-asc">Plus anciens</option>
+        </select>
+        <div class="filter-btns">
+            <button class="flt-btn active" onclick="setFilter('all',this)"><i class="fas fa-list"></i> Tous</button>
+            <button class="flt-btn fa"     onclick="setFilter('actif',this)"><i class="fas fa-circle" style="font-size:0.6rem;"></i> Actifs</button>
+            <button class="flt-btn fb"     onclick="setFilter('bloque',this)"><i class="fas fa-ban"></i> Bloqués</button>
+        </div>
+        <button class="export-btn" onclick="exportCSV()"><i class="fas fa-download"></i> Export CSV</button>
+    </div>
+
+    <div class="result-count">Affichage de <span id="resCount"><?= $total ?></span> client(s)</div>
+
+    <!-- ── TABLE ── -->
+    <div class="table-wrap">
+        <table id="usersTable">
+            <thead>
                 <tr>
+                    <th onclick="sortCol(0)"><span>#</span><span class="sort-arrow"></span></th>
+                    <th onclick="sortCol(1)"><span>Nom complet</span><span class="sort-arrow"></span></th>
+                    <th onclick="sortCol(2)"><span>Email</span><span class="sort-arrow"></span></th>
+                    <th><span>Téléphone</span></th>
+                    <th><span>Adresse</span></th>
+                    <th onclick="sortCol(5)"><span>Statut</span><span class="sort-arrow"></span></th>
+                    <th onclick="sortCol(6)"><span>Inscrit le</span><span class="sort-arrow"></span></th>
+                    <th><span>Actions</span></th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            <?php if (empty($users)): ?>
+                <tr><td colspan="8"><div class="no-results"><i class="fas fa-user-slash" style="font-size:2.5rem;display:block;margin-bottom:10px;"></i>Aucun client</div></td></tr>
+            <?php else: foreach ($users as $u): ?>
+                <tr data-statut="<?= $u['statut'] ?>">
                     <td><?= $u['id'] ?></td>
                     <td><strong><?= htmlspecialchars($u['prenom'] . ' ' . $u['nom']) ?></strong></td>
                     <td><?= htmlspecialchars($u['email']) ?></td>
                     <td><?= htmlspecialchars($u['telephone'] ?? '-') ?></td>
                     <td><?= htmlspecialchars($u['adresse'] ?? '-') ?></td>
                     <td><span class="status-<?= $u['statut'] ?>"><?= ucfirst($u['statut']) ?></span></td>
-                    <td><?= date('d/m/Y', strtotime($u['created_at'])) ?></td>
+                    <td><?= isset($u['created_at']) ? date('d/m/Y', strtotime($u['created_at'])) : '-' ?></td>
                     <td>
-<<<<<<< HEAD
                         <a href="/projet_final/controllers/AdminController.php?action=showEditUser&id=<?= $u['id'] ?>" class="btn-edit"><i class="fas fa-edit"></i> Modifier</a>
-                        <a href="/projet_final/controllers/AdminController.php?action=deleteUser&id=<?= $u['id'] ?>" class="btn-delete" onclick="return confirm('Supprimer ce client ?')"><i class="fas fa-trash"></i> Suppr.</a>
-=======
-                        <a href="edit_user.php?action=showEditUser&id=<?= $u['id'] ?>" class="btn-edit"><i class="fas fa-edit"></i> Modifier</a>
-                        <a href="../../controllers/AdminController.php?action=deleteUser&id=<?= $u['id'] ?>" class="btn-delete" onclick="return confirm('Supprimer ce client ?')"><i class="fas fa-trash"></i> Suppr.</a>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
+                        <a href="/projet_final/controllers/AdminController.php?action=deleteUser&id=<?= $u['id'] ?>" class="btn-delete" onclick="return confirm('Supprimer ce client ?')"><i class="fas fa-trash"></i></a>
                     </td>
                 </tr>
             <?php endforeach; endif; ?>
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 </main>
-<<<<<<< HEAD
 
 <script>
-let currentSortValue = 'id-desc';
+var currentFilter = 'all';
+var sortState = {};
 
-
-
-
-//// tri et recherche
-
-=======
-<script>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e
-function filterTable() {
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    document.querySelectorAll('#usersTable tbody tr').forEach(row => {
-        row.style.display = row.textContent.toLowerCase().includes(search) ? '' : 'none';
-    });
+function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.flt-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    applyFilters();
 }
-<<<<<<< HEAD
 
-function sortTable() {
-    currentSortValue = document.getElementById('sortSelect').value;
-    const [field, direction] = currentSortValue.split('-');
-    const tbody = document.querySelector('#usersTable tbody');
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    
-    rows.sort((a, b) => {
-        let aVal, bVal;
-        switch(field) {
-            case 'id':
-                aVal = parseInt(a.cells[0].textContent);
-                bVal = parseInt(b.cells[0].textContent);
-                break;
-            case 'nom':
-                aVal = a.cells[1].textContent.toLowerCase();
-                bVal = b.cells[1].textContent.toLowerCase();
-                break;
-            case 'email':
-                aVal = a.cells[2].textContent.toLowerCase();
-                bVal = b.cells[2].textContent.toLowerCase();
-                break;
-            case 'date':
-                aVal = new Date(a.cells[6].textContent.split('/').reverse().join('-'));
-                bVal = new Date(b.cells[6].textContent.split('/').reverse().join('-'));
-                break;
-            default:
-                return 0;
+function applyFilters() {
+    var search = document.getElementById('searchInput').value.toLowerCase();
+    var rows   = document.querySelectorAll('#tableBody tr[data-statut]');
+    var count  = 0;
+    rows.forEach(function(row) {
+        var statut  = row.getAttribute('data-statut');
+        var text    = row.textContent.toLowerCase();
+        var matchF  = currentFilter === 'all' || statut === currentFilter;
+        var matchS  = !search || text.includes(search);
+        var show    = matchF && matchS;
+        row.style.display = show ? '' : 'none';
+        if (show) count++;
+    });
+    document.getElementById('resCount').textContent = count;
+}
+
+function sortCol(colIdx) {
+    var th   = document.querySelectorAll('#usersTable thead th')[colIdx];
+    var asc  = !th.classList.contains('sorted-asc');
+    document.querySelectorAll('#usersTable thead th').forEach(function(t) {
+        t.classList.remove('sorted-asc','sorted-desc');
+    });
+    th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+
+    var tbody = document.getElementById('tableBody');
+    var rows  = Array.from(tbody.querySelectorAll('tr[data-statut]'));
+    rows.sort(function(a, b) {
+        var va = a.cells[colIdx] ? a.cells[colIdx].textContent.trim() : '';
+        var vb = b.cells[colIdx] ? b.cells[colIdx].textContent.trim() : '';
+        // Numeric for col 0
+        if (colIdx === 0) return asc ? parseInt(va)-parseInt(vb) : parseInt(vb)-parseInt(va);
+        // Date for col 6
+        if (colIdx === 6) {
+            var da = va.split('/').reverse().join('-');
+            var db = vb.split('/').reverse().join('-');
+            return asc ? da.localeCompare(db) : db.localeCompare(da);
         }
-        if (aVal < bVal) return direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return direction === 'asc' ? 1 : -1;
-        return 0;
+        return asc ? va.localeCompare(vb,'fr') : vb.localeCompare(va,'fr');
     });
-    
-    rows.forEach(row => tbody.appendChild(row));
-    filterTable();
+    rows.forEach(function(r) { tbody.appendChild(r); });
 }
 
-function resetSort() {
-    document.getElementById('sortSelect').value = 'id-desc';
-    sortTable();
+function exportCSV() {
+    var rows = Array.from(document.querySelectorAll('#tableBody tr[data-statut]')).filter(function(r){ return r.style.display !== 'none'; });
+    var csv  = 'ID,Nom,Email,Téléphone,Adresse,Statut,Inscrit le\n';
+    rows.forEach(function(r) {
+        var cells = Array.from(r.cells).slice(0,7).map(function(c){ return '"' + c.textContent.trim().replace(/"/g,'""') + '"'; });
+        csv += cells.join(',') + '\n';
+    });
+    var a = document.createElement('a');
+    a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+    a.download = 'clients_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    sortTable();
-});
 </script>
+<?php require_once __DIR__ . "/darkmode_back.php"; ?>
 </body>
 </html>
-=======
-</script>
-</body>
-</html>
->>>>>>> c44cda46c49945f97d6970f58880ae0b98fe562e

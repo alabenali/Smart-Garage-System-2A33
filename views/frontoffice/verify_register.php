@@ -109,5 +109,7 @@ document.getElementById('codeForm').addEventListener('submit', function(e) {
 });
 digits[0].focus();
 </script>
+<?php require_once __DIR__ . "/darkmode.php"; ?>
+<?php require_once __DIR__ . "/chatbot_widget.php"; ?>
 </body>
 </html>

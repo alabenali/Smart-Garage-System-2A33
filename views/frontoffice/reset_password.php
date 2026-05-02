@@ -95,5 +95,8 @@ document.getElementById('resetForm').addEventListener('submit', function(e) {
     if (!ok) e.preventDefault();
 });
 </script>
+<?php require_once __DIR__ . "/darkmode.php"; ?>
+<?php require_once __DIR__ . "/password_eye.php"; ?>
+<?php require_once __DIR__ . "/chatbot_widget.php"; ?>
 </body>
 </html>

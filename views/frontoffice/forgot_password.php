@@ -10,6 +10,7 @@
 </head>
 <body class="auth-body">
 <div class="auth-card">
+    <div style="position:absolute;top:16px;right:16px;"><button class="dm-toggle-nav" onclick="toggleDarkMode()" title="Mode clair/sombre"><i class="dm-icon fas fa-moon"></i></button></div>
     <div class="auth-logo">
         <i class="fas fa-car" style="font-size:2.5rem;color:#00E5FF;"></i>
         <h2>Smart Garage</h2>
@@ -50,5 +51,8 @@
         <p><a href="/projet_final/views/frontoffice/login.php"><i class="fas fa-arrow-left"></i> Retour à la connexion</a></p>
     </div>
 </div>
+<?php require_once __DIR__ . "/darkmode.php"; ?>
+<?php require_once __DIR__ . "/password_eye.php"; ?>
+<?php require_once __DIR__ . "/chatbot_widget.php"; ?>
 </body>
 </html>
