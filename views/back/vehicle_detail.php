@@ -169,6 +169,30 @@ require __DIR__ . '/layout_header.php';
                 <strong><?php echo vehicleDetailDate($vehicle['date_ajout'] ?? null, false); ?></strong>
             </div>
         </div>
+
+        <div class="card mb-4" id="health-score-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">❤️ Score de santé du véhicule</h6>
+                <span class="badge bg-secondary fs-6" id="health-badge">-- /100</span>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="fw-bold" id="health-niveau">Calcul en cours...</span>
+                        <span id="health-score-val" class="fw-bold">--/100</span>
+                    </div>
+                    <div class="progress" style="height: 18px; border-radius: 10px;">
+                        <div id="health-bar" class="progress-bar progress-bar-striped" role="progressbar" style="width: 0%; transition: width 1s ease;"></div>
+                    </div>
+                </div>
+
+                <div id="health-criteres" class="row g-2 mb-3"></div>
+
+                <div id="health-recommandation" class="alert alert-light border mt-2" style="display:none">
+                    <small>💡 <span id="health-recommandation-text"></span></small>
+                </div>
+            </div>
+        </div>
     </section>
 
     <section class="vehicle-stats-panel">
@@ -271,5 +295,98 @@ require __DIR__ . '/layout_header.php';
         </table>
     <?php endif; ?>
 </div>
+
+<style>
+@keyframes pulse-red {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+}
+
+.pulse {
+    animation: pulse-red 1.5s ease 3;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const healthCard = document.getElementById('health-score-card');
+    if (!healthCard) {
+        return;
+    }
+
+    const badge = document.getElementById('health-badge');
+    const scoreVal = document.getElementById('health-score-val');
+    const niveau = document.getElementById('health-niveau');
+    const bar = document.getElementById('health-bar');
+    const criteres = document.getElementById('health-criteres');
+    const reco = document.getElementById('health-recommandation');
+    const recoText = document.getElementById('health-recommandation-text');
+    const vehicleId = <?php echo (int) ($vehicle['id'] ?? 0); ?>;
+
+    if (!vehicleId) {
+        niveau.textContent = 'Score indisponible';
+        return;
+    }
+
+    fetch('api/vehicle-health.php?id_vehicle=' + vehicleId)
+        .then(function (response) {
+            return response.json();
+        })
+        .then(function (data) {
+            if (!data || typeof data.score === 'undefined') {
+                niveau.textContent = 'Score indisponible';
+                return;
+            }
+
+            const score = Math.max(0, Math.min(100, parseInt(data.score, 10) || 0));
+            const couleur = data.couleur ? String(data.couleur) : 'secondary';
+
+            badge.textContent = score + ' /100';
+            badge.className = 'badge bg-' + couleur + ' fs-6';
+            scoreVal.textContent = score + '/100';
+            niveau.textContent = data.niveau ? String(data.niveau) : '—';
+
+            bar.className = 'progress-bar progress-bar-striped bg-' + couleur;
+            bar.style.width = score + '%';
+
+            if (Array.isArray(data.criteres)) {
+                const itemsHtml = data.criteres.map(function (critere) {
+                    const points = parseInt(critere.points_perdus, 10) || 0;
+                    const sur = parseInt(critere.sur, 10) || 0;
+                    const pct = sur > 0 ? Math.min(100, Math.round((points / sur) * 100)) : 0;
+                    const label = critere.label ? String(critere.label) : '';
+                    const valeur = critere.valeur ? String(critere.valeur) : '';
+
+                    return '<div class="col-md-4">'
+                        + '<div class="p-2 rounded border bg-light">'
+                        + '<div class="d-flex justify-content-between">'
+                        + '<small class="text-muted">' + label + '</small>'
+                        + '<small class="text-danger fw-bold">-' + points + ' pts</small>'
+                        + '</div>'
+                        + '<div class="fw-semibold small">' + valeur + '</div>'
+                        + '<div class="progress mt-1" style="height:4px">'
+                        + '<div class="progress-bar bg-danger" style="width:' + pct + '%"></div>'
+                        + '</div>'
+                        + '</div>'
+                        + '</div>';
+                }).join('');
+
+                criteres.innerHTML = itemsHtml;
+            }
+
+            if (data.recommandation) {
+                recoText.textContent = String(data.recommandation);
+                reco.style.display = 'block';
+            }
+
+            if (data.alerte === true) {
+                healthCard.classList.add('pulse');
+            }
+        })
+        .catch(function () {
+            niveau.textContent = 'Score indisponible';
+        });
+});
+</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

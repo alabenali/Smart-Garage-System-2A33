@@ -84,6 +84,7 @@
                     <th>Couleur</th>
                     <th>Année</th>
                     <th>Km</th>
+                    <th>Santé</th>
                     <th>Carburant</th>
                     <th>Date d'ajout</th>
                     <th>Actions</th>
@@ -118,6 +119,9 @@
                         </td>
                         <td><?php echo $v['annee']; ?></td>
                         <td><?php echo number_format($v['kilometrage'], 0, ',', ' '); ?></td>
+                        <td>
+                            <span class="badge bg-secondary vehicle-health-badge" data-vehicle-id="<?php echo (int) $v['id']; ?>">--</span>
+                        </td>
                         <td><span class="badge-fuel <?php echo strtolower($v['carburant']); ?>"><?php echo htmlspecialchars($v['carburant']); ?></span></td>
                         <td style="color:var(--text-secondary);font-size:0.82rem;"><?php echo date('d/m/Y', strtotime($v['date_ajout'])); ?></td>
                         <td>
@@ -149,6 +153,22 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    function scoreToColor(score) {
+        if (score >= 80) {
+            return 'success';
+        }
+        if (score >= 60) {
+            return 'primary';
+        }
+        if (score >= 40) {
+            return 'warning';
+        }
+        if (score >= 20) {
+            return 'danger';
+        }
+        return 'dark';
+    }
+
     function openVehicle(row) {
         const href = row ? row.getAttribute('data-href') : '';
         if (href) {
@@ -176,6 +196,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
         event.preventDefault();
         openVehicle(row);
+    });
+
+    const badges = table.querySelectorAll('.vehicle-health-badge[data-vehicle-id]');
+    badges.forEach(function (badge) {
+        const id = badge.getAttribute('data-vehicle-id');
+        if (!id) {
+            return;
+        }
+
+        fetch('api/vehicle-health-export.php?id_vehicle=' + encodeURIComponent(id))
+            .then(function (response) {
+                return response.json();
+            })
+            .then(function (data) {
+                if (!data || typeof data.score === 'undefined') {
+                    badge.textContent = '--';
+                    return;
+                }
+
+                const score = parseInt(data.score, 10) || 0;
+                const niveau = data.niveau ? String(data.niveau) : '';
+                const color = scoreToColor(score);
+
+                badge.className = 'badge bg-' + color + ' vehicle-health-badge';
+                badge.textContent = score + '/100 ' + niveau;
+            })
+            .catch(function () {
+                badge.textContent = '--';
+            });
     });
 });
 </script>
