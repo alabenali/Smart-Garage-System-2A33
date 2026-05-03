@@ -49,7 +49,7 @@ $action = 'admin_interventions';
                             <option value="">Selectionner un diagnostic...</option>
                             <?php foreach (($diagnosticsDisponibles ?? []) as $diag): ?>
                                 <option value="<?php echo (int)($diag['id_diagnostic'] ?? 0); ?>">
-                                    #<?php echo (int)($diag['id_diagnostic'] ?? 0); ?> - <?php echo htmlspecialchars((string)($diag['immatriculation'] ?? 'Vehicule inconnu')); ?>
+                                    <?php echo htmlspecialchars((string)($diag['immatriculation'] ?? 'Vehicule inconnu')); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -74,13 +74,30 @@ $action = 'admin_interventions';
                         <input type="hidden" name="id_diagnostic" id="modalDiagnosticId" value="">
 
                         <div class="mb-3">
-                            <label for="modalInterventionType" class="form-label">Type d'intervention</label>
-                            <select class="form-select bg-dark text-white border-secondary" id="modalInterventionType" name="id_type" required>
-                                <option value="">Selectionner un type</option>
-                                <?php foreach (($types_intervention ?? []) as $type): ?>
-                                    <option value="<?php echo (int)($type['id_type'] ?? 0); ?>"><?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <label class="form-label">Type d'intervention</label>
+                            <div class="bg-dark border border-secondary rounded p-3">
+                                <div class="d-flex flex-wrap gap-3">
+                                    <?php foreach (($types_intervention ?? []) as $type): ?>
+                                        <div class="form-check">
+                                            <input class="form-check-input intervention-checkbox" type="checkbox" id="type_<?php echo (int)($type['id_type'] ?? 0); ?>" name="id_type[]" value="<?php echo (int)($type['id_type'] ?? 0); ?>" data-type-name="<?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?>" data-min="0" data-max="0">
+                                            <label class="form-check-label text-white" for="type_<?php echo (int)($type['id_type'] ?? 0); ?>">
+                                                <?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?>
+                                            </label>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3 p-3 bg-dark border border-info rounded">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <label class="form-label text-info fw-bold mb-0">Estimation de prix</label>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <span class="h5 text-info" id="totalEstimation">0 DT</span>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -90,7 +107,7 @@ $action = 'admin_interventions';
 
                         <div class="mb-3">
                             <label for="modalCoutInitial" class="form-label">Cout initial estime (DT)</label>
-                            <input type="number" class="form-control bg-dark text-white border-secondary" id="modalCoutInitial" name="cout_initial" step="0.01" min="0" required>
+                            <input type="number" class="form-control bg-dark text-white border-secondary" id="modalCoutInitial" name="cout_initial" step="0.01" min="0.01" required>
                         </div>
 
                         <div class="d-flex justify-content-end gap-2">
@@ -184,24 +201,25 @@ $action = 'admin_interventions';
         </div>
     <?php endif; ?>
 
-    <div class="card bg-dark border-light">
-        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <h5 class="mb-0 text-white"><i class="fas fa-list me-2"></i>Liste des Interventions</h5>
-        </div>
+    <!-- Titre Liste des Interventions -->
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-5">
+        <h3 class="page-title text-white mb-0">Liste des Interventions</h3>
+    </div>
 
+    <div class="card bg-dark border-light">
         <div class="card-body p-0">
             <?php if (!empty($interventions)): ?>
                 <div class="table-responsive">
                     <table class="table table-hover table-dark mb-0">
-                        <thead class="table-secondary">
+                        <thead style="background-color: #2c3e50; color: #fff;">
                             <tr>
-                                <th>#ID</th>
-                                <th>Diagnostic</th>
-                                <th>Type</th>
-                                <th>Vehicule</th>
-                                <th>Couts</th>
-                                <th>Statut</th>
-                                <th>Dates</th>
+                                <th>#ID&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th>Diagnostic&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th>Type&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th>Vehicule&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th>Couts&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th>Statut&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th>Dates&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -638,6 +656,247 @@ function setTerminateData(interventionId, coutInitial) {
 #addInterventionModal #diagInfoAmount {
     color: #f3f8ff;
 }
+
+/* Styles pour le tri du tableau */
+table.table-dark thead th {
+    user-select: none;
+    cursor: pointer;
+}
+
+table.table-dark thead th:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: background-color 0.2s;
+}
 </style>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Prix estimés pour chaque type d'intervention (min - max en DT)
+    const interventionPrices = {
+        'Batterie': { min: 150, max: 400 },
+        'Climatisation': { min: 80, max: 250 },
+        'Diagnostic électronique': { min: 30, max: 100 },
+        'Distribution (courroie)': { min: 300, max: 900 },
+        'Échappement': { min: 100, max: 400 },
+        'Embrayage': { min: 400, max: 1200 },
+        'Freinage (plaquettes/disques)': { min: 100, max: 500 },
+        'Pneumatiques (1-4 pneus)': { min: 80, max: 600 },
+        'Suspension (amortisseurs)': { min: 200, max: 800 },
+        'Vidange': { min: 50, max: 150 }
+    };
+    
+    // Initialiser les prix
+    function initializePrices() {
+        const checkboxes = document.querySelectorAll('.intervention-checkbox');
+        checkboxes.forEach(checkbox => {
+            const typeName = checkbox.getAttribute('data-type-name');
+            const prices = interventionPrices[typeName] || { min: 0, max: 0 };
+            checkbox.setAttribute('data-min', prices.min);
+            checkbox.setAttribute('data-max', prices.max);
+        });
+    }
+    
+    // Calculer le prix total
+    function calculateTotalPrice() {
+        let totalMin = 0, totalMax = 0;
+        const checkedBoxes = document.querySelectorAll('.intervention-checkbox:checked');
+        
+        checkedBoxes.forEach(checkbox => {
+            const min = parseInt(checkbox.getAttribute('data-min')) || 0;
+            const max = parseInt(checkbox.getAttribute('data-max')) || 0;
+            totalMin += min;
+            totalMax += max;
+        });
+        
+        // Afficher le total
+        const totalEl = document.getElementById('totalEstimation');
+        if (totalEl) {
+            if (totalMin > 0) {
+                totalEl.textContent = totalMin + ' → ' + totalMax + ' DT';
+            } else {
+                totalEl.textContent = '0 DT';
+            }
+        }
+        
+        // Mettre à jour le champ cout_initial avec 80% du range
+        const coutInput = document.getElementById('modalCoutInitial');
+        if (coutInput && totalMin > 0) {
+            const estimated = totalMin + (totalMax - totalMin) * 0.8;
+            const value = Math.round(estimated * 100) / 100;
+            coutInput.value = value;
+        } else if (coutInput) {
+            coutInput.value = '';
+        }
+    }
+    
+    // Attacher les événements
+    document.addEventListener('DOMContentLoaded', function() {
+        initializePrices();
+        
+        const checkboxes = document.querySelectorAll('.intervention-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', calculateTotalPrice);
+        });
+        
+        // Gérer la soumission du formulaire d'intervention via AJAX
+        const interventionForm = document.getElementById('quickInterventionForm');
+        if (interventionForm) {
+            interventionForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Collecter les données du formulaire
+                const formData = new FormData(this);
+                
+                // Envoyer via AJAX
+                fetch('index.php?action=create_intervention', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Erreur HTTP: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Réponse:', data);
+                    if (data.success) {
+                        // Fermer la modal
+                        const modalElement = document.getElementById('addInterventionModal');
+                        const modal = bootstrap.Modal.getInstance(modalElement);
+                        if (modal) modal.hide();
+                        
+                        // Afficher un toast de succès
+                        showSuccessToast('Intervention créée avec succès!');
+                        
+                        // Réinitialiser le formulaire
+                        this.reset();
+                        
+                        // Recharger la page après 2 secondes
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        alert('Erreur: ' + (data.message || 'Impossible de créer l\'intervention'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    alert('Erreur: ' + error.message);
+                });
+            });
+        }
+        
+        // Fonction pour afficher un toast de succès
+        function showSuccessToast(message) {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check-circle me-2"></i>${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                </div>
+            `;
+            
+            const toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            toastContainer.innerHTML = toastHtml;
+            document.body.appendChild(toastContainer);
+            
+            const toast = new bootstrap.Toast(toastContainer.querySelector('.toast'));
+            toast.show();
+            
+            // Nettoyer après que le toast disparaisse
+            setTimeout(() => {
+                toastContainer.remove();
+            }, 4000);
+        }
+    });
+    
+    // Tri du tableau des interventions
+    const table = document.querySelector('table.table-dark');
+    if (table) {
+        const headers = table.querySelectorAll('thead th');
+        const tbody = table.querySelector('tbody');
+        let currentSort = { index: -1, ascending: true };
+        
+        headers.forEach((header, index) => {
+            if (index < headers.length - 1) { // Exclure la dernière colonne "Actions"
+                header.style.cursor = 'pointer';
+                header.addEventListener('click', function() {
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    
+                    // Déterminer la direction du tri
+                    if (currentSort.index === index) {
+                        currentSort.ascending = !currentSort.ascending;
+                    } else {
+                        currentSort.index = index;
+                        currentSort.ascending = true;
+                        // Retirer la classe de tri des autres headers
+                        headers.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+                    }
+                    
+                    // Ajouter la classe de tri au header actuel
+                    header.classList.remove('sort-asc', 'sort-desc');
+                    header.classList.add(currentSort.ascending ? 'sort-asc' : 'sort-desc');
+                    
+                    rows.sort((a, b) => {
+                        // Extraire le texte brut de la cellule (sans HTML)
+                        let aCell = a.children[index];
+                        let bCell = b.children[index];
+                        
+                        let aVal = aCell.textContent.trim();
+                        let bVal = bCell.textContent.trim();
+                        
+                        // Supprimer les espaces inutiles et les balises de texte
+                        aVal = aVal.replace(/\s+/g, ' ');
+                        bVal = bVal.replace(/\s+/g, ' ');
+                        
+                        // Essayer de convertir en nombre
+                        const aNum = parseFloat(aVal.replace(/[^\d.,-]/g, ''));
+                        const bNum = parseFloat(bVal.replace(/[^\d.,-]/g, ''));
+                        
+                        // Si ce sont des nombres
+                        if (!isNaN(aNum) && !isNaN(bNum)) {
+                            return currentSort.ascending ? aNum - bNum : bNum - aNum;
+                        }
+                        
+                        // Vérifier si c'est une date (format YYYY-MM-DD ou DD/MM/YYYY)
+                        const dateRegex = /(\d{4})-(\d{2})-(\d{2})|(\d{2})\/(\d{2})\/(\d{4})/;
+                        const aMatch = aVal.match(dateRegex);
+                        const bMatch = bVal.match(dateRegex);
+                        
+                        if (aMatch && bMatch) {
+                            let aDate, bDate;
+                            if (aMatch[1]) {
+                                aDate = new Date(aMatch[0]);
+                            } else {
+                                aDate = new Date(aMatch[6], aMatch[5] - 1, aMatch[4]);
+                            }
+                            if (bMatch[1]) {
+                                bDate = new Date(bMatch[0]);
+                            } else {
+                                bDate = new Date(bMatch[6], bMatch[5] - 1, bMatch[4]);
+                            }
+                            return currentSort.ascending ? aDate - bDate : bDate - aDate;
+                        }
+                        
+                        // Sinon, tri alphanumérique (sensible à la casse)
+                        const comparison = aVal.localeCompare(bVal, 'fr', { numeric: true });
+                        return currentSort.ascending ? comparison : -comparison;
+                    });
+                    
+                    // Réinsérer les lignes triées
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            }
+        });
+    }
+})();
+</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

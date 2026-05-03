@@ -478,6 +478,13 @@ class DiagnosticController {
 
         try {
             $idColumn = $this->diagnosticIdColumn();
+            
+            // Supprimer d'abord les interventions associées
+            $db->prepare('DELETE FROM intervention WHERE id_diagnostic = :id')->execute([
+                'id' => (int)$id,
+            ]);
+            
+            // Puis supprimer le diagnostic
             $query = $db->prepare('DELETE FROM diagnostic WHERE ' . $idColumn . ' = :id');
             $query->execute([
                 'id' => (int)$id,

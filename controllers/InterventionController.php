@@ -196,8 +196,8 @@ class InterventionController {
      */
     public function create($id_diagnostic, $id_type, $description_travail, $cout_initial) {
         try {
-            // Validation basique
-            if (empty($id_diagnostic) || empty($id_type) || empty($description_travail) || $cout_initial === '') {
+            // Validation basique (id_type peut être vide)
+            if (empty($id_diagnostic) || empty($description_travail) || $cout_initial === '') {
                 return [
                     'success' => false,
                     'message' => 'Tous les champs sont requis'
@@ -236,15 +236,15 @@ class InterventionController {
                 ];
             }
 
-            // Vérifier que le type existe
-            if (!$this->typeInterventionExists($id_type)) {
+            // Vérifier que le type existe si fourni
+            if (!empty($id_type) && !$this->typeInterventionExists($id_type)) {
                 return [
                     'success' => false,
                     'message' => 'Type d\'intervention invalide'
                 ];
             }
 
-            // Préparer et exécuter la requête
+            // Préparer et exécuter la requête (id_type peut être NULL)
             $sql = "INSERT INTO {$this->table} 
                     (id_diagnostic, id_type, description_travail, cout_initial, statut, statut_devis) 
                     VALUES (?, ?, ?, ?, 'planifiée', 'en_attente')";
@@ -252,7 +252,102 @@ class InterventionController {
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 $id_diagnostic,
-                $id_type,
+                !empty($id_type) ? $id_type : null,
+                $description_travail,
+                (float)$cout_initial
+            ]);
+
+            $id_intervention = $this->db->lastInsertId();
+
+            return [
+                'success' => true,
+                'id_intervention' => $id_intervention,
+                'message' => 'Intervention créée avec succès'
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Erreur lors de la création: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Crée une intervention avec plusieurs types d'intervention (stockés en JSON)
+     */
+    public function createMultiTypes($id_diagnostic, $types_json, $description_travail, $cout_initial) {
+        try {
+            // Validation basique
+            if (empty($id_diagnostic) || empty($description_travail) || $cout_initial === '') {
+                return [
+                    'success' => false,
+                    'message' => 'Tous les champs sont requis'
+                ];
+            }
+
+            if ($cout_initial < 0) {
+                return [
+                    'success' => false,
+                    'message' => 'Le coût initial ne peut pas être négatif'
+                ];
+            }
+
+            // Vérifier que le diagnostic existe et qu'il a le statut "accepte"
+            $diagnostic = $this->getDiagnosticStatus($id_diagnostic);
+            if (!$diagnostic) {
+                return [
+                    'success' => false,
+                    'message' => 'Diagnostic non trouvé'
+                ];
+            }
+
+            if (!$this->isAcceptedStatus($diagnostic['status'] ?? null)) {
+                return [
+                    'success' => false,
+                    'message' => 'Le diagnostic doit être accepté avant de créer une intervention'
+                ];
+            }
+
+            // Vérifier qu'une intervention n'existe pas déjà pour ce diagnostic
+            $existing = $this->getByDiagnostic($id_diagnostic);
+            if ($existing) {
+                return [
+                    'success' => false,
+                    'message' => 'Une intervention existe déjà pour ce diagnostic'
+                ];
+            }
+
+            // Valider les types si fournis
+            if (!empty($types_json)) {
+                $types = json_decode($types_json, true);
+                if (!is_array($types)) {
+                    return [
+                        'success' => false,
+                        'message' => 'Format de types invalide'
+                    ];
+                }
+                
+                // Vérifier que chaque type existe
+                foreach ($types as $typeId) {
+                    if (!$this->typeInterventionExists($typeId)) {
+                        return [
+                            'success' => false,
+                            'message' => 'Type d\'intervention invalide: ' . $typeId
+                        ];
+                    }
+                }
+            }
+
+            // Préparer et exécuter la requête avec types JSON
+            $sql = "INSERT INTO {$this->table} 
+                    (id_diagnostic, id_type, description_travail, cout_initial, statut, statut_devis) 
+                    VALUES (?, ?, ?, ?, 'planifiée', 'en_attente')";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                $id_diagnostic,
+                $types_json,
                 $description_travail,
                 (float)$cout_initial
             ]);
@@ -340,7 +435,6 @@ class InterventionController {
      */
     public function getAll($statut = null, $limit = 50, $offset = 0) {
         try {
-            $typeIdColumn = $this->typeInterventionIdColumn();
             $diagIdColumn = $this->diagnosticIdColumn();
             $diagVehicleIdColumn = $this->diagnosticVehicleIdColumn();
             $vehicleIdColumn = $this->resolveVehicleColumn(['id']) ?: 'id';
@@ -355,11 +449,10 @@ class InterventionController {
                 . $this->selectVehicleColumn(['marque', 'brand'], 'vehicle_marque') . ", "
                 . $this->selectVehicleColumn(['modele', 'model'], 'vehicle_modele') . ", "
                 . $this->selectVehicleColumn(['immatriculation', 'matricule'], 'immatriculation') . ", "
-                . $this->typeInterventionNameSelect('type_nom') . "
-                    FROM {$this->table} i
-                    JOIN diagnostic d ON i.id_diagnostic = d." . $diagIdColumn . "
-                    LEFT JOIN vehicle v ON " . $vehicleJoinCondition . "
-                    JOIN type_intervention t ON i.id_type = t." . $typeIdColumn;
+                . "'' AS type_nom "
+                . "FROM {$this->table} i "
+                . "JOIN diagnostic d ON i.id_diagnostic = d." . $diagIdColumn . " "
+                . "LEFT JOIN vehicle v ON " . $vehicleJoinCondition;
 
             if ($statut) {
                 $sql .= " WHERE i.statut = ?";
@@ -370,11 +463,52 @@ class InterventionController {
                 $stmt->execute([$limit, $offset]);
             }
 
-            return $stmt->fetchAll();
+            // Post-traiter les résultats pour transformer id_type JSON en noms
+            $results = $stmt->fetchAll();
+            foreach ($results as &$row) {
+                $row['type_nom'] = $this->getTypeNamesFromJson($row['id_type'] ?? null);
+            }
+            unset($row);
+
+            return $results;
 
         } catch (Exception $e) {
             error_log('Erreur getAll: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Convertir JSON de types en noms séparés par virgule
+     */
+    private function getTypeNamesFromJson($typesJson) {
+        if (empty($typesJson)) {
+            return '-';
+        }
+
+        try {
+            $typeIds = json_decode($typesJson, true);
+            if (!is_array($typeIds) || empty($typeIds)) {
+                return '-';
+            }
+
+            // Récupérer les noms des types (la colonne s'appelle nom_type)
+            $placeholders = implode(',', array_fill(0, count($typeIds), '?'));
+            $sql = "SELECT nom_type FROM type_intervention WHERE id_type IN ($placeholders) ORDER BY nom_type";
+            
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($typeIds);
+            $types = $stmt->fetchAll();
+
+            if (empty($types)) {
+                return '-';
+            }
+
+            $names = array_map(fn($t) => $t['nom_type'], $types);
+            return implode(', ', $names);
+        } catch (Exception $e) {
+            error_log('Erreur getTypeNamesFromJson: ' . $e->getMessage());
+            return '-';
         }
     }
 

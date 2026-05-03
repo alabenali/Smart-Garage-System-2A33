@@ -256,42 +256,82 @@ switch ($action) {
                 exit();
             }
 
+            if ($postedAction === 'update_diagnostic') {
+                if ($idDiagnostic <= 0) {
+                    header('Location: index.php?action=diagnostics&error=validation');
+                    exit();
+                }
+
+                $diagnosticData = [
+                    'id_diagnostic' => $idDiagnostic,
+                    'id_vehicule' => isset($_POST['id_vehicule']) ? (int)$_POST['id_vehicule'] : 0,
+                    'description_probleme' => $_POST['description_probleme'] ?? '',
+                    'resultat' => $_POST['resultat'] ?? '',
+                    'gravite' => $_POST['gravite'] ?? '',
+                    'montant_estime' => isset($_POST['montant_estime']) ? (float)$_POST['montant_estime'] : 0,
+                    'status' => $_POST['status'] ?? '',
+                    'date_diagnostic' => $_POST['date_diagnostic'] ?? '',
+                ];
+
+                $updateResult = $diagController->updateDiagnostic($diagnosticData);
+
+                if (!$updateResult) {
+                    header('Location: index.php?action=diagnostics&error=validation');
+                    exit();
+                }
+
+                header('Location: index.php?action=diagnostics&updated=1');
+                exit();
+            }
+
+            if ($postedAction === 'delete_diagnostic') {
+                if ($idDiagnostic <= 0) {
+                    header('Location: index.php?action=diagnostics&error=validation');
+                    exit();
+                }
+
+                $deleteResult = $diagController->deleteDiagnostic($idDiagnostic);
+
+                if (!$deleteResult) {
+                    header('Location: index.php?action=diagnostics&error=validation');
+                    exit();
+                }
+
+                header('Location: index.php?action=diagnostics&deleted=1');
+                exit();
+            }
+
             $diagController->handleRequest();
         }
 
         $vehicles = $diagController->listVehicles();
-        $diagnostics = $diagController->getPendingDiagnostics();
+        $diagnostics = $diagController->list();
         require __DIR__ . '/views/back/diagnostics.php';
         break;
 
     case 'create_intervention':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $result = $interventionController->handleRequest();
-            if (!empty($result['success'])) {
-                header('Location: index.php?action=admin_interventions&intervention_created=1');
-                exit();
-            }
-
+            // Traiter la création d'intervention et retourner JSON
+            header('Content-Type: application/json; charset=utf-8');
+            
             $idDiagnostic = isset($_POST['id_diagnostic']) ? (int)$_POST['id_diagnostic'] : 0;
-            header('Location: index.php?action=create_intervention&id_diagnostic=' . $idDiagnostic . '&error=1');
+            $idTypes = isset($_POST['id_type']) && is_array($_POST['id_type']) ? $_POST['id_type'] : [];
+            $description = isset($_POST['description_travail']) ? trim((string)$_POST['description_travail']) : '';
+            $coutInitial = isset($_POST['cout_initial']) ? (float)$_POST['cout_initial'] : 0;
+            
+            // Convertir les types en JSON
+            $typesJson = !empty($idTypes) ? json_encode(array_map('intval', $idTypes)) : null;
+            
+            // Appeler directement la création et retourner le résultat JSON
+            $result = $interventionController->createMultiTypes($idDiagnostic, $typesJson, $description, $coutInitial);
+            
+            echo json_encode($result);
             exit();
         }
-
-        $idDiagnostic = isset($_GET['id_diagnostic']) ? (int)$_GET['id_diagnostic'] : 0;
-        if ($idDiagnostic <= 0) {
-            header('Location: index.php?action=diagnostics&error=validation');
-            exit();
-        }
-
-        $action = 'admin_interventions';
-        $diagnostic = $diagController->getDiagnosticById($idDiagnostic);
-        if (!$diagnostic) {
-            header('Location: index.php?action=diagnostics&error=validation');
-            exit();
-        }
-
-        $types_intervention = $interventionController->getTypesIntervention();
-        require __DIR__ . '/views/back/intervention_form.php';
+        
+        // GET requests: rediriger vers admin_interventions
+        header('Location: index.php?action=admin_interventions');
+        exit();
         break;
 
     case 'admin_interventions':
