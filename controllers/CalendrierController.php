@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../services/UrgenceService.php';
+require_once __DIR__ . '/../services/TelegramService.php';
 require_once __DIR__ . '/../services/UrgenceBroadcaster.php';
 require_once __DIR__ . '/../observers/RendezVousObserver.php';
 require_once __DIR__ . '/../events/RendezVousUrgenceUpdated.php';
@@ -139,6 +140,9 @@ class CalendrierController
         if (!empty($savedPhotos)) {
             $this->updateRendezvousPhotosJson($rdvId, $savedPhotos);
         }
+
+        // Notification Telegram (non bloquante)
+        $this->sendTelegramNotification($rdvId);
 
         header('Location: index.php?action=frontConfirmation&id=' . $rdvId);
         exit;
@@ -369,6 +373,9 @@ class CalendrierController
             $this->jsonResponse(['success' => false, 'message' => 'Erreur creation RDV'], 500);
             return;
         }
+
+        // Notification Telegram (non bloquante)
+        $this->sendTelegramNotification($rdvId);
 
         $this->jsonResponse(['success' => true, 'data' => $this->formatRdvApiRow($created)]);
     }
@@ -611,7 +618,7 @@ class CalendrierController
 
         $vehicleId = $this->findOrCreateVehicle($payload['vehicle']);
 
-        $this->createRendezvous([
+        $rdvId = $this->createRendezvous([
             'id_creneau' => (int) $slot['id_creneau'],
             'nom_client' => $payload['nom_client'],
             'prenom_client' => $payload['prenom_client'],
@@ -628,6 +635,9 @@ class CalendrierController
             'statut' => 'Confirmé',
             'notes' => null,
         ]);
+
+        // Notification Telegram (non bloquante)
+        $this->sendTelegramNotification($rdvId);
 
         header('Location: index.php?action=backCalendar');
         exit;
@@ -1499,6 +1509,28 @@ class CalendrierController
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $row ?: null;
+    }
+
+    /**
+     * Envoie une notification Telegram après création d'un RDV
+     * Non bloquant : ne casse jamais le flux principal
+     *
+     * @param int $rdvId
+     * @return void
+     */
+    private function sendTelegramNotification(int $rdvId): void
+    {
+        try {
+            $rdvData = $this->findDetailedById($rdvId);
+            if (!$rdvData) {
+                return;
+            }
+
+            $telegram = new TelegramService();
+            $telegram->notifyNewRdv($rdvData);
+        } catch (\Throwable $e) {
+            // Ne jamais bloquer le système RDV
+        }
     }
 
     private function savePannePhotos(int $idRdv, ?array $files): array
