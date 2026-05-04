@@ -4,6 +4,7 @@ require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../services/UrgenceService.php';
 require_once __DIR__ . '/../services/TelegramService.php';
 require_once __DIR__ . '/../services/UrgenceBroadcaster.php';
+require_once __DIR__ . '/../services/LoyaltyService.php';
 require_once __DIR__ . '/../observers/RendezVousObserver.php';
 require_once __DIR__ . '/../events/RendezVousUrgenceUpdated.php';
 require_once __DIR__ . '/../listeners/RendezVousUrgenceListener.php';
@@ -156,6 +157,29 @@ class CalendrierController
         if (!$rdv) {
             header('Location: index.php?action=frontCalendar');
             exit;
+        }
+
+        $loyaltyWidget = null;
+        if (!empty($rdv['email_client'])) {
+            try {
+                $loyalty = new LoyaltyService($this->db);
+                $account = $loyalty->getAccountByEmail((string) $rdv['email_client']);
+                if ($account) {
+                    $sessionNotification = $_SESSION['loyalty_notification'] ?? [];
+                    $sessionAccountId = (int) ($sessionNotification['account']['id'] ?? 0);
+                    $loyaltyWidget = [
+                        'account' => $account,
+                        'progression' => $loyalty->getProgression((int) $account['id']),
+                        'historique' => $loyalty->getHistorique((int) $account['id'], 5),
+                        'points_gagnes' => $sessionAccountId === (int) $account['id']
+                            ? (int) ($sessionNotification['points_gagnes'] ?? 0)
+                            : 0,
+                    ];
+                    unset($_SESSION['loyalty_notification']);
+                }
+            } catch (Throwable $e) {
+                $this->logLoyalty('Widget fidelite indisponible confirmation RDV #' . $id . ': ' . $e->getMessage());
+            }
         }
 
         require __DIR__ . '/../views/front/confirmation.php';
@@ -548,7 +572,59 @@ class CalendrierController
         }
 
         $ok = $this->updateStatus($idRdv, $status);
-        $this->jsonResponse(['success' => $ok]);
+        $loyaltyNotification = null;
+        if ($ok && $status === 'Terminé') {
+            $loyaltyNotification = $this->processLoyaltyAfterCompletedStatus($idRdv);
+        }
+
+        $this->jsonResponse(['success' => $ok, 'loyalty' => $loyaltyNotification]);
+    }
+
+    public function adminLoyalty(): void
+    {
+        if (isset($_GET['export']) && $_GET['export'] === 'csv') {
+            $this->exportLoyaltyCsv();
+            return;
+        }
+
+        $message = $_SESSION['loyalty_admin_message'] ?? null;
+        $error = $_SESSION['loyalty_admin_error'] ?? null;
+        unset($_SESSION['loyalty_admin_message'], $_SESSION['loyalty_admin_error']);
+
+        try {
+            $loyalty = new LoyaltyService($this->db);
+
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $email = isset($_POST['email']) ? trim((string) $_POST['email']) : '';
+                $points = isset($_POST['points']) ? (int) $_POST['points'] : 0;
+                $raison = isset($_POST['raison']) ? trim((string) $_POST['raison']) : '';
+
+                if ($loyalty->attribuerPointsManuels($email, $points, $raison)) {
+                    $_SESSION['loyalty_admin_message'] = 'Points attribués avec succès.';
+                } else {
+                    $_SESSION['loyalty_admin_error'] = 'Impossible d attribuer ces points. Vérifiez email, points et raison.';
+                }
+
+                header('Location: index.php?action=adminLoyalty');
+                exit;
+            }
+
+            $stats = $loyalty->getAdminStats();
+            $members = $loyalty->getAllMembers();
+        } catch (Throwable $e) {
+            $stats = [
+                'membres_total' => 0,
+                'points_distribues' => 0,
+                'palier_moyen' => 'Bronze',
+                'recompenses_utilisees' => 0,
+                'repartition' => [],
+                'top_clients' => [],
+            ];
+            $members = [];
+            $error = 'Le module fidélité n est pas encore initialisé. Exécutez database/migrations/loyalty.sql.';
+        }
+
+        require __DIR__ . '/../views/admin/loyalty_dashboard.php';
     }
 
     public function backBlockSlot(): void
@@ -1678,6 +1754,83 @@ class CalendrierController
             ':statut' => $status,
             ':id_rdv' => $idRdv,
         ]);
+    }
+
+    private function processLoyaltyAfterCompletedStatus(int $idRdv): ?array
+    {
+        try {
+            $rdv = $this->findDetailedById($idRdv);
+            if (!$rdv || empty($rdv['email_client'])) {
+                $this->logLoyalty('RDV #' . $idRdv . ': email client absent, fidelite ignoree.');
+                return null;
+            }
+
+            $loyalty = new LoyaltyService($this->db);
+            $account = $loyalty->getOrCreateAccount(
+                (string) $rdv['email_client'],
+                (string) ($rdv['nom_client'] ?? ''),
+                (string) ($rdv['prenom_client'] ?? ''),
+                (string) ($rdv['telephone_client'] ?? '')
+            );
+
+            if (empty($account['id'])) {
+                return null;
+            }
+
+            $calculation = $loyalty->calculerPoints($idRdv);
+            $ok = $loyalty->attribuerPoints($idRdv);
+            if (!$ok) {
+                return null;
+            }
+
+            $progression = $loyalty->getProgression((int) $account['id']);
+            $progression['points_gagnes'] = max(0, (int) ($calculation['total'] ?? 0));
+            $_SESSION['loyalty_notification'] = $progression;
+
+            return $progression;
+        } catch (Throwable $e) {
+            $this->logLoyalty('Erreur fidelite apres RDV termine #' . $idRdv . ': ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function exportLoyaltyCsv(): void
+    {
+        try {
+            $loyalty = new LoyaltyService($this->db);
+            $members = $loyalty->getAllMembers();
+        } catch (Throwable $e) {
+            $members = [];
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename=loyalty_members_' . date('Ymd_His') . '.csv');
+
+        $output = fopen('php://output', 'w');
+        fputcsv($output, ['Nom', 'Prenom', 'Email', 'Telephone', 'Points total', 'Points utilises', 'Points disponibles', 'Palier', 'Inscription', 'Derniere activite'], ';');
+
+        foreach ($members as $row) {
+            fputcsv($output, [
+                $row['client_nom'] ?? '',
+                $row['client_prenom'] ?? '',
+                $row['client_email'] ?? '',
+                $row['client_telephone'] ?? '',
+                (int) ($row['points_total'] ?? 0),
+                (int) ($row['points_utilises'] ?? 0),
+                (int) ($row['points_restants'] ?? 0),
+                $row['palier_actuel'] ?? '',
+                $row['date_inscription'] ?? '',
+                $row['derniere_activite'] ?? '',
+            ], ';');
+        }
+
+        fclose($output);
+        exit;
+    }
+
+    private function logLoyalty(string $message): void
+    {
+        @file_put_contents(__DIR__ . '/../logs/loyalty.log', '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL, FILE_APPEND);
     }
 
     private function getWeekDetailed(string $weekStart, string $weekEnd): array

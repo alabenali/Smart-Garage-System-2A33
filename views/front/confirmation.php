@@ -49,6 +49,10 @@ require __DIR__ . '/layout_header.php';
         <?php endif; ?>
     </div>
 
+    <?php if (!empty($loyaltyWidget)): ?>
+        <?php require __DIR__ . '/../components/loyalty_widget.php'; ?>
+    <?php endif; ?>
+
     <a href="index.php?action=frontCalendar" class="btn-sg btn-sg-primary">Prendre un autre rendez-vous</a>
 </div>
 

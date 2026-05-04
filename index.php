@@ -83,6 +83,10 @@ switch ($action) {
         $calendrierController->backExportPdf();
         break;
 
+    case 'adminLoyalty':
+        $calendrierController->adminLoyalty();
+        break;
+
     case 'manageVehicles':
         $controller->manageVehicles();
         break;
