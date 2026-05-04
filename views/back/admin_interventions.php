@@ -38,7 +38,7 @@ $action = 'admin_interventions';
     <div class="modal fade" id="addInterventionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content bg-dark border-light">
-                <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
                     <h5 class="modal-title text-white"><i class="bi bi-plus-circle me-2"></i>Ajouter une intervention</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -314,6 +314,9 @@ $action = 'admin_interventions';
                                                     onclick="setTerminateData(<?php echo (int)$inter['id_intervention']; ?>, <?php echo (float)($inter['cout_initial'] ?? 0); ?>)">
                                                     <i class="bi bi-check2-circle me-1"></i>Terminer
                                                 </button>
+                                                <button type="button" class="btn btn-sm btn-outline-warning inter-action-btn" data-bs-toggle="modal" data-bs-target="#editQuoteModal<?php echo $iid; ?>" title="Modifier le devis">
+                                                    <i class="bi bi-pencil-square me-1"></i>Devis
+                                                </button>
                                             <?php else: ?>
                                                     <a href="index.php?action=export_intervention_pdf&id=<?php echo (int)$inter['id_intervention']; ?>"
                                                    class="btn btn-sm btn-outline-info inter-action-btn"
@@ -323,13 +326,21 @@ $action = 'admin_interventions';
                                             <?php endif; ?>
 
                                             <form method="POST" action="index.php?action=admin_interventions" class="d-flex align-items-center gap-1">
-                                                <input type="hidden" name="action_type" value="send_quote_email">
+                                                    <input type="hidden" name="action_type" value="send_quote_email">
                                                 <input type="hidden" name="id_intervention" value="<?php echo (int)$inter['id_intervention']; ?>">
                                                 <input type="email" name="client_email" class="form-control form-control-sm bg-dark text-white border-secondary" style="max-width: 180px;" placeholder="client@email.com" required>
                                                 <button type="submit" class="btn btn-sm btn-outline-primary inter-action-btn" title="Envoyer le devis par email">
                                                     <i class="bi bi-envelope"></i>
                                                 </button>
                                             </form>
+
+                                                <form method="POST" action="index.php?action=admin_interventions" class="d-flex align-items-center gap-1">
+                                                    <input type="hidden" name="action_type" value="send_intervention_info">
+                                                    <input type="hidden" name="id_intervention" value="<?php echo (int)$inter['id_intervention']; ?>">
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary inter-action-btn" title="Envoyer les informations de l'intervention au client">
+                                                        <i class="bi bi-info-circle me-1"></i>Infos
+                                                    </button>
+                                                </form>
 
                                             <?php $msgCount = isset($interventionMessages[(int)$inter['id_intervention']]) ? count($interventionMessages[(int)$inter['id_intervention']]) : 0; ?>
                                             <a href="index.php?action=messages&id=<?php echo (int)$inter['id_intervention']; ?>"
@@ -365,7 +376,7 @@ $action = 'admin_interventions';
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body" style="max-height: 420px; overflow-y: auto;">
+                        <div class="modal-body messages-modal-body" style="max-height: 420px; overflow-y: auto;">
                             <?php if (empty($msgs)): ?>
                                 <div class="text-muted">Aucun message pour cette intervention.</div>
                             <?php else: ?>
@@ -397,7 +408,87 @@ $action = 'admin_interventions';
                     </div>
                 </div>
             </div>
+            <div class="modal fade" id="editQuoteModal<?php echo $iid; ?>" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-md modal-dialog-centered">
+                    <div class="modal-content bg-dark border-light">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-white">Modifier le devis - Intervention #<?php echo $iid; ?></h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <form method="POST" action="index.php?action=admin_interventions">
+                            <input type="hidden" name="action_type" value="update_quote">
+                            <input type="hidden" name="id_intervention" value="<?php echo $iid; ?>">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label class="form-label">Coût initial (DT)</label>
+                                    <input type="number" step="0.01" min="0" name="cout_initial" class="form-control bg-dark text-white" value="<?php echo htmlspecialchars((string)($inter['cout_initial'] ?? 0)); ?>" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Batterie (DT)</label>
+                                    <input type="number" step="0.01" min="0" name="type_batterie" class="form-control bg-dark text-white" value="<?php echo htmlspecialchars((string)(isset($inter['type_prices']) ? (json_decode($inter['type_prices'], true)['batterie'] ?? 0) : 0)); ?>">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Climatisation (DT)</label>
+                                    <input type="number" step="0.01" min="0" name="type_climatisation" class="form-control bg-dark text-white" value="<?php echo htmlspecialchars((string)(isset($inter['type_prices']) ? (json_decode($inter['type_prices'], true)['climatisation'] ?? 0) : 0)); ?>">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Diagnostic électronique (DT)</label>
+                                    <input type="number" step="0.01" min="0" name="type_diagnostic_electronique" class="form-control bg-dark text-white" value="<?php echo htmlspecialchars((string)(isset($inter['type_prices']) ? (json_decode($inter['type_prices'], true)['diagnostic_electronique'] ?? 0) : 0)); ?>">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Note pour le client (optionnel)</label>
+                                    <textarea name="note_admin" class="form-control bg-dark text-white" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Annuler</button>
+                                <button type="submit" class="btn btn-primary">Enregistrer le devis</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
         <?php endforeach; ?>
+        <script>
+            (function() {
+                function scrollToBottom(el) {
+                    if (!el) return;
+                    var doScroll = function() { el.scrollTop = el.scrollHeight; };
+                    // try immediate, then after short delays to allow rendering
+                    doScroll();
+                    setTimeout(doScroll, 50);
+                    setTimeout(doScroll, 300);
+                }
+
+                // When modal fully shown, scroll body to bottom
+                document.querySelectorAll('[id^="messagesModal"]').forEach(function(modalEl) {
+                    modalEl.addEventListener('shown.bs.modal', function () {
+                        var body = modalEl.querySelector('.messages-modal-body');
+                        scrollToBottom(body);
+                    });
+                });
+
+                // On page load, ensure any open modals bodies are scrolled (in case messages pre-rendered)
+                window.addEventListener('load', function() {
+                    document.querySelectorAll('.messages-modal-body').forEach(function(b) {
+                        scrollToBottom(b);
+                    });
+                });
+
+                // Observe DOM changes inside message containers and scroll when children change
+                var observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(m) {
+                        var target = m.target;
+                        if (target && target.classList && target.classList.contains('messages-modal-body')) {
+                            scrollToBottom(target);
+                        }
+                    });
+                });
+                document.querySelectorAll('.messages-modal-body').forEach(function(b) {
+                    observer.observe(b, { childList: true, subtree: true });
+                });
+            })();
+        </script>
     <?php endif; ?>
 </div>
 

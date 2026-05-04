@@ -30,7 +30,7 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
                             $senderLabel = $sender === 'client' ? 'Vous' : ($sender === 'admin' ? 'Garage' : '');
                             $searchValue = mb_strtolower($plate . ' ' . $type . ' ' . $iid . ' ' . $lastContent, 'UTF-8');
                         ?>
-                        <a href="index.php?action=intervention_chat&id=<?php echo $iid; ?>&vehicle_id=<?php echo $vehicleId; ?>"
+                        <a href="index.php?action=intervention_chat&id=<?php echo $iid; ?>"
                            class="client-conv-item <?php echo $isActive ? 'active' : ''; ?>"
                            data-search="<?php echo htmlspecialchars($searchValue); ?>">
                             <div class="client-conv-top">
@@ -277,6 +277,12 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
         #f6f9ff;
 }
 
+/* Ensure scrollbar on the right and enable smooth auto-scroll */
+.client-chat-messages {
+    direction: ltr;
+    scroll-behavior: smooth;
+}
+
 .client-msg-row {
     display: flex;
     margin-bottom: 12px;
@@ -403,6 +409,27 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     }
 }
 </style>
+<script>
+    (function(){
+        function scrollClientChatToBottom() {
+            var zone = document.getElementById('clientChatZone');
+            if (!zone) return;
+            try { zone.scrollTop = zone.scrollHeight; } catch(e) {}
+            setTimeout(function(){ try { zone.scrollTop = zone.scrollHeight; } catch(e) {} }, 50);
+            setTimeout(function(){ try { zone.scrollTop = zone.scrollHeight; } catch(e) {} }, 300);
+        }
+
+        // On load scroll to bottom
+        window.addEventListener('load', function(){ scrollClientChatToBottom(); });
+
+        // Observe new messages appended and scroll
+        var observerTarget = document.getElementById('clientChatZone');
+        if (observerTarget) {
+            var obs = new MutationObserver(function(muts){ scrollClientChatToBottom(); });
+            obs.observe(observerTarget, { childList: true, subtree: true });
+        }
+    })();
+</script>
 
 <script>
 (function () {

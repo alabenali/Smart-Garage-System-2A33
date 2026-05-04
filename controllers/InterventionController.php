@@ -43,6 +43,12 @@ class InterventionController {
             if (!in_array('date_reponse_devis', $columns, true)) {
                 $this->db->exec('ALTER TABLE intervention ADD COLUMN date_reponse_devis DATETIME DEFAULT NULL');
             }
+            if (!in_array('type_prices', $columns, true)) {
+                $this->db->exec("ALTER TABLE intervention ADD COLUMN type_prices TEXT DEFAULT NULL");
+            }
+            if (!in_array('type_total', $columns, true)) {
+                $this->db->exec("ALTER TABLE intervention ADD COLUMN type_total DECIMAL(10,2) DEFAULT 0.00");
+            }
         } catch (Exception $e) {
             // Keep controller operational even when schema migration is not permitted.
         }
@@ -88,6 +94,11 @@ class InterventionController {
 
     private function typeInterventionDescriptionSelect($alias = 'description') {
         $column = $this->resolveTypeInterventionColumn(['description', 'details']);
+        return $column ? ('t.' . $column . ' AS ' . $alias) : ('NULL AS ' . $alias);
+    }
+
+    private function typeInterventionPrixSelect($alias = 'type_prix') {
+        $column = $this->resolveTypeInterventionColumn(['prix']);
         return $column ? ('t.' . $column . ' AS ' . $alias) : ('NULL AS ' . $alias);
     }
 
@@ -392,16 +403,55 @@ class InterventionController {
                 . $this->selectVehicleColumn(['marque', 'brand'], 'vehicle_marque') . ", "
                 . $this->selectVehicleColumn(['modele', 'model'], 'vehicle_modele') . ", "
                 . $this->selectVehicleColumn(['immatriculation', 'matricule'], 'immatriculation') . ", "
-                . $this->typeInterventionNameSelect('type_nom') . "
+                . $this->typeInterventionNameSelect('type_nom') . ", "
+                . $this->typeInterventionPrixSelect('type_prix') . "
                     FROM {$this->table} i
                     JOIN diagnostic d ON i.id_diagnostic = d." . $diagIdColumn . "
                     LEFT JOIN vehicle v ON " . $vehicleJoinCondition . "
-                    JOIN type_intervention t ON i.id_type = t." . $typeIdColumn . "
+                    LEFT JOIN type_intervention t ON i.id_type = t." . $typeIdColumn . "
                     WHERE i.id_intervention = ?";
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([$id_intervention]);
-            return $stmt->fetch();
+            $inter = $stmt->fetch();
+
+            // Post-traitement: gérer les cas où `id_type` contient un JSON
+            if ($inter) {
+                $idTypeVal = $inter['id_type'] ?? null;
+                // Si id_type est un JSON (liste de types), récupérer les noms et prix
+                if (is_string($idTypeVal) && (str_starts_with(trim($idTypeVal), '[') || str_starts_with(trim($idTypeVal), '{'))) {
+                    $typeIds = json_decode($idTypeVal, true);
+                    if (is_array($typeIds) && !empty($typeIds)) {
+                        $nameColumn = $this->resolveTypeInterventionColumn(['nom', 'nom_type', 'label']);
+                        $priceColumn = $this->resolveTypeInterventionColumn(['prix']);
+                        if ($nameColumn) {
+                            $placeholders = implode(',', array_fill(0, count($typeIds), '?'));
+                            $selectCols = $nameColumn . ' AS nom';
+                            if ($priceColumn) {
+                                $selectCols .= ', ' . $priceColumn . ' AS prix';
+                            }
+                            $sqlTypes = "SELECT id_type, " . $selectCols . " FROM type_intervention WHERE id_type IN ($placeholders) ORDER BY " . $nameColumn;
+                            $stmt2 = $this->db->prepare($sqlTypes);
+                            $stmt2->execute(array_map('intval', $typeIds));
+                            $types = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+                            if (!empty($types)) {
+                                $names = array_map(fn($t) => $t['nom'], $types);
+                                $inter['type_nom'] = implode(', ', $names);
+                                $inter['type_items'] = $types;
+                                if ($priceColumn) {
+                                    $sum = 0.0;
+                                    foreach ($types as $t) {
+                                        $sum += (float)($t['prix'] ?? 0);
+                                    }
+                                    $inter['type_prix'] = $sum;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return $inter;
 
         } catch (Exception $e) {
             error_log('Erreur getById: ' . $e->getMessage());
@@ -417,7 +467,7 @@ class InterventionController {
             $typeIdColumn = $this->typeInterventionIdColumn();
             $sql = "SELECT i.*, " . $this->typeInterventionNameSelect('type_nom') . "
                     FROM {$this->table} i
-                    JOIN type_intervention t ON i.id_type = t." . $typeIdColumn . "
+                    LEFT JOIN type_intervention t ON i.id_type = t." . $typeIdColumn . "
                     WHERE i.id_diagnostic = ?";
 
             $stmt = $this->db->prepare($sql);
@@ -567,11 +617,12 @@ class InterventionController {
                 . $this->selectVehicleColumn(['marque', 'brand'], 'vehicle_marque') . ", "
                 . $this->selectVehicleColumn(['modele', 'model'], 'vehicle_modele') . ", "
                 . $this->selectVehicleColumn(['immatriculation', 'matricule'], 'immatriculation') . ", "
-                . $this->typeInterventionNameSelect('type_nom') . "
+                . $this->typeInterventionNameSelect('type_nom') . ", "
+                . $this->typeInterventionPrixSelect('type_prix') . "
                     FROM {$this->table} i
                     JOIN diagnostic d ON i.id_diagnostic = d." . $diagIdColumn . "
                     LEFT JOIN vehicle v ON " . $vehicleJoinCondition . "
-                    JOIN type_intervention t ON i.id_type = t." . $typeIdColumn;
+                    LEFT JOIN type_intervention t ON i.id_type = t." . $typeIdColumn;
 
             if ($diagVehicleIdColumn && (int)$vehicleId > 0) {
                 $sql .= ' WHERE d.' . $diagVehicleIdColumn . ' = ?';
@@ -673,11 +724,34 @@ class InterventionController {
             return ['success' => false, 'message' => 'Montant invalide'];
         }
 
+        // Optional third parameter: typePrices array
+        $typePrices = null;
+        if (func_num_args() >= 3) {
+            $typePrices = func_get_arg(2);
+            if (is_array($typePrices)) {
+                // Normalize values to floats and compute total
+                $normalized = [];
+                $sum = 0.0;
+                foreach ($typePrices as $k => $v) {
+                    $val = $v === null ? 0.0 : (float)$v;
+                    $normalized[$k] = $val;
+                    $sum += $val;
+                }
+                $typePricesJson = json_encode($normalized);
+            } else {
+                $typePricesJson = null;
+                $sum = 0.0;
+            }
+        } else {
+            $typePricesJson = null;
+            $sum = 0.0;
+        }
+
         $sql = "UPDATE {$this->table}
-                SET cout_initial = ?, statut_devis = 'en_attente', date_envoi_devis = NOW()
+                SET cout_initial = ?, statut_devis = 'en_attente', date_envoi_devis = NOW(), type_prices = ?, type_total = ?
                 WHERE id_intervention = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([$newCost, (int)$idIntervention]);
+        $stmt->execute([$newCost, $typePricesJson, $sum, (int)$idIntervention]);
 
         return ['success' => true, 'message' => 'Devis mis a jour'];
     }
@@ -1421,17 +1495,50 @@ class InterventionController {
         $timbreAmount = 1.000;
         $grandTotal = $basePrice + $tvaAmount + $timbreAmount;
 
-        $rows = [
-            ['designation' => 'Matricule: ' . (string)($inter['immatriculation'] ?? 'N/A') . ' - Vehicule: ' . (string)($inter['vehicle_marque'] ?? 'N/A') . ' ' . (string)($inter['vehicle_modele'] ?? ''), 'prix' => ''],
-            ['designation' => 'Description travaux: ' . (string)($inter['description_travail'] ?? 'N/A'), 'prix' => ''],
-            ['designation' => 'Type intervention: ' . (string)($inter['type_nom'] ?? 'N/A'), 'prix' => ''],
-            ['designation' => 'Date debut: ' . (!empty($inter['date_debut']) ? (string)$inter['date_debut'] : 'N/A'), 'prix' => ''],
-            ['designation' => 'Date fin: ' . (!empty($inter['date_fin']) ? (string)$inter['date_fin'] : 'N/A'), 'prix' => ''],
-            ['designation' => 'Prix HT', 'prix' => number_format($basePrice, 2, '.', ' ') . ' DT'],
-            ['designation' => 'TVA 19%', 'prix' => number_format($tvaAmount, 2, '.', ' ') . ' DT'],
-            ['designation' => 'Timbre', 'prix' => number_format($timbreAmount, 2, '.', ' ') . ' DT'],
-            ['designation' => 'Prix total', 'prix' => number_format($grandTotal, 2, '.', ' ') . ' DT'],
-        ];
+        $rows = [];
+        $rows[] = ['designation' => 'Matricule: ' . (string)($inter['immatriculation'] ?? 'N/A') . ' - Vehicule: ' . (string)($inter['vehicle_marque'] ?? 'N/A') . ' ' . (string)($inter['vehicle_modele'] ?? ''), 'prix' => ''];
+        $rows[] = ['designation' => 'Description travaux: ' . (string)($inter['description_travail'] ?? 'N/A'), 'prix' => ''];
+
+        // Types: single or multiple
+        // Load stored standard type prices if available
+        $stdPrices = ['batterie' => 0.0, 'climatisation' => 0.0, 'diagnostic_electronique' => 0.0];
+        if (!empty($inter['type_prices'])) {
+            $decoded = json_decode($inter['type_prices'], true);
+            if (is_array($decoded)) {
+                foreach ($stdPrices as $k => $_) {
+                    if (isset($decoded[$k])) $stdPrices[$k] = (float)$decoded[$k];
+                }
+            }
+        }
+
+        if (!empty($inter['type_items']) && is_array($inter['type_items'])) {
+            $rows[] = ['designation' => 'Types d\'intervention sélectionnés :', 'prix' => ''];
+            foreach ($inter['type_items'] as $ti) {
+                $p = isset($ti['prix']) && $ti['prix'] !== null ? number_format((float)$ti['prix'], 2, '.', ' ') . ' DT' : '';
+                $rows[] = ['designation' => ' - ' . (string)($ti['nom'] ?? 'N/A'), 'prix' => $p];
+            }
+            // Standard items with saved prices
+            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
+            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
+        } else {
+            $rows[] = ['designation' => 'Type intervention: ' . (string)($inter['type_nom'] ?? 'N/A'), 'prix' => (isset($inter['type_prix']) && $inter['type_prix'] > 0 ? number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT' : '')];
+            // Also include the standard items when single type or none, using saved prices
+            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
+            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
+        }
+
+        $rows[] = ['designation' => 'Date debut: ' . (!empty($inter['date_debut']) ? (string)$inter['date_debut'] : 'N/A'), 'prix' => ''];
+        $rows[] = ['designation' => 'Date fin: ' . (!empty($inter['date_fin']) ? (string)$inter['date_fin'] : 'N/A'), 'prix' => ''];
+        $rows[] = ['designation' => 'Prix HT', 'prix' => number_format($basePrice, 2, '.', ' ') . ' DT'];
+        $rows[] = ['designation' => 'TVA 19%', 'prix' => number_format($tvaAmount, 2, '.', ' ') . ' DT'];
+        $rows[] = ['designation' => 'Timbre', 'prix' => number_format($timbreAmount, 2, '.', ' ') . ' DT'];
+        $rows[] = ['designation' => 'Prix total', 'prix' => number_format($grandTotal, 2, '.', ' ') . ' DT'];
 
         $pageWidth = 595;
         $pageHeight = 842;
@@ -1562,14 +1669,44 @@ class InterventionController {
         $tvaAmount = $basePrice * 0.19;
         $grandTotal = $basePrice + $tvaAmount;
 
-        $rows = [
-            ['designation' => 'Matricule: ' . (string)($inter['immatriculation'] ?? 'N/A'), 'prix' => ''],
-            ['designation' => 'Type intervention: ' . (string)($inter['type_nom'] ?? 'N/A'), 'prix' => ''],
-            ['designation' => 'Description travaux: ' . (string)($inter['description_travail'] ?? 'N/A'), 'prix' => ''],
-            ['designation' => 'Prix HT', 'prix' => number_format($basePrice, 2, '.', ' ') . ' DT'],
-            ['designation' => 'TVA 19%', 'prix' => number_format($tvaAmount, 2, '.', ' ') . ' DT'],
-            ['designation' => 'Total TTC', 'prix' => number_format($grandTotal, 2, '.', ' ') . ' DT'],
-        ];
+        $rows = [];
+        $rows[] = ['designation' => 'Matricule: ' . (string)($inter['immatriculation'] ?? 'N/A'), 'prix' => ''];
+
+        // Load stored standard type prices if available
+        $stdPrices = ['batterie' => 0.0, 'climatisation' => 0.0, 'diagnostic_electronique' => 0.0];
+        if (!empty($inter['type_prices'])) {
+            $decoded = json_decode($inter['type_prices'], true);
+            if (is_array($decoded)) {
+                foreach ($stdPrices as $k => $_) {
+                    if (isset($decoded[$k])) $stdPrices[$k] = (float)$decoded[$k];
+                }
+            }
+        }
+
+        if (!empty($inter['type_items']) && is_array($inter['type_items'])) {
+            $rows[] = ['designation' => 'Types d\'intervention sélectionnés :', 'prix' => ''];
+            foreach ($inter['type_items'] as $ti) {
+                $p = isset($ti['prix']) && $ti['prix'] !== null ? number_format((float)$ti['prix'], 2, '.', ' ') . ' DT' : '';
+                $rows[] = ['designation' => ' - ' . (string)($ti['nom'] ?? 'N/A'), 'prix' => $p];
+            }
+            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
+            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
+        } else {
+            $rows[] = ['designation' => 'Type intervention: ' . (string)($inter['type_nom'] ?? 'N/A'), 'prix' => (isset($inter['type_prix']) && $inter['type_prix'] > 0 ? number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT' : '')];
+            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
+            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
+            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
+        }
+
+        $rows[] = ['designation' => 'Description travaux: ' . (string)($inter['description_travail'] ?? 'N/A'), 'prix' => ''];
+        $rows[] = ['designation' => 'Prix HT', 'prix' => number_format($basePrice, 2, '.', ' ') . ' DT'];
+        $rows[] = ['designation' => 'TVA 19%', 'prix' => number_format($tvaAmount, 2, '.', ' ') . ' DT'];
+        $rows[] = ['designation' => 'Total TTC', 'prix' => number_format($grandTotal, 2, '.', ' ') . ' DT'];
 
         $pageWidth = 595;
         $pageHeight = 842;
@@ -1685,6 +1822,9 @@ class InterventionController {
             case 'send_quote_email':
                 return $this->handleSendQuoteEmail();
 
+            case 'send_intervention_info':
+                return $this->handleSendInterventionInfo();
+
             case 'send_message':
                 return $this->handleSendMessage();
 
@@ -1780,7 +1920,14 @@ class InterventionController {
             return ['success' => false, 'message' => 'Parametres manquants'];
         }
 
-        $result = $this->updateQuoteCost($idIntervention, $newCost);
+        // Collect standard type prices if provided
+        $typePrices = [
+            'batterie' => isset($_POST['type_batterie']) ? (float)$_POST['type_batterie'] : null,
+            'climatisation' => isset($_POST['type_climatisation']) ? (float)$_POST['type_climatisation'] : null,
+            'diagnostic_electronique' => isset($_POST['type_diagnostic_electronique']) ? (float)$_POST['type_diagnostic_electronique'] : null,
+        ];
+
+        $result = $this->updateQuoteCost($idIntervention, $newCost, $typePrices);
         if (!empty($result['success']) && $note !== '') {
             $this->sendMessage($idIntervention, 'admin', $note, 0);
         }
@@ -1794,5 +1941,88 @@ class InterventionController {
             return ['success' => false, 'message' => 'Parametres manquants'];
         }
         return $this->sendQuoteEmail($idIntervention, $email);
+    }
+
+    private function handleSendInterventionInfo() {
+        $idIntervention = (int)($_POST['id_intervention'] ?? 0);
+        if ($idIntervention <= 0) {
+            return ['success' => false, 'message' => 'Parametres manquants'];
+        }
+        return $this->sendInterventionInfo($idIntervention);
+    }
+
+    /**
+     * Envoie les informations complètes d'une intervention au client via le système de messages interne.
+     */
+    public function sendInterventionInfo(int $idIntervention) {
+        try {
+            $inter = $this->getById($idIntervention);
+            if (empty($inter)) {
+                return ['success' => false, 'message' => 'Intervention introuvable'];
+            }
+
+            $lines = [];
+            $lines[] = "Bonjour,";
+            $lines[] = "Voici les informations concernant votre intervention #" . (int)$idIntervention . ":";
+            $lines[] = "";
+            $lines[] = "Matricule: " . ($inter['immatriculation'] ?? 'N/A');
+            $lines[] = "Véhicule: " . trim(($inter['vehicle_marque'] ?? '') . ' ' . ($inter['vehicle_modele'] ?? ''));
+            $lines[] = "Description travaux: " . ($inter['description_travail'] ?? 'N/A');
+
+            // Types
+            if (!empty($inter['type_items']) && is_array($inter['type_items'])) {
+                $lines[] = "Types d'intervention sélectionnés:";
+                foreach ($inter['type_items'] as $ti) {
+                    $p = isset($ti['prix']) && $ti['prix'] !== null ? number_format((float)$ti['prix'], 2, '.', ' ') . ' DT' : '—';
+                    $lines[] = " - " . ($ti['nom'] ?? 'N/A') . " : " . $p;
+                }
+                $lines[] = "Prix total des types: " . (isset($inter['type_prix']) ? number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT' : '—');
+            } else {
+                $lines[] = "Type intervention: " . ($inter['type_nom'] ?? 'N/A');
+                if (isset($inter['type_prix'])) {
+                    $lines[] = "Prix type: " . (number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT');
+                }
+            }
+
+            // Add the standard items with saved prices if available
+            $stdPrices = ['batterie' => 0.0, 'climatisation' => 0.0, 'diagnostic_electronique' => 0.0];
+            if (!empty($inter['type_prices'])) {
+                $decoded = json_decode($inter['type_prices'], true);
+                if (is_array($decoded)) {
+                    foreach ($stdPrices as $k => $_) {
+                        if (isset($decoded[$k])) $stdPrices[$k] = (float)$decoded[$k];
+                    }
+                }
+            }
+            $lines[] = "";
+            $lines[] = "Batterie : " . number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT';
+            $lines[] = "Climatisation : " . number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT';
+            $lines[] = "Diagnostic électronique : " . number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT';
+            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $lines[] = "Prix total des types: " . number_format($totalTypes, 2, '.', ' ') . ' DT';
+
+            $lines[] = "";
+            $lines[] = "Cout initial estime: " . number_format((float)($inter['cout_initial'] ?? 0), 2, '.', ' ') . ' DT';
+            if (isset($inter['cout_final']) && $inter['cout_final'] !== null) {
+                $lines[] = "Cout final: " . number_format((float)$inter['cout_final'], 2, '.', ' ') . ' DT';
+            }
+            $lines[] = "Date debut: " . (!empty($inter['date_debut']) ? (string)$inter['date_debut'] : 'N/A');
+            $lines[] = "Date fin: " . (!empty($inter['date_fin']) ? (string)$inter['date_fin'] : 'N/A');
+            $lines[] = "";
+            $lines[] = "Cordialement,";
+            $lines[] = ($GLOBALS['config']['from_name'] ?? 'Smart Garage');
+
+            $content = implode("\n", $lines);
+
+            $ok = $this->messageModel->create($idIntervention, 'admin', $content);
+            if (!$ok) {
+                return ['success' => false, 'message' => 'Echec d\'enregistrement du message'];
+            }
+
+            return ['success' => true, 'message' => 'Message envoye au client'];
+        } catch (Exception $e) {
+            error_log('Erreur sendInterventionInfo: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Erreur interne'];
+        }
     }
 }

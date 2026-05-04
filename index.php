@@ -346,6 +346,8 @@ switch ($action) {
                     header('Location: index.php?action=admin_interventions&quote_updated=1');
                 } elseif ($actionType === 'send_quote_email') {
                     header('Location: index.php?action=admin_interventions&quote_email_sent=1');
+                } elseif ($actionType === 'send_intervention_info') {
+                    header('Location: index.php?action=admin_interventions&message_sent=1');
                 } elseif ($postedAction === 'send_message') {
                     header('Location: index.php?action=admin_interventions&message_sent=1');
                 } else {
