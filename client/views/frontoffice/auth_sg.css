@@ -1,0 +1,221 @@
+/* =====================================================
+   Client Auth Pages — Theme aligned with vehicule et rdv
+   Uses the same CSS variables from /vehicule et rdv/views/css/style.css
+   ===================================================== */
+
+body.auth-body,
+body {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    min-height: 100vh;
+}
+
+/* Centered shell */
+.client-auth-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+}
+
+.auth-card {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 2rem;
+    box-shadow: var(--shadow);
+}
+
+.auth-logo {
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+
+.auth-logo h2 {
+    margin: 0.35rem 0 0;
+    font-weight: 800;
+    color: var(--accent-secondary);
+    font-size: 1.35rem;
+}
+
+.auth-logo p {
+    margin: 0.4rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+.auth-logo i {
+    color: var(--accent) !important;
+}
+}
+
+/* Override old neon accents */
+.auth-logo i,
+.auth-logo .fas {
+    color: var(--accent) !important;
+}
+
+/* Alerts */
+.alert-error,
+.alert-success {
+    padding: 14px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.alert-success {
+    background: #E8F5E9;
+    color: #1F5130;
+    border: 1px solid #CDE8D2;
+}
+
+.alert-error {
+    background: #FDECEA;
+    color: #8F1D1D;
+    border: 1px solid #F6CECA;
+}
+
+/* Form */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #FFFFFF;
+    border: 1px solid #DEE2E6;
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    transition: var(--transition);
+}
+
+.input-wrap i {
+    color: #94a3b8;
+    flex-shrink: 0;
+}
+
+.input-wrap input {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+}
+
+.input-wrap:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(192, 57, 43, 0.15);
+}
+
+/* Errors under inputs */
+.error-msg {
+    display: none;
+    color: var(--danger);
+    font-size: 0.78rem;
+    font-weight: 500;
+    min-height: 1rem;
+}
+
+/* Buttons */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: var(--transition);
+    background: var(--accent);
+    color: #FFFFFF;
+    text-decoration: none;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    color: #FFFFFF;
+}
+
+.btn-primary.full {
+    width: 100%;
+}
+
+/* secondary button used on register photo upload */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: #FFFFFF;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.btn-secondary:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Links */
+.links {
+    margin-top: 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.links a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.links a:hover {
+    text-decoration: underline;
+}
+
+/* Multi columns on register */
+.row,
+.row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 700px) {
+    .auth-card {
+        padding: 1.5rem;
+    }
+
+    .row,
+    .row2 {
+        grid-template-columns: 1fr;
+    }
+}

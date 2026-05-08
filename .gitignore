@@ -1,0 +1,10 @@
+.env
+.env.*
+
+client/uploads/
+
+vehicule et rdv/logs/
+vehicule et rdv/storage/*.log
+vehicule et rdv/views/images/pannes/
+vehicule et rdv/config/secrets.php
+vehicule et rdv/.git_nested_backup*/

@@ -1,0 +1,11 @@
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^rendez-vous/stream/?$ urgence-stream.php [QSA,L]
+RewriteRule ^rendez-vous/urgents/?$ rendez-vous/index.php?scope=urgents [QSA,L]
+RewriteRule ^rendez-vous/([0-9]+)/?$ rendez-vous/index.php?id=$1 [QSA,L]
+RewriteRule ^rendez-vous/?$ rendez-vous/index.php [QSA,L]
+RewriteRule ^loyalty/redeem/?$ loyalty.php?path=redeem [QSA,L]
+RewriteRule ^loyalty/leaderboard/?$ loyalty.php?path=leaderboard [QSA,L]
+RewriteRule ^loyalty/?$ loyalty.php [QSA,L]
