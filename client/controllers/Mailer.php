@@ -15,20 +15,37 @@ if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
     require_once __DIR__ . '/PHPMailer/SMTP.php';
 }
 
+if (file_exists(__DIR__ . '/../config.php')) {
+    require_once __DIR__ . '/../config.php';
+}
+
 class Mailer {
 
     private static function createMailer(): PHPMailer {
         $mail = new PHPMailer(true);
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = self::configValue('SMTP_HOST', 'SMTP_HOST', 'smtp.gmail.com');
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'mohamedghaithneji@gmail.com';
-        $mail->Password   = 'nsabesxhbhplqyuw';
+        $mail->Username   = self::configValue('SMTP_USER', 'SMTP_USER');
+        $mail->Password   = self::configValue('SMTP_PASS', 'SMTP_PASS');
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = (int) self::configValue('SMTP_PORT', 'SMTP_PORT', '587');
         $mail->CharSet    = 'UTF-8';
-        $mail->setFrom('mohamedghaithneji@gmail.com', 'Smart Garage');
+        $mail->setFrom(self::configValue('SMTP_FROM', 'SMTP_FROM', $mail->Username ?: 'no-reply@smartgarage.local'), 'Smart Garage');
         return $mail;
+    }
+
+    private static function configValue(string $envName, string $constantName, string $default = ''): string {
+        $envValue = getenv($envName);
+        if ($envValue !== false && $envValue !== '') {
+            return (string) $envValue;
+        }
+
+        if (defined($constantName)) {
+            return (string) constant($constantName);
+        }
+
+        return $default;
     }
 
     public static function sendRegisterCode(string $to, string $nom, string $code): bool {
