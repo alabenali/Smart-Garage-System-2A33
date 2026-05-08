@@ -6,10 +6,13 @@ require_once __DIR__ . '/../config/loyalty_rules.php';
 class LoyaltyService
 {
     private PDO $db;
+    private ?PDO $clientDb = null;
+    private array $clientConfig;
 
-    public function __construct(PDO $pdo)
+    public function __construct(PDO $pdo, ?array $clientConfig = null)
     {
         $this->db = $pdo;
+        $this->clientConfig = $clientConfig ?? (array) require __DIR__ . '/../config/client_database.php';
     }
 
     public function getOrCreateAccount(string $email, string $nom, string $prenom, string $tel): array
@@ -547,7 +550,77 @@ class LoyaltyService
         );
         $stmt->execute([':id_rdv' => $idRdv]);
         $rdv = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $rdv ?: null;
+        if (!$rdv) {
+            return null;
+        }
+
+        return $this->enrichRdvClientData($rdv);
+    }
+
+    private function enrichRdvClientData(array $rdv): array
+    {
+        $email = $this->normalizeEmail((string) ($rdv['email_client'] ?? ''));
+        if ($email !== '' || empty($rdv['id_client'])) {
+            return $rdv;
+        }
+
+        try {
+            $client = $this->findClientById((int) $rdv['id_client']);
+            if (!$client) {
+                return $rdv;
+            }
+
+            $rdv['email_client'] = $client['email'] ?? ($rdv['email_client'] ?? '');
+            $rdv['nom_client'] = $rdv['nom_client'] ?: ($client['nom'] ?? '');
+            $rdv['prenom_client'] = $rdv['prenom_client'] ?: ($client['prenom'] ?? '');
+            $rdv['telephone_client'] = $rdv['telephone_client'] ?: ($client['telephone'] ?? '');
+        } catch (Throwable $e) {
+            $this->log('Resolution client fidelite impossible pour RDV #' . (int) ($rdv['id_rdv'] ?? 0) . ': ' . $e->getMessage());
+        }
+
+        return $rdv;
+    }
+
+    private function findClientById(int $idClient): ?array
+    {
+        if ($idClient <= 0) {
+            return null;
+        }
+
+        $table = $this->getClientTable();
+        $stmt = $this->getClientDb()->prepare("SELECT id, nom, prenom, email, telephone FROM {$table} WHERE id = :id LIMIT 1");
+        $stmt->execute([':id' => $idClient]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    private function getClientDb(): PDO
+    {
+        if ($this->clientDb instanceof PDO) {
+            return $this->clientDb;
+        }
+
+        $host = (string) ($this->clientConfig['host'] ?? 'localhost');
+        $dbname = (string) ($this->clientConfig['dbname'] ?? 'garage1');
+        $charset = (string) ($this->clientConfig['charset'] ?? 'utf8mb4');
+        $username = (string) ($this->clientConfig['username'] ?? 'root');
+        $password = (string) ($this->clientConfig['password'] ?? '');
+        $dsn = "mysql:host={$host};dbname={$dbname};charset={$charset}";
+
+        $this->clientDb = new PDO($dsn, $username, $password, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ]);
+
+        return $this->clientDb;
+    }
+
+    private function getClientTable(): string
+    {
+        $table = (string) ($this->clientConfig['table'] ?? 'user');
+        return preg_match('/^[A-Za-z0-9_]+$/', $table) ? $table : 'user';
     }
 
     private function pointsForType(string $type): int
