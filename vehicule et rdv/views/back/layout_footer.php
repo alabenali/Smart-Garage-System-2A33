@@ -9,5 +9,7 @@
 		<script src="<?php echo htmlspecialchars($js); ?>"></script>
 	<?php endforeach; ?>
 <?php endif; ?>
+
+<?php require_once __DIR__ . '/../../../client/views/backoffice/ai_helper_launcher.php'; ?>
 </body>
 </html>

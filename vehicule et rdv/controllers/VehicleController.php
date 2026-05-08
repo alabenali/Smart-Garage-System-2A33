@@ -12,6 +12,7 @@ class VehicleController
     private RdvService $rdvService;
     private array $rdvColumnCache = [];
     private ?bool $hasVehicleClientColumnCache = null;
+    private ?PDO $partsDb = null;
 
     public function __construct()
     {
@@ -347,8 +348,59 @@ class VehicleController
         $avgUrgence = $relationStats['avg_urgence'];
         $avgVehiclesPerClient = $relationStats['avg_vehicles_per_client'];
         $avgRdvPerClient = $relationStats['avg_rdv_per_client'];
+        $partsOrderStats = $this->getPartsOrderDashboardStats();
 
         require __DIR__ . '/../views/back/dashboard.php';
+    }
+
+    private function getPartsOrderDashboardStats(): array
+    {
+        $stats = [
+            'total_pieces' => 0,
+            'total_stock' => 0,
+            'alertes_stock' => 0,
+            'total_commandes' => 0,
+        ];
+
+        $partsDb = $this->getPartsDb();
+        if (!$partsDb) {
+            return $stats;
+        }
+
+        try {
+            $stats['total_pieces'] = (int) $partsDb->query('SELECT COUNT(*) FROM pieces')->fetchColumn();
+            $stats['total_stock'] = (int) $partsDb->query('SELECT COALESCE(SUM(quantite_stock), 0) FROM pieces')->fetchColumn();
+            $stats['alertes_stock'] = (int) $partsDb->query('SELECT COUNT(*) FROM pieces WHERE quantite_stock <= seuil_alerte')->fetchColumn();
+            $stats['total_commandes'] = (int) $partsDb->query('SELECT COUNT(*) FROM commandes')->fetchColumn();
+        } catch (Throwable $e) {
+            return $stats;
+        }
+
+        return $stats;
+    }
+
+    private function getPartsDb(): ?PDO
+    {
+        if ($this->partsDb instanceof PDO) {
+            return $this->partsDb;
+        }
+
+        try {
+            $this->partsDb = new PDO(
+                'mysql:host=localhost;dbname=smart_garage_system;charset=utf8mb4',
+                'root',
+                '',
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
+            );
+        } catch (Throwable $e) {
+            $this->partsDb = null;
+        }
+
+        return $this->partsDb;
     }
 
     private function getTunisianHolidays(int $year): array
