@@ -18,6 +18,8 @@ $links = [
     'Client (frontoffice)' => '../client/controllers/UserController.php?action=showLogin',
     'Client (backoffice)' => '../client/controllers/AdminController.php?action=showLogin',
     'Véhicule & RDV' => '../vehicule%20et%20rdv/index.php',
+    'Diagnostic (frontoffice)' => '../diagnostic/frontoffice.php',
+    'Diagnostic (backoffice)'  => '../diagnostic/backoffice.php',
     'Status (JSON)' => 'api/status.php',
 ];
 

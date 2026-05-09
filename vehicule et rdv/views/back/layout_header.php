@@ -43,6 +43,9 @@ $currentBackAction = $action ?? ($_GET['action'] ?? '');
             <a href="/integration/vehicule%20et%20rdv/index.php?action=manageVehicles" class="<?php echo in_array($currentBackAction, ['manageVehicles', 'addVehicleBack', 'vehicleDetail', 'editVehicle', 'deleteVehicle'], true) ? 'active' : ''; ?>"><i class="bi bi-car-front"></i> V&eacute;hicules</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backCalendar" class="<?php echo in_array($currentBackAction, ['backCalendar', 'backSlotDetails', 'backBlockSlot', 'backCreateManualRdv'], true) ? 'active' : ''; ?>"><i class="bi bi-calendar-week"></i> Calendrier RDV</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backRdvList" class="<?php echo in_array($currentBackAction, ['backRdvList', 'backEditRdv', 'backRdvExportCsv', 'backRdvExportPdf', 'backUpdateStatus'], true) ? 'active' : ''; ?>"><i class="bi bi-card-checklist"></i> Liste RDV</a>
+            <a href="/integration/diagnostic/backoffice.php?action=diagnostics"><i class="bi bi-clipboard2-pulse"></i> Diagnostic</a>
+            <a href="/integration/diagnostic/backoffice.php?action=admin_interventions"><i class="bi bi-tools"></i> Interventions</a>
+            <a href="/integration/diagnostic/backoffice.php?action=messages"><i class="bi bi-chat-dots"></i> Messages</a>
             <a href="/integration/samrtnour/backoffice.php?action=managePieces"><i class="bi bi-box-seam"></i> Pi&egrave;ces</a>
             <a href="/integration/samrtnour/backoffice.php?action=manageCommandes"><i class="bi bi-cart3"></i> Commandes</a>
             <a href="/integration/samrtnour/backoffice.php?action=manageGaranties"><i class="bi bi-shield-check"></i> Garanties</a>

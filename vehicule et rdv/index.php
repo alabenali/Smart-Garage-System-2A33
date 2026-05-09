@@ -64,6 +64,18 @@ switch ($action) {
         $integrationApiController->vehicleRendezvous();
         break;
 
+    case 'apiVehicleDiagnostics':
+        $integrationApiController->vehicleDiagnostics();
+        break;
+
+    case 'apiRdvDiagnostic':
+        $integrationApiController->rdvDiagnostic();
+        break;
+
+    case 'apiClientDiagnostics':
+        $integrationApiController->clientDiagnostics();
+        break;
+
     // ---- Back Office ----
     case 'dashboard':
         $controller->dashboard();

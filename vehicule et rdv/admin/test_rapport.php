@@ -143,6 +143,9 @@ if (file_exists($logFile)) {
             <a href="/integration/vehicule%20et%20rdv/index.php?action=manageVehicles"><i class="bi bi-car-front"></i> V&eacute;hicules</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backCalendar"><i class="bi bi-calendar-week"></i> Calendrier RDV</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backRdvList"><i class="bi bi-card-checklist"></i> Liste RDV</a>
+            <a href="/integration/diagnostic/backoffice.php?action=diagnostics"><i class="bi bi-clipboard2-pulse"></i> Diagnostic</a>
+            <a href="/integration/diagnostic/backoffice.php?action=admin_interventions"><i class="bi bi-tools"></i> Interventions</a>
+            <a href="/integration/diagnostic/backoffice.php?action=messages"><i class="bi bi-chat-dots"></i> Messages</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=adminLoyalty"><i class="bi bi-stars"></i> Fid&eacute;lit&eacute;</a>
             <a href="/integration/vehicule%20et%20rdv/admin/test_rapport.php" class="active"><i class="bi bi-file-earmark-bar-graph"></i> Rapport</a>
             <a href="/integration/client/controllers/AIController.php?action=showAssistant"><i class="bi bi-stars"></i> AI Helper</a>

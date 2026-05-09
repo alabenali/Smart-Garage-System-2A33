@@ -51,6 +51,9 @@ if (!empty($_SESSION['user_prenom']) || !empty($_SESSION['user_nom'])) {
             <a href="/integration/client/controllers/UserController.php?action=showProfile"><i class="bi bi-person"></i> Mon profil</a>
             <a href="index.php?action=showVehicles" class="<?php echo in_array(($action ?? ''), ['showVehicles', 'addVehicle', 'vehicleHealth'], true) ? 'active' : ''; ?>"><i class="bi bi-car-front"></i> Mes v&eacute;hicules</a>
             <a href="/integration/client/controllers/UserController.php?action=showMyRendezvous"><i class="bi bi-calendar-check"></i> Mes rendez-vous</a>
+            <a href="/integration/diagnostic/frontoffice.php?action=mes_diagnostics"><i class="bi bi-clipboard2-pulse"></i> Mes diagnostics</a>
+            <a href="/integration/diagnostic/frontoffice.php?action=client_interventions"><i class="bi bi-tools"></i> Mes interventions</a>
+            <a href="/integration/diagnostic/frontoffice.php?action=client_messages"><i class="bi bi-chat-left-text"></i> Suivi messages</a>
             <a href="/integration/samrtnour/frontoffice.php?action=showCatalogue"><i class="bi bi-box-seam"></i> Catalogue</a>
             <a href="/integration/samrtnour/frontoffice.php?action=orderPiece"><i class="bi bi-cart-plus"></i> Commander</a>
             <a href="/integration/samrtnour/frontoffice.php?action=orderHistory"><i class="bi bi-clock-history"></i> Historique</a>

@@ -42,6 +42,9 @@ $garageBase = '/integration/vehicule%20et%20rdv';
             <a href="/integration/vehicule%20et%20rdv/index.php?action=manageVehicles"><i class="bi bi-car-front"></i> V&eacute;hicules</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backCalendar"><i class="bi bi-calendar-week"></i> Calendrier RDV</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backRdvList"><i class="bi bi-card-checklist"></i> Liste RDV</a>
+            <a href="/integration/diagnostic/backoffice.php?action=diagnostics" class="<?php echo in_array($currentAction, ['diagnosticDashboard', 'diagnostics', 'adminInterventions'], true) ? 'active' : ''; ?>"><i class="bi bi-clipboard2-pulse"></i> Diagnostic</a>
+            <a href="/integration/diagnostic/backoffice.php?action=admin_interventions"><i class="bi bi-tools"></i> Interventions</a>
+            <a href="/integration/diagnostic/backoffice.php?action=messages"><i class="bi bi-chat-dots"></i> Messages</a>
             <a href="/integration/samrtnour/backoffice.php?action=managePieces" class="<?php echo in_array($currentAction, ['pieces', 'managePieces', 'addPiece', 'viewPiece', 'editPiece', 'confirmDeletePiece', 'deletePiece'], true) ? 'active' : ''; ?>"><i class="bi bi-box-seam"></i> Pi&egrave;ces</a>
             <a href="/integration/samrtnour/backoffice.php?action=manageCommandes" class="<?php echo in_array($currentAction, ['manageCommandes', 'viewCommande', 'updateCommandeStatus', 'deleteCommande', 'exportCommandes', 'exportCommande', 'exportDemandes'], true) ? 'active' : ''; ?>"><i class="bi bi-cart3"></i> Commandes</a>
             <a href="/integration/samrtnour/backoffice.php?action=manageGaranties" class="<?php echo in_array($currentAction, ['manageGaranties', 'marquerRemplacee', 'garantiesByClient', 'testAlertes', 'garantieDetail'], true) ? 'active' : ''; ?>"><i class="bi bi-shield-check"></i> Garanties</a>

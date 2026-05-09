@@ -39,6 +39,8 @@ require __DIR__ . '/layout_header.php';
     <a href="/integration/vehicule%20et%20rdv/index.php?action=manageVehicles" class="btn-sg btn-sg-outline"><i class="bi bi-car-front"></i> Gerer vehicules</a>
     <a href="/integration/vehicule%20et%20rdv/index.php?action=backCalendar" class="btn-sg btn-sg-outline"><i class="bi bi-calendar-plus"></i> Creer RDV</a>
     <a href="/integration/vehicule%20et%20rdv/index.php?action=backRdvList" class="btn-sg btn-sg-outline"><i class="bi bi-file-earmark-pdf"></i> Exports RDV</a>
+    <a href="/integration/diagnostic/backoffice.php?action=diagnostics" class="btn-sg btn-sg-outline"><i class="bi bi-clipboard2-pulse"></i> Gerer diagnostics</a>
+    <a href="/integration/diagnostic/backoffice.php?action=admin_interventions" class="btn-sg btn-sg-outline"><i class="bi bi-tools"></i> Gerer interventions</a>
     <a href="/integration/samrtnour/backoffice.php?action=managePieces" class="btn-sg btn-sg-outline"><i class="bi bi-box-seam"></i> Gerer pieces</a>
     <a href="/integration/samrtnour/backoffice.php?action=manageCommandes" class="btn-sg btn-sg-outline"><i class="bi bi-cart3"></i> Gerer commandes</a>
 </div>

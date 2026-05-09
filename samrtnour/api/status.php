@@ -15,6 +15,8 @@ $paths = [
     'client.UserController' => $projectRoot . DIRECTORY_SEPARATOR . 'client' . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR . 'UserController.php',
     'client.AdminController' => $projectRoot . DIRECTORY_SEPARATOR . 'client' . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR . 'AdminController.php',
     'vehicule_et_rdv.index' => $projectRoot . DIRECTORY_SEPARATOR . 'vehicule et rdv' . DIRECTORY_SEPARATOR . 'index.php',
+    'diagnostic.index'      => $projectRoot . DIRECTORY_SEPARATOR . 'diagnostic' . DIRECTORY_SEPARATOR . 'index.php',
+    'diagnostic.controller' => $projectRoot . DIRECTORY_SEPARATOR . 'diagnostic' . DIRECTORY_SEPARATOR . 'controllers' . DIRECTORY_SEPARATOR . 'DiagnosticController.php',
 ];
 
 $exists = [];
@@ -33,6 +35,8 @@ $response = [
         'client_frontoffice' => '../client/controllers/UserController.php?action=showLogin',
         'client_backoffice' => '../client/controllers/AdminController.php?action=showLogin',
         'vehicule_et_rdv' => '../vehicule%20et%20rdv/index.php',
+        'diagnostic_front' => '../diagnostic/frontoffice.php',
+        'diagnostic_back'  => '../diagnostic/backoffice.php',
     ],
 ];
 

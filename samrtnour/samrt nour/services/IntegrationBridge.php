@@ -70,6 +70,11 @@ class IntegrationBridge
         $data['id_vehicle'] = !empty($data['id_vehicle']) ? (int) $data['id_vehicle'] : ($context['id_vehicle'] ?? null);
         $data['id_rdv'] = !empty($data['id_rdv']) ? (int) $data['id_rdv'] : ($context['id_rdv'] ?? null);
 
+        if (!empty($data['id_client']) && empty($data['id_diagnostic'])) {
+            $diag = $this->getLatestDiagnosticForClient((int)$data['id_client']);
+            if ($diag) $data['id_diagnostic'] = (int)$diag['id_diagnostic'];
+        }
+
         return $data;
     }
 
@@ -224,6 +229,21 @@ class IntegrationBridge
             );
         } catch (Throwable $e) {
         }
+    }
+
+    public function getLatestDiagnosticForClient(int $clientId): ?array
+    {
+        $db = $this->getGarageDb();
+        if (!$db) return null;
+        try {
+            $stmt = $db->prepare(
+                'SELECT id_diagnostic, id_vehicle, id_rdv, type_diagnostic, statut, date_diagnostic
+                 FROM diagnostic WHERE id_client = :id
+                 ORDER BY date_diagnostic DESC, id_diagnostic DESC LIMIT 1'
+            );
+            $stmt->execute([':id' => $clientId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (Throwable $e) { return null; }
     }
 
     public function getClientById(int $id): ?array
