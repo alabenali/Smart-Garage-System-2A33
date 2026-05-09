@@ -47,7 +47,18 @@ class TelegramService
             return false;
         }
 
-        return json_decode($response, true);
+        $decoded = json_decode($response, true);
+        if (!is_array($decoded)) {
+            error_log('TelegramService: reponse invalide: ' . $response);
+            return false;
+        }
+
+        if (($decoded['ok'] ?? false) !== true) {
+            $description = isset($decoded['description']) ? (string) $decoded['description'] : 'erreur inconnue';
+            error_log('TelegramService: envoi refuse par Telegram: ' . $description);
+        }
+
+        return $decoded;
     }
 
     public function sendStockAlert(array $piece, string $type)

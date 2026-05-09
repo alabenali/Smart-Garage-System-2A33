@@ -204,21 +204,11 @@ class PieceController
                             $piece = $this->getPieceById($id);
 
                             // ── Vérification alerte Telegram ──
-                            require_once __DIR__ . '/../services/TelegramService.php';
-                            require_once __DIR__ . '/../models/StockAlertModel.php';
+                            require_once __DIR__ . '/../services/StockAlertNotifier.php';
                             
                             try {
-                                $telegram = new TelegramService();
-                                $alertModel = new StockAlertModel($this->conn);
-                                
-                                if ((int)$piece['quantite_stock'] <= 0 && !$alertModel->alerteDejaEnvoyee($id, 'rupture')) {
-                                    $res = $telegram->sendStockAlert($piece, 'rupture');
-                                    $alertModel->logAlerteEnvoyee($id, 'rupture', 0, $res['result']['message_id'] ?? null);
-                                } elseif ((int)$piece['quantite_stock'] <= (int)$piece['seuil_alerte'] && (int)$piece['quantite_stock'] > 0
-                                          && !$alertModel->alerteDejaEnvoyee($id, 'stock_faible')) {
-                                    $res = $telegram->sendStockAlert($piece, 'stock_faible');
-                                    $alertModel->logAlerteEnvoyee($id, 'stock_faible', $piece['quantite_stock'], $res['result']['message_id'] ?? null);
-                                }
+                                $stockNotifier = new StockAlertNotifier($this->conn);
+                                $stockNotifier->notifyIfNeeded($piece);
                             } catch (Throwable $t) {
                                 error_log("Erreur Telegram dans updatePiece : " . $t->getMessage());
                             }

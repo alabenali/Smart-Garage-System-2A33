@@ -7,6 +7,7 @@ class StockAlertModel
     public function __construct(PDO $pdo)
     {
         $this->pdo = $pdo;
+        $this->ensureTable();
     }
 
     public function getPiecesEnRupture(): array
@@ -26,6 +27,7 @@ class StockAlertModel
         $stmt = $this->pdo->prepare("
             SELECT COUNT(*) FROM telegram_alerts_log 
             WHERE id_piece = ? AND type_alerte = ? AND resolue = 0 
+            AND message_id IS NOT NULL
             AND envoyee_le >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
         ");
         $stmt->execute([$id_piece, $type]);
@@ -93,5 +95,24 @@ class StockAlertModel
         $stmt = $this->pdo->prepare("SELECT * FROM pieces WHERE id_piece = ?");
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    private function ensureTable(): void
+    {
+        $sql = "
+            CREATE TABLE IF NOT EXISTS telegram_alerts_log (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              id_piece INT NOT NULL,
+              type_alerte ENUM('rupture','stock_faible') NOT NULL,
+              stock_au_moment INT NOT NULL,
+              message_id BIGINT DEFAULT NULL,
+              envoyee_le DATETIME DEFAULT CURRENT_TIMESTAMP,
+              resolue TINYINT(1) DEFAULT 0,
+              resolue_le DATETIME DEFAULT NULL,
+              FOREIGN KEY (id_piece) REFERENCES pieces(id_piece) ON DELETE CASCADE,
+              INDEX idx_piece_type (id_piece, type_alerte, resolue)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ";
+        $this->pdo->exec($sql);
     }
 }

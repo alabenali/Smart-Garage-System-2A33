@@ -256,26 +256,11 @@ class PanierController
             }
 
             // ── Vérification alerte Telegram pour les pièces du panier ──
-            require_once __DIR__ . '/../services/TelegramService.php';
-            require_once __DIR__ . '/../models/StockAlertModel.php';
+            require_once __DIR__ . '/../services/StockAlertNotifier.php';
             try {
-                $telegram = new TelegramService();
                 $db = Database::getInstance()->getConnection();
-                $alertModel = new StockAlertModel($db);
-                foreach ($summary['items'] as $it) {
-                    $id_piece = (int)$it['id_piece'];
-                    $piece = $alertModel->getPieceById($id_piece);
-                    if ($piece) {
-                        if ((int)$piece['quantite_stock'] <= 0 && !$alertModel->alerteDejaEnvoyee($id_piece, 'rupture')) {
-                            $res = $telegram->sendStockAlert($piece, 'rupture');
-                            $alertModel->logAlerteEnvoyee($id_piece, 'rupture', 0, $res['result']['message_id'] ?? null);
-                        } elseif ((int)$piece['quantite_stock'] <= (int)$piece['seuil_alerte'] && (int)$piece['quantite_stock'] > 0
-                                  && !$alertModel->alerteDejaEnvoyee($id_piece, 'stock_faible')) {
-                            $res = $telegram->sendStockAlert($piece, 'stock_faible');
-                            $alertModel->logAlerteEnvoyee($id_piece, 'stock_faible', $piece['quantite_stock'], $res['result']['message_id'] ?? null);
-                        }
-                    }
-                }
+                $stockNotifier = new StockAlertNotifier($db);
+                $stockNotifier->notifyPiecesIfNeeded(array_column($summary['items'], 'id_piece'));
             } catch (Throwable $t) {
                 error_log("Erreur Telegram dans confirmOrder : " . $t->getMessage());
             }

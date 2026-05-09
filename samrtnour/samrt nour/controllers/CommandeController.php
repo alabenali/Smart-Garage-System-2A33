@@ -637,22 +637,10 @@ class CommandeController
             }
 
             // ── Vérification alerte Telegram ──
-            require_once __DIR__ . '/../services/TelegramService.php';
-            require_once __DIR__ . '/../models/StockAlertModel.php';
+            require_once __DIR__ . '/../services/StockAlertNotifier.php';
             try {
-                $telegram = new TelegramService();
-                $alertModel = new StockAlertModel($this->conn);
-                $updatedPiece = $alertModel->getPieceById((int)$data['id_piece']);
-                if ($updatedPiece) {
-                    if ((int)$updatedPiece['quantite_stock'] <= 0 && !$alertModel->alerteDejaEnvoyee((int)$data['id_piece'], 'rupture')) {
-                        $res = $telegram->sendStockAlert($updatedPiece, 'rupture');
-                        $alertModel->logAlerteEnvoyee((int)$data['id_piece'], 'rupture', 0, $res['result']['message_id'] ?? null);
-                    } elseif ((int)$updatedPiece['quantite_stock'] <= (int)$updatedPiece['seuil_alerte'] && (int)$updatedPiece['quantite_stock'] > 0
-                              && !$alertModel->alerteDejaEnvoyee((int)$data['id_piece'], 'stock_faible')) {
-                        $res = $telegram->sendStockAlert($updatedPiece, 'stock_faible');
-                        $alertModel->logAlerteEnvoyee((int)$data['id_piece'], 'stock_faible', $updatedPiece['quantite_stock'], $res['result']['message_id'] ?? null);
-                    }
-                }
+                $stockNotifier = new StockAlertNotifier($this->conn);
+                $stockNotifier->notifyPieceIfNeeded((int) $data['id_piece']);
             } catch (Throwable $t) {
                 error_log("Erreur Telegram dans createCommande : " . $t->getMessage());
             }
@@ -1054,6 +1042,14 @@ class CommandeController
                 $garantieCtrl->createAfterCommande($idCmd, $itemsForGarantie, $id_client);
             } catch (Throwable $garEx) {
                 error_log('Erreur création garantie fromIntervention : ' . $garEx->getMessage());
+            }
+
+            require_once __DIR__ . '/../services/StockAlertNotifier.php';
+            try {
+                $stockNotifier = new StockAlertNotifier($this->conn);
+                $stockNotifier->notifyPiecesIfNeeded(array_column($itemsForGarantie, 'id_piece'));
+            } catch (Throwable $t) {
+                error_log("Erreur Telegram dans fromIntervention : " . $t->getMessage());
             }
 
             return ['success' => true, 'id_commande' => $idCmd, 'montant_ttc' => $ttc];
