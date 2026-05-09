@@ -563,8 +563,12 @@ class CalendrierController
             return;
         }
 
+        $loyaltyNotification = $this->isCompletedStatus($statut)
+            ? $this->processLoyaltyAfterCompletedStatus($idRdv)
+            : null;
+
         $updated = $this->findDetailedById($idRdv);
-        $this->jsonResponse(['success' => true, 'data' => $this->formatRdvApiRow($updated ?: $data)]);
+        $this->jsonResponse(['success' => true, 'data' => $this->formatRdvApiRow($updated ?: $data), 'loyalty' => $loyaltyNotification]);
     }
 
     public function backCalendar(): void
@@ -668,7 +672,7 @@ class CalendrierController
 
         $ok = $this->updateStatus($idRdv, $status);
         $loyaltyNotification = null;
-        if ($ok && $status === 'Terminé') {
+        if ($ok && $this->isCompletedStatus($status)) {
             $loyaltyNotification = $this->processLoyaltyAfterCompletedStatus($idRdv);
         }
 
@@ -757,6 +761,9 @@ class CalendrierController
 
                 if ($this->updateRendezvous($idRdv, $data)) {
                     if ($statut === 'TerminÃ©') {
+                        $this->processLoyaltyAfterCompletedStatus($idRdv);
+                    }
+                    if ($this->isCompletedStatus($statut)) {
                         $this->processLoyaltyAfterCompletedStatus($idRdv);
                     }
                     $success = 'RDV mis a jour avec succes.';
@@ -2113,30 +2120,58 @@ class CalendrierController
         ]);
     }
 
+    private function isCompletedStatus(string $status): bool
+    {
+        return $this->normalizeStatusKey($status) === 'termine';
+    }
+
+    private function normalizeStatusKey(string $status): string
+    {
+        $status = strtolower(trim($status));
+        $status = str_replace(
+            ['é', 'è', 'ê', 'ë', 'à', 'â', 'ù', 'û', 'ç', 'Ã©', 'Ã¨', 'Ãª', 'Ã«', 'Ã ', 'Ã¢', 'Ã¹', 'Ã»', 'Ã§'],
+            ['e', 'e', 'e', 'e', 'a', 'a', 'u', 'u', 'c', 'e', 'e', 'e', 'e', 'a', 'a', 'u', 'u', 'c'],
+            $status
+        );
+
+        return str_replace([' ', '-', '_'], '', $status);
+    }
+
     private function processLoyaltyAfterCompletedStatus(int $idRdv): ?array
     {
         try {
             $rdv = $this->findDetailedById($idRdv);
-            if (!$rdv || empty($rdv['email_client'])) {
-                $this->logLoyalty('RDV #' . $idRdv . ': email client absent, fidelite ignoree.');
+            if (!$rdv) {
+                $this->logLoyalty('RDV #' . $idRdv . ': introuvable, fidelite ignoree.');
                 return null;
             }
 
             $loyalty = new LoyaltyService($this->db);
+            $calculation = $loyalty->calculerPoints($idRdv);
+            $ok = $loyalty->attribuerPoints($idRdv);
+            if (!$ok) {
+                return null;
+            }
+
+            $accountEmail = (string) ($rdv['email_client'] ?? '');
+            if ($accountEmail === '' && !empty($rdv['id_client'])) {
+                $client = $this->rdvService->findClientById((int) $rdv['id_client']);
+                $accountEmail = (string) ($client['email'] ?? '');
+            }
+
+            if ($accountEmail === '') {
+                $this->logLoyalty('RDV #' . $idRdv . ': email client absent apres attribution, fidelite ignoree.');
+                return null;
+            }
+
             $account = $loyalty->getOrCreateAccount(
-                (string) $rdv['email_client'],
+                $accountEmail,
                 (string) ($rdv['nom_client'] ?? ''),
                 (string) ($rdv['prenom_client'] ?? ''),
                 (string) ($rdv['telephone_client'] ?? '')
             );
 
             if (empty($account['id'])) {
-                return null;
-            }
-
-            $calculation = $loyalty->calculerPoints($idRdv);
-            $ok = $loyalty->attribuerPoints($idRdv);
-            if (!$ok) {
                 return null;
             }
 

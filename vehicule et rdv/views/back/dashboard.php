@@ -5,9 +5,7 @@
 <h1 class="page-title">Dashboard</h1>
 <p class="page-subtitle">Vue d'ensemble du garage – Statistiques en temps réel.</p>
 
-<!-- ========== CARTES VÉHICULES ========== -->
-<h2 style="margin:1.5rem 0 1rem 0; color:var(--text-primary);">📊 Véhicules</h2>
-<div class="stats-grid">
+<div class="stats-grid" style="margin-top:1.5rem;">
     <div class="stat-card">
         <div class="stat-icon purple"><i class="bi bi-car-front-fill"></i></div>
         <div class="stat-value"><?php echo $totalVehicles; ?></div>
@@ -28,11 +26,6 @@
         <div class="stat-value"><?php echo count($brandStats); ?></div>
         <div class="stat-label">Marques Différentes</div>
     </div>
-</div>
-
-<!-- ========== CARTES RENDEZVOUS ========== -->
-<h2 style="margin:1.5rem 0 1rem 0; color:var(--text-primary);">📅 Rendez-vous</h2>
-<div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon cyan"><i class="bi bi-calendar-check"></i></div>
         <div class="stat-value"><?php echo $totalRdv; ?></div>
@@ -53,11 +46,6 @@
         <div class="stat-value"><?php echo $rdvStats['rdv_attente'] ?? 0; ?></div>
         <div class="stat-label">En Attente Confirmation</div>
     </div>
-</div>
-
-<!-- ========== CARTES INTEGRATION CLIENT / VEHICULE / RDV ========== -->
-<h2 style="margin:1.5rem 0 1rem 0; color:var(--text-primary);">Relations Client / Vehicule / RDV</h2>
-<div class="stats-grid">
     <div class="stat-card">
         <div class="stat-icon blue"><i class="bi bi-car-front"></i></div>
         <div class="stat-value"><?php echo number_format((float) ($avgVehiclesPerClient ?? 0), 1, ',', ' '); ?></div>
@@ -77,6 +65,26 @@
         <div class="stat-icon orange"><i class="bi bi-exclamation-triangle"></i></div>
         <div class="stat-value"><?php echo count($problematicVehicles ?? []); ?></div>
         <div class="stat-label">Vehicules a surveiller</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="bi bi-box-seam-fill"></i></div>
+        <div class="stat-value"><?php echo (int) ($partsOrderStats['total_pieces'] ?? 0); ?></div>
+        <div class="stat-label">Pi&egrave;ces total</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="bi bi-boxes"></i></div>
+        <div class="stat-value"><?php echo number_format((int) ($partsOrderStats['total_stock'] ?? 0), 0, ',', ' '); ?></div>
+        <div class="stat-label">Pi&egrave;ces en stock</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="bi bi-cart3"></i></div>
+        <div class="stat-value"><?php echo (int) ($partsOrderStats['total_commandes'] ?? 0); ?></div>
+        <div class="stat-label">Commandes</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="stat-value"><?php echo (int) ($partsOrderStats['alertes_stock'] ?? 0); ?></div>
+        <div class="stat-label">Alertes stock</div>
     </div>
 </div>
 
