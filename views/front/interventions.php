@@ -9,7 +9,7 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
             <h1 class="page-title text-white mb-1">Mes Interventions</h1>
-            <p class="text-muted mb-0">Consultez vos devis, suivez le statut et discutez avec le garage.</p>
+            <p class="text-muted mb-0">Consultez vos devis et suivez le statut de vos interventions.</p>
         </div>
         <form method="GET" action="index.php" class="d-flex align-items-center gap-2">
             <input type="hidden" name="action" value="client_interventions">
@@ -71,9 +71,8 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-end pe-4">
-                                    <div class="d-flex justify-content-end gap-2">
+                                    <div class="d-flex justify-content-end">
                                         <a href="index.php?action=intervention_detail&id=<?php echo (int)$inter['id_intervention']; ?>&vehicle_id=<?php echo (int)($inter['id_vehicule'] ?? 0); ?>" class="btn btn-sm btn-primary">Details</a>
-                                        <a href="index.php?action=intervention_chat&id=<?php echo (int)$inter['id_intervention']; ?>&vehicle_id=<?php echo (int)($inter['id_vehicule'] ?? 0); ?>" class="btn btn-sm btn-outline-light">Chat</a>
                                     </div>
                                 </td>
                             </tr>

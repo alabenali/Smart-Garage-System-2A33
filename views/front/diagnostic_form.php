@@ -9,7 +9,7 @@
     <div class="row">
         <div class="col-lg-8 mx-auto">
             <div class="card bg-dark border-light">
-                <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-header" style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
                     <h2 class="mb-0 text-white">
                         <i class="fas fa-clipboard-list me-2"></i>Demander un Diagnostic
                     </h2>
@@ -102,7 +102,7 @@
                                 <i class="fas fa-times me-2"></i>Annuler
                             </a>
                             <button type="submit" class="btn btn-lg" 
-                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                    style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
                                 <i class="fas fa-paper-plane me-2"></i>Envoyer la Demande
                             </button>
                         </div>
@@ -161,39 +161,39 @@
 <style>
 .form-control, .form-select {
     font-size: 1rem;
-    border-width: 2px;
-    transition: all 0.3s ease;
+    border-width: 1px;
+    transition: all 0.2s ease;
 }
 
 .form-control:focus, .form-select:focus {
-    background-color: #3a3f5c !important;
-    color: white !important;
-    border-color: #667eea !important;
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    background-color: var(--surface) !important;
+    color: var(--text-900) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(200, 70, 56, 0.15) !important;
 }
 
 .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--text-500);
     opacity: 1;
 }
 
 .btn {
     font-weight: 600;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .btn-outline-light:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 18px rgba(200, 70, 56, 0.2);
 }
 
 .card {
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
 }
 
 .card-header {
-    border-radius: 10px 10px 0 0;
+    border-radius: var(--radius) var(--radius) 0 0;
     padding: 20px;
 }
 </style>

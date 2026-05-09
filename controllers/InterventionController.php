@@ -20,6 +20,7 @@ class InterventionController {
     public function __construct() {
         $this->db = Database::getInstance()->getConnection();
         $this->ensureInterventionSchema();
+        $this->ensureTypeInterventionSchema();
         $this->messageModel = new Message();
     }
 
@@ -48,6 +49,22 @@ class InterventionController {
             }
             if (!in_array('type_total', $columns, true)) {
                 $this->db->exec("ALTER TABLE intervention ADD COLUMN type_total DECIMAL(10,2) DEFAULT 0.00");
+            }
+        } catch (Exception $e) {
+            // Keep controller operational even when schema migration is not permitted.
+        }
+    }
+
+    private function ensureTypeInterventionSchema() {
+        try {
+            $columns = [];
+            $query = $this->db->query('SHOW COLUMNS FROM type_intervention');
+            foreach ($query->fetchAll(PDO::FETCH_ASSOC) as $row) {
+                $columns[] = $row['Field'];
+            }
+
+            if (!in_array('prix', $columns, true)) {
+                $this->db->exec("ALTER TABLE type_intervention ADD COLUMN prix DECIMAL(10,2) NOT NULL DEFAULT 0.00");
             }
         } catch (Exception $e) {
             // Keep controller operational even when schema migration is not permitted.
@@ -396,14 +413,21 @@ class InterventionController {
                 : '1 = 0';
 
             $sql = "SELECT i.*, "
-                . $this->selectDiagnosticColumn(['id_vehicule', 'vehicle_id'], 'id_vehicule') . ", "
-                . $this->selectDiagnosticColumn(['description_probleme', 'description'], 'description_probleme') . ", "
-                . $this->selectDiagnosticColumn(['gravite'], 'gravite') . ", "
+                // $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
+                // $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
+                // $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
                 . $this->selectDiagnosticColumn(['montant_estime', 'montant'], 'montant_estime') . ", "
+                . $this->selectDiagnosticColumn(['id_vehicule', 'vehicle_id'], 'id_vehicule') . ", "
                 . $this->selectVehicleColumn(['marque', 'brand'], 'vehicle_marque') . ", "
                 . $this->selectVehicleColumn(['modele', 'model'], 'vehicle_modele') . ", "
-                . $this->selectVehicleColumn(['immatriculation', 'matricule'], 'immatriculation') . ", "
-                . $this->typeInterventionNameSelect('type_nom') . ", "
+                . $this->selectVehicleColumn(['immatriculation', 'license_plate', 'registration'], 'immatriculation') . ", "
+                . $this->selectVehicleColumn(['couleur', 'color'], 'vehicle_couleur') . ", "
+                . $this->selectVehicleColumn(['annee', 'year'], 'vehicle_annee') . ", "
+                . $this->selectVehicleColumn(['kilometrage', 'km'], 'vehicle_km') . ", "
+                . $this->selectVehicleColumn(['carburant', 'fuel'], 'vehicle_carburant') . ", "
+                // $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
+                // $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
+                // $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
                 . $this->typeInterventionPrixSelect('type_prix') . "
                     FROM {$this->table} i
                     JOIN diagnostic d ON i.id_diagnostic = d." . $diagIdColumn . "
@@ -663,6 +687,35 @@ class InterventionController {
             return [];
         }
         return $this->messageModel->listByIntervention((int)$idIntervention);
+    }
+
+    public function listMessagesByVehicle($vehicleId) {
+        $vehicleId = (int)$vehicleId;
+        if ($vehicleId <= 0) {
+            return [];
+        }
+
+        $diagIdColumn = $this->diagnosticIdColumn();
+        $diagVehicleIdColumn = $this->diagnosticVehicleIdColumn();
+        if (!$diagVehicleIdColumn) {
+            return [];
+        }
+
+        $vehicleIdColumn = $this->resolveVehicleColumn(['id']) ?: 'id';
+        $vehicleJoinCondition = 'd.' . $diagVehicleIdColumn . ' = v.' . $vehicleIdColumn;
+
+        $sql = "SELECT m.id_message, m.id_intervention, m.expediteur, m.contenu, m.date_envoi, "
+            . $this->selectVehicleColumn(['immatriculation', 'matricule'], 'immatriculation') . "
+                FROM message m
+                JOIN intervention i ON m.id_intervention = i.id_intervention
+                JOIN diagnostic d ON i.id_diagnostic = d." . $diagIdColumn . "
+                LEFT JOIN vehicle v ON " . $vehicleJoinCondition . "
+                WHERE d." . $diagVehicleIdColumn . " = ?
+                ORDER BY m.date_envoi ASC, m.id_message ASC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$vehicleId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function sendMessage($idIntervention, $sender, $content, $vehicleId = 0) {
@@ -1029,6 +1082,7 @@ class InterventionController {
             $idColumn = $this->typeInterventionIdColumn();
             $nameColumn = $this->resolveTypeInterventionColumn(['nom', 'nom_type', 'label']);
             $descriptionColumn = $this->resolveTypeInterventionColumn(['description', 'details']);
+            $prixColumn = $this->resolveTypeInterventionColumn(['prix']);
 
             if (!$nameColumn) {
                 return [];
@@ -1037,6 +1091,7 @@ class InterventionController {
             $sql = "SELECT " . $idColumn . " AS id_type, "
                 . $nameColumn . " AS nom, "
                 . ($descriptionColumn ? ($descriptionColumn . " AS description") : "NULL AS description")
+                . ", " . ($prixColumn ? ($prixColumn . " AS prix") : "0 AS prix")
                 . " FROM type_intervention ORDER BY " . $nameColumn;
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
@@ -1044,6 +1099,41 @@ class InterventionController {
         } catch (Exception $e) {
             error_log('Erreur getTypesIntervention: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    public function updateTypePrices(array $pricesById) {
+        try {
+            if (empty($pricesById)) {
+                return ['success' => false, 'message' => 'Aucun prix à enregistrer'];
+            }
+
+            $idColumn = $this->typeInterventionIdColumn();
+            $priceColumn = $this->resolveTypeInterventionColumn(['prix']);
+            if (!$priceColumn) {
+                return ['success' => false, 'message' => 'Colonne prix introuvable'];
+            }
+
+            $this->db->beginTransaction();
+            $sql = 'UPDATE type_intervention SET ' . $priceColumn . ' = ? WHERE ' . $idColumn . ' = ?';
+            $stmt = $this->db->prepare($sql);
+
+            foreach ($pricesById as $idType => $price) {
+                $idType = (int)$idType;
+                $price = max(0, (float)$price);
+                if ($idType <= 0) {
+                    continue;
+                }
+                $stmt->execute([$price, $idType]);
+            }
+
+            $this->db->commit();
+            return ['success' => true, 'message' => 'Prix des types mis à jour'];
+        } catch (Exception $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            return ['success' => false, 'message' => 'Erreur: ' . $e->getMessage()];
         }
     }
 
@@ -1517,20 +1607,8 @@ class InterventionController {
                 $p = isset($ti['prix']) && $ti['prix'] !== null ? number_format((float)$ti['prix'], 2, '.', ' ') . ' DT' : '';
                 $rows[] = ['designation' => ' - ' . (string)($ti['nom'] ?? 'N/A'), 'prix' => $p];
             }
-            // Standard items with saved prices
-            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
-            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
-            $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
         } else {
             $rows[] = ['designation' => 'Type intervention: ' . (string)($inter['type_nom'] ?? 'N/A'), 'prix' => (isset($inter['type_prix']) && $inter['type_prix'] > 0 ? number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT' : '')];
-            // Also include the standard items when single type or none, using saved prices
-            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
-            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
-            $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
         }
 
         $rows[] = ['designation' => 'Date debut: ' . (!empty($inter['date_debut']) ? (string)$inter['date_debut'] : 'N/A'), 'prix' => ''];
@@ -1685,21 +1763,21 @@ class InterventionController {
 
         if (!empty($inter['type_items']) && is_array($inter['type_items'])) {
             $rows[] = ['designation' => 'Types d\'intervention sélectionnés :', 'prix' => ''];
+            $sumSelectedTypes = 0.0;
             foreach ($inter['type_items'] as $ti) {
-                $p = isset($ti['prix']) && $ti['prix'] !== null ? number_format((float)$ti['prix'], 2, '.', ' ') . ' DT' : '';
-                $rows[] = ['designation' => ' - ' . (string)($ti['nom'] ?? 'N/A'), 'prix' => $p];
+                $typeName = trim((string)($ti['nom'] ?? 'N/A'));
+                $typePrice = isset($ti['prix']) && $ti['prix'] !== null ? (float)$ti['prix'] : 0.0;
+                $sumSelectedTypes += $typePrice;
+                $p = number_format($typePrice, 2, '.', ' ') . ' DT';
+                $rows[] = ['designation' => ' - ' . $typeName, 'prix' => $p];
             }
-            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
-            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $totalTypes = isset($inter['type_total']) && (float)$inter['type_total'] > 0
+                ? (float)$inter['type_total']
+                : $sumSelectedTypes;
             $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
         } else {
             $rows[] = ['designation' => 'Type intervention: ' . (string)($inter['type_nom'] ?? 'N/A'), 'prix' => (isset($inter['type_prix']) && $inter['type_prix'] > 0 ? number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT' : '')];
-            $rows[] = ['designation' => 'Batterie', 'prix' => number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Climatisation', 'prix' => number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT'];
-            $rows[] = ['designation' => 'Diagnostic électronique', 'prix' => number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT'];
-            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
+            $totalTypes = isset($inter['type_total']) && (float)$inter['type_total'] > 0 ? (float)$inter['type_total'] : (float)($inter['type_prix'] ?? 0);
             $rows[] = ['designation' => 'Prix total des types', 'prix' => number_format($totalTypes, 2, '.', ' ') . ' DT'];
         }
 
@@ -1819,6 +1897,15 @@ class InterventionController {
             case 'update_quote':
                 return $this->handleUpdateQuote();
 
+            case 'update_type_prices':
+                return $this->handleUpdateTypePrices();
+
+            case 'update_intervention_info':
+                return $this->handleUpdateInterventionInfo();
+
+            case 'upload_intervention_media':
+                return $this->handleUploadInterventionMedia();
+
             case 'send_quote_email':
                 return $this->handleSendQuoteEmail();
 
@@ -1840,6 +1927,111 @@ class InterventionController {
                     'message' => 'Action non reconnue'
                 ];
         }
+    }
+
+    private function handleUpdateInterventionInfo() {
+        $idIntervention = (int)($_POST['id_intervention'] ?? 0);
+        if ($idIntervention <= 0) {
+            return ['success' => false, 'message' => 'Parametres manquants'];
+        }
+
+        $description = trim((string)($_POST['description_travail'] ?? ''));
+        $idType = $_POST['id_type'] ?? null;
+        $coutInitial = $_POST['cout_initial'] ?? null;
+        $statut = trim((string)($_POST['statut'] ?? ''));
+        $dateDebut = trim((string)($_POST['date_debut'] ?? ''));
+        $dateFin = trim((string)($_POST['date_fin'] ?? ''));
+
+        if ($dateDebut !== '' && $dateFin !== '' && $dateFin < $dateDebut) {
+            return ['success' => false, 'message' => 'La date de fin doit etre superieure ou egale a la date de debut'];
+        }
+
+        $updateData = [];
+        if ($description !== '') {
+            $updateData['description_travail'] = $description;
+        }
+        if ($idType !== null && $idType !== '') {
+            $updateData['id_type'] = $idType;
+        }
+        if ($coutInitial !== null && $coutInitial !== '') {
+            $updateData['cout_initial'] = (float)$coutInitial;
+        }
+
+        if (!empty($updateData)) {
+            $result = $this->update($idIntervention, $updateData);
+            if (empty($result['success'])) {
+                return $result;
+            }
+        }
+
+        if ($statut !== '') {
+            $statusResult = $this->updateStatut($idIntervention, $statut);
+            if (empty($statusResult['success'])) {
+                return $statusResult;
+            }
+        }
+
+        if ($dateDebut !== '') {
+            $this->updateDateDebut($idIntervention, $dateDebut);
+        }
+        if ($dateFin !== '') {
+            $this->updateDateFin($idIntervention, $dateFin);
+        }
+
+        return ['success' => true, 'message' => 'Intervention mise a jour'];
+    }
+
+    private function handleUploadInterventionMedia() {
+        $idIntervention = (int)($_POST['id_intervention'] ?? 0);
+        if ($idIntervention <= 0) {
+            return ['success' => false, 'message' => 'Parametres manquants'];
+        }
+
+        if (empty($_FILES['media_file']) || !isset($_FILES['media_file']['tmp_name'])) {
+            return ['success' => false, 'message' => 'Fichier manquant'];
+        }
+
+        $file = $_FILES['media_file'];
+        if (!empty($file['error'])) {
+            return ['success' => false, 'message' => 'Erreur fichier'];
+        }
+
+        $maxSize = 10 * 1024 * 1024;
+        if (!empty($file['size']) && $file['size'] > $maxSize) {
+            return ['success' => false, 'message' => 'Fichier trop volumineux'];
+        }
+
+        $originalName = (string)($file['name'] ?? 'media');
+        $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'ogg', 'pdf'];
+        if (!in_array($ext, $allowed, true)) {
+            return ['success' => false, 'message' => 'Type de fichier non autorise'];
+        }
+
+        $targetDir = __DIR__ . '/../uploads/interventions';
+        if (!is_dir($targetDir)) {
+            @mkdir($targetDir, 0777, true);
+        }
+
+        $safeBase = preg_replace('/[^a-zA-Z0-9_-]/', '_', pathinfo($originalName, PATHINFO_FILENAME));
+        if ($safeBase === '') {
+            $safeBase = 'media';
+        }
+        $filename = $safeBase . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+        $targetPath = $targetDir . '/' . $filename;
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            return ['success' => false, 'message' => 'Impossible d\'enregistrer le fichier'];
+        }
+
+        $relativePath = 'uploads/interventions/' . $filename;
+        $message = 'Media: ' . $relativePath;
+        $ok = $this->messageModel->create($idIntervention, 'admin', $message);
+        if (!$ok) {
+            return ['success' => false, 'message' => 'Echec d\'enregistrement du message'];
+        }
+
+        return ['success' => true, 'message' => 'Media ajoute'];
     }
 
     private function handleCreateIntervention() {
@@ -1934,6 +2126,15 @@ class InterventionController {
         return $result;
     }
 
+    private function handleUpdateTypePrices() {
+        $prices = $_POST['type_prices'] ?? [];
+        if (!is_array($prices) || empty($prices)) {
+            return ['success' => false, 'message' => 'Paramètres manquants'];
+        }
+
+        return $this->updateTypePrices($prices);
+    }
+
     private function handleSendQuoteEmail() {
         $idIntervention = (int)($_POST['id_intervention'] ?? 0);
         $email = trim((string)($_POST['client_email'] ?? ''));
@@ -1976,36 +2177,15 @@ class InterventionController {
                     $p = isset($ti['prix']) && $ti['prix'] !== null ? number_format((float)$ti['prix'], 2, '.', ' ') . ' DT' : '—';
                     $lines[] = " - " . ($ti['nom'] ?? 'N/A') . " : " . $p;
                 }
-                $lines[] = "Prix total des types: " . (isset($inter['type_prix']) ? number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT' : '—');
             } else {
                 $lines[] = "Type intervention: " . ($inter['type_nom'] ?? 'N/A');
-                if (isset($inter['type_prix'])) {
-                    $lines[] = "Prix type: " . (number_format((float)$inter['type_prix'], 2, '.', ' ') . ' DT');
-                }
             }
 
-            // Add the standard items with saved prices if available
-            $stdPrices = ['batterie' => 0.0, 'climatisation' => 0.0, 'diagnostic_electronique' => 0.0];
-            if (!empty($inter['type_prices'])) {
-                $decoded = json_decode($inter['type_prices'], true);
-                if (is_array($decoded)) {
-                    foreach ($stdPrices as $k => $_) {
-                        if (isset($decoded[$k])) $stdPrices[$k] = (float)$decoded[$k];
-                    }
-                }
-            }
             $lines[] = "";
-            $lines[] = "Batterie : " . number_format($stdPrices['batterie'], 2, '.', ' ') . ' DT';
-            $lines[] = "Climatisation : " . number_format($stdPrices['climatisation'], 2, '.', ' ') . ' DT';
-            $lines[] = "Diagnostic électronique : " . number_format($stdPrices['diagnostic_electronique'], 2, '.', ' ') . ' DT';
-            $totalTypes = isset($inter['type_total']) ? (float)$inter['type_total'] : ($stdPrices['batterie'] + $stdPrices['climatisation'] + $stdPrices['diagnostic_electronique']);
-            $lines[] = "Prix total des types: " . number_format($totalTypes, 2, '.', ' ') . ' DT';
-
-            $lines[] = "";
-            $lines[] = "Cout initial estime: " . number_format((float)($inter['cout_initial'] ?? 0), 2, '.', ' ') . ' DT';
             if (isset($inter['cout_final']) && $inter['cout_final'] !== null) {
                 $lines[] = "Cout final: " . number_format((float)$inter['cout_final'], 2, '.', ' ') . ' DT';
             }
+            $lines[] = "";
             $lines[] = "Date debut: " . (!empty($inter['date_debut']) ? (string)$inter['date_debut'] : 'N/A');
             $lines[] = "Date fin: " . (!empty($inter['date_fin']) ? (string)$inter['date_fin'] : 'N/A');
             $lines[] = "";

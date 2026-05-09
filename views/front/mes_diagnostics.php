@@ -234,19 +234,19 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 
 <style>
 .text-soft {
-    color: #c9daee !important;
+    color: var(--text-500) !important;
 }
 
 #diagnosticForm .form-label,
 .form-label {
-    color: #e7f1ff;
+    color: var(--text-700);
 }
 
 .form-control::placeholder,
 .form-select::placeholder,
 textarea::placeholder,
 input::placeholder {
-    color: #b6cbe4 !important;
+    color: var(--text-500) !important;
     opacity: 1;
 }
 </style>

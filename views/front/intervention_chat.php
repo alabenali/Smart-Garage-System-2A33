@@ -72,6 +72,90 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
                     </div>
                 </header>
 
+                <div class="modal fade" id="editInterventionInfoModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-centered">
+                        <div class="modal-content client-diagnostic-modal bg-white border-0 shadow-sm rounded-4">
+                            <div class="modal-header client-diagnostic-header border-0">
+                                <h5 class="modal-title text-dark fw-semibold">Modifier l'intervention</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="index.php?action=intervention_chat">
+                                <input type="hidden" name="action_type" value="update_intervention_info">
+                                <input type="hidden" name="id_intervention" value="<?php echo (int)$selectedIntervention['id_intervention']; ?>">
+                                <input type="hidden" name="vehicle_id" value="<?php echo $vehicleId; ?>">
+                                <div class="modal-body client-diagnostic-body">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label client-diagnostic-label">Type d'intervention</label>
+                                            <select name="id_type" class="form-select client-diagnostic-field" required>
+                                                <option value="">Selectionner un type</option>
+                                                <?php foreach (($typesIntervention ?? []) as $type): ?>
+                                                    <option value="<?php echo (int)$type['id_type']; ?>" <?php echo ((int)($selectedIntervention['id_type'] ?? 0) === (int)$type['id_type']) ? 'selected' : ''; ?>>
+                                                        <?php echo htmlspecialchars((string)$type['nom']); ?>
+                                                    </option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label client-diagnostic-label">Statut</label>
+                                            <select name="statut" class="form-select client-diagnostic-field" required>
+                                                <option value="planifiée" <?php echo (($selectedIntervention['statut'] ?? '') === 'planifiée') ? 'selected' : ''; ?>>Planifiee</option>
+                                                <option value="en_cours" <?php echo (($selectedIntervention['statut'] ?? '') === 'en_cours') ? 'selected' : ''; ?>>En cours</option>
+                                                <option value="terminée" <?php echo (($selectedIntervention['statut'] ?? '') === 'terminée') ? 'selected' : ''; ?>>Terminee</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-12">
+                                            <label class="form-label client-diagnostic-label">Description des travaux</label>
+                                            <textarea name="description_travail" class="form-control client-diagnostic-field" rows="3" required><?php echo htmlspecialchars((string)($selectedIntervention['description_travail'] ?? '')); ?></textarea>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label client-diagnostic-label">Cout initial (DT)</label>
+                                            <input type="number" step="0.01" min="0" name="cout_initial" class="form-control client-diagnostic-field" value="<?php echo htmlspecialchars((string)($selectedIntervention['cout_initial'] ?? 0)); ?>" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label client-diagnostic-label">Date debut</label>
+                                            <input type="date" name="date_debut" class="form-control client-diagnostic-field" value="<?php echo !empty($selectedIntervention['date_debut']) ? htmlspecialchars(date('Y-m-d', strtotime((string)$selectedIntervention['date_debut']))) : ''; ?>">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label client-diagnostic-label">Date fin</label>
+                                            <input type="date" name="date_fin" class="form-control client-diagnostic-field" value="<?php echo !empty($selectedIntervention['date_fin']) ? htmlspecialchars(date('Y-m-d', strtotime((string)$selectedIntervention['date_fin']))) : ''; ?>">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer client-diagnostic-footer border-0">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal fade" id="uploadInterventionMediaModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-md modal-dialog-centered">
+                        <div class="modal-content client-diagnostic-modal bg-white border-0 shadow-sm rounded-4">
+                            <div class="modal-header client-diagnostic-header border-0">
+                                <h5 class="modal-title text-dark fw-semibold">Ajouter un document</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <form method="POST" action="index.php?action=intervention_chat" enctype="multipart/form-data">
+                                <input type="hidden" name="action_type" value="upload_intervention_media">
+                                <input type="hidden" name="id_intervention" value="<?php echo (int)$selectedIntervention['id_intervention']; ?>">
+                                <input type="hidden" name="vehicle_id" value="<?php echo $vehicleId; ?>">
+                                <div class="modal-body client-diagnostic-body">
+                                    <label class="form-label client-diagnostic-label">Fichier</label>
+                                    <input type="file" name="media_file" class="form-control client-diagnostic-field" accept="image/*,video/*,application/pdf" required>
+                                    <div class="form-text client-diagnostic-help">Images, video ou PDF (max 10 Mo).</div>
+                                </div>
+                                <div class="modal-footer client-diagnostic-footer border-0">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                                    <button type="submit" class="btn btn-primary">Uploader</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="client-chat-messages" id="clientChatZone">
                     <?php if (empty($messages)): ?>
                         <div class="text-muted text-center mt-5">Aucun message pour cette intervention.</div>
@@ -98,9 +182,23 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
                         <input type="hidden" name="sender" value="client">
                         <input type="hidden" name="id_intervention" value="<?php echo (int)$selectedIntervention['id_intervention']; ?>">
                         <input type="hidden" name="vehicle_id" value="<?php echo $vehicleId; ?>">
-                        <button type="button" class="btn btn-link client-attach-btn" title="Piece jointe non active">
-                            <i class="bi bi-paperclip"></i>
-                        </button>
+                        <div class="dropdown dropup">
+                            <button class="btn btn-link client-attach-btn client-plus-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
+                                +
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end client-actions-menu p-2">
+                                <li>
+                                    <button type="button" class="btn btn-outline-primary rounded-circle client-action-bubble client-action-icon mb-2" data-bs-toggle="modal" data-bs-target="#editInterventionInfoModal" aria-label="Modifier">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button" class="btn btn-outline-success rounded-circle client-action-bubble client-action-icon" data-bs-toggle="modal" data-bs-target="#uploadInterventionMediaModal" aria-label="Photo / Document">
+                                        <i class="bi bi-image"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                         <input type="text" name="contenu" class="form-control" placeholder="Ecrire un message..." autocomplete="off" required>
                         <button type="submit" class="btn btn-primary client-send-btn" title="Envoyer">
                             <i class="bi bi-send-fill"></i>
@@ -113,9 +211,9 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 </div>
 
 <style>
-.page-wrapper {
+.front-office .page-wrapper {
     max-width: 100%;
-    margin: 0;
+    margin-left: 260px;
     padding: 0;
 }
 
@@ -128,16 +226,20 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 .client-chat-shell {
     display: grid;
     grid-template-columns: 320px 1fr;
+    height: calc(100vh - 64px);
     min-height: 0;
     flex: 1;
-    border-top: 1px solid rgba(189, 208, 234, 0.2);
-    background: #f5f7fb;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
     overflow: hidden;
 }
 
 .client-chat-sidebar {
-    background: linear-gradient(180deg, #f0f3f8 0%, #e8edf5 100%);
-    border-right: 1px solid #d6dfeb;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--surface-3);
+    border-right: 1px solid var(--border);
 }
 
 .client-chat-search-wrap {
@@ -148,23 +250,25 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     align-items: center;
     gap: 8px;
     padding: 10px;
-    background: #f0f3f8;
-    border-bottom: 1px solid #d6dfeb;
+    background: var(--surface-3);
+    border-bottom: 1px solid var(--border);
 }
 
 .client-chat-search-wrap i {
-    color: #73849a;
+    color: var(--text-500);
 }
 
 .client-chat-search-wrap .form-control {
-    background: #ffffff;
-    border: 1px solid #cfd9e8;
-    color: #233243 !important;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-900) !important;
 }
 
 .client-chat-conversation-list {
+    flex: 1;
+    min-height: 0;
     max-height: none;
-    height: calc(100vh - 64px - 58px);
+    height: auto;
     overflow-y: auto;
 }
 
@@ -172,19 +276,19 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     position: relative;
     display: block;
     padding: 12px 14px;
-    color: #1f2e40;
+    color: var(--text-800);
     text-decoration: none;
-    border-bottom: 1px solid #dde5f0;
+    border-bottom: 1px solid var(--border);
     transition: background 0.2s ease;
 }
 
 .client-conv-item:hover {
-    background: #eaf2ff;
+    background: var(--accent-100);
 }
 
 .client-conv-item.active {
-    background: #dfeeff;
-    border-left: 3px solid #2585ff;
+    background: var(--accent-100);
+    border-left: 3px solid var(--accent);
     padding-left: 11px;
 }
 
@@ -201,19 +305,19 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 }
 
 .client-conv-time {
-    color: #7b8ea6;
+    color: var(--text-500);
     font-size: 0.72rem;
 }
 
 .client-conv-meta {
     margin-top: 2px;
-    color: #425b79;
+    color: var(--text-600);
     font-size: 0.78rem;
 }
 
 .client-conv-preview {
     margin-top: 4px;
-    color: #4f657f;
+    color: var(--text-600);
     font-size: 0.8rem;
     white-space: nowrap;
     overflow: hidden;
@@ -231,8 +335,10 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 .client-chat-main {
     display: flex;
     flex-direction: column;
+    min-height: 0;
     min-width: 0;
-    background: #ffffff;
+    background: var(--surface);
+    overflow: hidden;
 }
 
 .client-chat-header {
@@ -241,8 +347,8 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     gap: 10px;
     min-height: 64px;
     padding: 10px 16px;
-    border-bottom: 1px solid #e1e8f2;
-    background: #f7f9fc;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
 }
 
 .client-chat-avatar {
@@ -254,30 +360,30 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     justify-content: center;
     font-weight: 700;
     color: #ffffff;
-    background: radial-gradient(circle at 30% 30%, #4cb0ff, #0f4eb6);
+    background: radial-gradient(circle at 30% 30%, #f07a6a, #c84638);
 }
 
 .client-chat-name {
-    color: #17283c;
+    color: var(--text-900);
     font-weight: 700;
 }
 
 .client-chat-sub {
-    color: #6b7f99;
+    color: var(--text-500);
     font-size: 0.78rem;
 }
 
 .client-chat-messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px;
     background:
-        radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08), transparent 35%),
-        radial-gradient(circle at 90% 85%, rgba(2, 132, 199, 0.08), transparent 28%),
-        #f6f9ff;
+        radial-gradient(circle at 12% 10%, rgba(200, 70, 56, 0.08), transparent 35%),
+        radial-gradient(circle at 90% 85%, rgba(200, 70, 56, 0.06), transparent 28%),
+        #f8f9fb;
 }
 
-/* Ensure scrollbar on the right and enable smooth auto-scroll */
 .client-chat-messages {
     direction: ltr;
     scroll-behavior: smooth;
@@ -301,17 +407,17 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     padding: 10px 12px;
     border-radius: 12px;
     font-size: 0.93rem;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 3px 10px rgba(31, 41, 55, 0.1);
 }
 
 .client-msg-bubble.admin {
-    background: #edf2f9;
-    color: #1f2c3d;
+    background: var(--surface-3);
+    color: var(--text-800);
     border-top-left-radius: 4px;
 }
 
 .client-msg-bubble.client {
-    background: linear-gradient(135deg, #2f8cff, #2563eb);
+    background: linear-gradient(135deg, #d65b4c, #b33f31);
     color: #ffffff;
     border-top-right-radius: 4px;
 }
@@ -330,33 +436,131 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 }
 
 .client-chat-input-wrap {
-    border-top: 1px solid #e1e8f2;
+    border-top: 1px solid var(--border);
     padding: 10px 12px;
-    background: #f7f9fc;
+    background: var(--surface-2);
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
 }
 
 .client-chat-input-form {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto auto 1fr auto;
     gap: 8px;
     align-items: center;
 }
 
 .client-attach-btn {
-    color: #647a95;
+    color: var(--text-600);
     text-decoration: none;
-    border: 1px solid #c8d4e6;
-    background: #ffffff;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
     border-radius: 10px;
     width: 40px;
     height: 40px;
 }
 
+.client-chat-input-form .dropdown {
+    display: flex;
+}
+
+.client-actions-menu {
+    min-width: 84px;
+    box-shadow: 0 14px 30px rgba(31, 41, 55, 0.14);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+}
+
+.client-action-bubble {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+}
+
+.client-action-icon i {
+    font-size: 1rem;
+}
+
+.client-chat-input-form .dropdown .dropdown-menu {
+    z-index: 1080;
+}
+
 .client-chat-input-form .form-control {
-    background: #ffffff;
-    border: 1px solid #cfd9e8;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
-    color: #223448 !important;
+    color: var(--text-900) !important;
+}
+
+.client-diagnostic-modal {
+    border: 1px solid #dbe3ef !important;
+    overflow: hidden;
+}
+
+.client-diagnostic-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem 1.25rem;
+}
+
+.client-diagnostic-body {
+    background: #ffffff;
+    padding: 1.25rem;
+}
+
+.client-diagnostic-footer {
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem 1.25rem;
+}
+
+.client-diagnostic-label {
+    color: #111827 !important;
+    font-weight: 700 !important;
+}
+
+#editInterventionInfoModal .client-diagnostic-label,
+#uploadInterventionMediaModal .client-diagnostic-label {
+    color: #111827 !important;
+    font-weight: 700 !important;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.client-diagnostic-help {
+    color: #6b7280;
+}
+
+.client-diagnostic-field {
+    background-color: #ffffff !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+}
+
+.client-diagnostic-field::placeholder {
+    color: #9ca3af !important;
+}
+
+.client-diagnostic-field:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+.client-diagnostic-modal .form-select option {
+    background-color: #ffffff;
+    color: #111827;
+}
+
+.client-diagnostic-modal .form-control[type="file"] {
+    color: #111827 !important;
 }
 
 .client-send-btn {
@@ -366,7 +570,7 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
+    box-shadow: 0 8px 16px rgba(200, 70, 56, 0.28);
 }
 
 .client-chat-empty {
@@ -375,7 +579,7 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #6a7f98;
+    color: var(--text-500);
     gap: 8px;
 }
 
@@ -384,6 +588,10 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 }
 
 @media (max-width: 992px) {
+    .front-office .page-wrapper {
+        margin-left: 0;
+    }
+
     .client-messages-page {
         height: auto;
         min-height: calc(100vh - 64px);
@@ -391,12 +599,13 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
 
     .client-chat-shell {
         grid-template-columns: 1fr;
+        height: auto;
         min-height: calc(100vh - 64px);
     }
 
     .client-chat-sidebar {
         border-right: 0;
-        border-bottom: 1px solid #d6dfeb;
+        border-bottom: 1px solid var(--border);
     }
 
     .client-chat-conversation-list {
@@ -407,6 +616,17 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : 0;
     .client-msg-bubble {
         max-width: 86%;
     }
+}
+</style>
+
+<style>
+.client-plus-btn {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    font-weight: 700;
+    line-height: 1;
 }
 </style>
 <script>

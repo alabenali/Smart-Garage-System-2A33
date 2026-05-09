@@ -63,7 +63,7 @@ $action = 'diagnostics';
                 <input type="hidden" name="action" value="add_admin_diagnostic">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label text-light fw-600">Vehicule</label>
+                        <label class="form-label workshop-label">Vehicule</label>
                         <select name="id_vehicule" class="form-select bg-dark border-secondary text-white" required>
                             <option value="">Choisir...</option>
                             <?php foreach (($vehicles ?? []) as $vehicle): ?>
@@ -73,12 +73,12 @@ $action = 'diagnostics';
                         <div class="invalid-feedback">Veuillez selectionner un vehicule.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-light fw-600">Montant estime (DT)</label>
+                        <label class="form-label workshop-label">Montant estime (DT)</label>
                         <input type="number" step="0.01" min="0" name="montant_estime" class="form-control bg-dark border-secondary text-white" placeholder="Exemple: 280.00" required>
                         <div class="invalid-feedback">Veuillez saisir un montant valide.</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-light fw-600">Date</label>
+                        <label class="form-label workshop-label">Date</label>
                         <input type="date" name="date_diagnostic" class="form-control bg-dark border-secondary text-white" value="<?php echo date('Y-m-d'); ?>" required>
                         <div class="invalid-feedback">Veuillez saisir la date du diagnostic.</div>
                     </div>
@@ -102,9 +102,6 @@ $action = 'diagnostics';
                         <button type="submit" class="btn btn-primary">
                             <i class="bi bi-clipboard-check me-1"></i>Enregistrer diagnostic
                         </button>
-                        <button type="submit" name="create_intervention_now" value="1" class="btn btn-outline-info">
-                            <i class="bi bi-tools me-1"></i>Enregistrer + creer intervention
-                        </button>
                     </div>
                 </div>
             </form>
@@ -123,13 +120,13 @@ $action = 'diagnostics';
                     <table class="table table-hover table-dark mb-0">
                         <thead style="background-color: #2c3e50; color: #fff;">
                             <tr>
-                                <th>#ID&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
-                                <th>Véhicule&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
-                                <th>Description&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
-                                <th>Montant (DT)&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
-                                <th>Date&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
-                                <th>Statut&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
-                                <th>Actions</th>
+                                <th class="fw-bold">#ID&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th class="fw-bold">Véhicule&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th class="fw-bold">Description&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th class="fw-bold">Montant (DT)&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th class="fw-bold">Date&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th class="fw-bold">Statut&nbsp;<span style="font-size: 0.65rem; opacity: 0.7;">▼</span></th>
+                                <th class="fw-bold">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -364,23 +361,22 @@ $action = 'diagnostics';
 
 <style>
 #workshopDiagnosticForm .workshop-label {
-    color: #e8f1ff !important;
+    color: var(--text-700) !important;
     font-weight: 700;
 }
 
 #workshopDiagnosticForm .invalid-feedback {
-    color: #ff6b6b;
+    color: var(--danger);
     font-weight: 600;
 }
 
-/* Styles pour le tri du tableau */
 table.table-dark thead th {
     user-select: none;
     cursor: pointer;
 }
 
 table.table-dark thead th:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface-2);
     transition: background-color 0.2s;
 }
 

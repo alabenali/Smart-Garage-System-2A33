@@ -32,6 +32,9 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : (int)($inte
                         <div class="col-md-6">
                             <div class="small text-muted">Vehicule</div>
                             <div class="fw-semibold"><?php echo htmlspecialchars((string)($intervention['immatriculation'] ?? '-')); ?></div>
+                            <div class="text-muted small">
+                                <?php echo htmlspecialchars(trim((string)($intervention['vehicle_marque'] ?? '') . ' ' . (string)($intervention['vehicle_modele'] ?? ''))); ?>
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <div class="small text-muted">Type intervention</div>
@@ -44,6 +47,25 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : (int)($inte
                         <div class="col-md-6">
                             <div class="small text-muted">Statut devis</div>
                             <div><span class="badge bg-warning text-dark"><?php echo htmlspecialchars((string)($intervention['statut_devis'] ?? 'en_attente')); ?></span></div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <div class="small text-muted">Couleur</div>
+                            <div class="fw-semibold"><?php echo htmlspecialchars((string)($intervention['vehicle_couleur'] ?? '-')); ?></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Annee</div>
+                            <div class="fw-semibold"><?php echo htmlspecialchars((string)($intervention['vehicle_annee'] ?? '-')); ?></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Kilometrage</div>
+                            <div class="fw-semibold"><?php echo htmlspecialchars((string)($intervention['vehicle_km'] ?? '-')); ?></div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="small text-muted">Carburant</div>
+                            <div class="fw-semibold"><?php echo htmlspecialchars((string)($intervention['vehicle_carburant'] ?? '-')); ?></div>
                         </div>
                     </div>
 
@@ -104,7 +126,7 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : (int)($inte
                         </button>
                     </form>
 
-                    <a href="index.php?action=intervention_chat&id=<?php echo (int)$intervention['id_intervention']; ?>&vehicle_id=<?php echo (int)$vehicleId; ?>" class="btn btn-outline-light">
+                    <a href="index.php?action=client_messages&vehicle_id=<?php echo (int)$vehicleId; ?>" class="btn btn-outline-light">
                         Negocier via messagerie
                     </a>
                 </div>
@@ -112,7 +134,7 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : (int)($inte
 
             <div class="card bg-dark border-0 shadow-sm rounded-4">
                 <div class="card-header bg-secondary bg-opacity-10 border-0 py-3">Derniers messages</div>
-                <div class="card-body p-3" style="max-height: 260px; overflow:auto;">
+                <div class="card-body p-3" id="recentMessagesContainer" style="max-height: 260px; overflow:auto;">
                     <?php if (empty($recentMessages)): ?>
                         <div class="text-muted small">Aucun message pour le moment.</div>
                     <?php else: ?>
@@ -128,5 +150,14 @@ $vehicleId = isset($_GET['vehicle_id']) ? (int)$_GET['vehicle_id'] : (int)($inte
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const container = document.getElementById('recentMessagesContainer');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    });
+</script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

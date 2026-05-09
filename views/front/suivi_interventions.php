@@ -203,12 +203,12 @@
 
 <style>
 .card-header {
-    border-radius: 10px 10px 0 0;
+    border-radius: var(--radius) var(--radius) 0 0;
     padding: 1.25rem;
 }
 
 .card-footer {
-    border-radius: 0 0 10px 10px;
+    border-radius: 0 0 var(--radius) var(--radius);
     padding: 0.75rem;
 }
 
@@ -227,9 +227,9 @@
     display: inline-block;
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
-    background: rgba(25, 211, 255, 0.2);
-    border: 1px solid rgba(25, 211, 255, 0.45);
-    color: #dff7ff;
+    background: var(--accent-100);
+    border: 1px solid var(--accent-200);
+    color: var(--accent);
     font-weight: 600;
     letter-spacing: 0.02em;
 }
@@ -239,25 +239,25 @@
 }
 
 .inter-date-start {
-    color: #9fd4ff;
+    color: var(--info);
 }
 
 .inter-date-end {
-    color: #8ff0b2;
+    color: var(--success);
 }
 
 .inter-date-muted {
-    color: #9cb4d6;
+    color: var(--text-500);
     font-weight: 500;
 }
 
 .btn-outline-light:hover {
     transform: translateY(-2px);
-    box-shadow: 0 3px 10px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 18px rgba(200, 70, 56, 0.18);
 }
 
 .btn-outline-info:hover {
     transform: translateY(-2px);
-    box-shadow: 0 3px 10px rgba(23, 162, 184, 0.3);
+    box-shadow: 0 8px 18px rgba(59, 130, 246, 0.2);
 }
 </style>

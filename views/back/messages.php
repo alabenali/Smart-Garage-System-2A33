@@ -96,9 +96,41 @@ $action = 'messages';
                         <input type="hidden" name="action" value="send_message">
                         <input type="hidden" name="sender" value="admin">
                         <input type="hidden" name="id_intervention" value="<?php echo (int)$selectedIntervention['id_intervention']; ?>">
-                        <button type="button" class="btn btn-link admin-attach-btn" title="Piece jointe non active">
-                            <i class="bi bi-paperclip"></i>
-                        </button>
+                        <div class="dropdown dropup">
+                            <button type="button" class="btn btn-link admin-attach-btn admin-plus-btn" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
+                                +
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end admin-actions-menu p-2">
+                                <li>
+                                    <button type="button"
+                                        class="btn btn-outline-primary rounded-circle admin-action-bubble admin-action-icon mb-2"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editInterventionInfoModalAdmin"
+                                        data-id="<?php echo (int)$selectedIntervention['id_intervention']; ?>"
+                                        data-description="<?php echo htmlspecialchars((string)($selectedIntervention['description_travail'] ?? ''), ENT_QUOTES); ?>"
+                                        data-type-id="<?php echo (int)($selectedIntervention['id_type'] ?? 0); ?>"
+                                        data-cout="<?php echo htmlspecialchars((string)($selectedIntervention['cout_initial'] ?? 0), ENT_QUOTES); ?>"
+                                        data-statut="<?php echo htmlspecialchars((string)($selectedIntervention['statut'] ?? ''), ENT_QUOTES); ?>"
+                                        data-date-debut="<?php echo htmlspecialchars((string)($selectedIntervention['date_debut'] ?? ''), ENT_QUOTES); ?>"
+                                        data-date-fin="<?php echo htmlspecialchars((string)($selectedIntervention['date_fin'] ?? ''), ENT_QUOTES); ?>"
+                                        onclick="setAdminEditInterventionData(this)"
+                                        aria-label="Modifier">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </li>
+                                <li>
+                                    <button type="button"
+                                        class="btn btn-outline-success rounded-circle admin-action-bubble admin-action-icon"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#uploadInterventionMediaModalAdmin"
+                                        data-id="<?php echo (int)$selectedIntervention['id_intervention']; ?>"
+                                        onclick="setAdminUploadInterventionData(this)"
+                                        aria-label="Photo / Document">
+                                        <i class="bi bi-image"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                         <input type="text" name="contenu" class="form-control" placeholder="Ecrire un message..." autocomplete="off" required>
                         <button type="submit" class="btn btn-primary admin-send-btn" title="Envoyer">
                             <i class="bi bi-send-fill"></i>
@@ -118,9 +150,8 @@ $action = 'messages';
 }
 
 .back-office .page-wrapper {
-    margin-left: 300px !important;
+    margin-left: 260px !important;
     padding: 0 !important;
-    height: 100vh;
 }
 
 .admin-messages-page {
@@ -137,16 +168,17 @@ $action = 'messages';
     border-radius: 0;
     overflow: hidden;
     border: 0;
-    border-top: 1px solid rgba(189, 208, 234, 0.2);
-    background: #f5f7fb;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
     box-shadow: none;
 }
 
 .admin-chat-sidebar {
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, #f0f3f8 0%, #e8edf5 100%);
-    border-right: 1px solid #d6dfeb;
+    min-height: 0;
+    background: var(--surface-3);
+    border-right: 1px solid var(--border);
 }
 
 .admin-chat-search-wrap {
@@ -157,23 +189,24 @@ $action = 'messages';
     align-items: center;
     gap: 8px;
     padding: 10px;
-    background: #f0f3f8;
-    border-bottom: 1px solid #d6dfeb;
+    background: var(--surface-3);
+    border-bottom: 1px solid var(--border);
 }
 
 .admin-chat-search-wrap i {
-    color: #73849a;
+    color: var(--text-500);
 }
 
 .admin-chat-search-wrap .form-control {
-    background: #ffffff;
-    border: 1px solid #cfd9e8;
-    color: #233243 !important;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-900) !important;
 }
 
 .admin-chat-conversation-list {
     flex: 1;
     min-height: 0;
+    max-height: none;
     overflow-y: auto;
 }
 
@@ -181,19 +214,19 @@ $action = 'messages';
     position: relative;
     display: block;
     padding: 12px 14px;
-    color: #1f2e40;
+    color: var(--text-800);
     text-decoration: none;
-    border-bottom: 1px solid #dde5f0;
+    border-bottom: 1px solid var(--border);
     transition: background 0.2s ease;
 }
 
 .admin-conv-item:hover {
-    background: #eaf2ff;
+    background: var(--accent-100);
 }
 
 .admin-conv-item.active {
-    background: #dfeeff;
-    border-left: 3px solid #2585ff;
+    background: var(--accent-100);
+    border-left: 3px solid var(--accent);
     padding-left: 11px;
 }
 
@@ -210,19 +243,19 @@ $action = 'messages';
 }
 
 .admin-conv-time {
-    color: #7b8ea6;
+    color: var(--text-500);
     font-size: 0.72rem;
 }
 
 .admin-conv-meta {
     margin-top: 2px;
-    color: #425b79;
+    color: var(--text-600);
     font-size: 0.78rem;
 }
 
 .admin-conv-preview {
     margin-top: 4px;
-    color: #4f657f;
+    color: var(--text-600);
     font-size: 0.8rem;
     white-space: nowrap;
     overflow: hidden;
@@ -240,8 +273,10 @@ $action = 'messages';
 .admin-chat-main {
     display: flex;
     flex-direction: column;
+    min-height: 0;
     min-width: 0;
-    background: #ffffff;
+    background: var(--surface);
+    overflow: hidden;
 }
 
 .admin-chat-header {
@@ -250,8 +285,8 @@ $action = 'messages';
     gap: 10px;
     min-height: 64px;
     padding: 10px 16px;
-    border-bottom: 1px solid #e1e8f2;
-    background: #f7f9fc;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
 }
 
 .admin-chat-avatar {
@@ -263,27 +298,48 @@ $action = 'messages';
     justify-content: center;
     font-weight: 700;
     color: #ffffff;
-    background: radial-gradient(circle at 30% 30%, #4cb0ff, #0f4eb6);
+    background: radial-gradient(circle at 30% 30%, #f07a6a, #c84638);
 }
 
 .admin-chat-name {
-    color: #17283c;
+    color: var(--text-900);
     font-weight: 700;
 }
 
 .admin-chat-sub {
-    color: #6b7f99;
+    color: var(--text-500);
     font-size: 0.78rem;
 }
 
 .admin-chat-messages {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding: 16px;
     background:
-        radial-gradient(circle at 10% 10%, rgba(59, 130, 246, 0.08), transparent 35%),
-        radial-gradient(circle at 90% 85%, rgba(2, 132, 199, 0.08), transparent 28%),
-        #f6f9ff;
+        radial-gradient(circle at 10% 10%, rgba(200, 70, 56, 0.08), transparent 35%),
+        radial-gradient(circle at 90% 85%, rgba(200, 70, 56, 0.06), transparent 28%),
+        #f8f9fb;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) #f8f9fb;
+}
+
+.admin-chat-messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.admin-chat-messages::-webkit-scrollbar-track {
+    background: #f8f9fb;
+}
+
+.admin-chat-messages::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
+}
+
+.admin-chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #c3cbd8;
 }
 
 .admin-msg-row {
@@ -304,17 +360,17 @@ $action = 'messages';
     padding: 10px 12px;
     border-radius: 12px;
     font-size: 0.93rem;
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 3px 10px rgba(31, 41, 55, 0.1);
 }
 
 .admin-msg-bubble.client {
-    background: #edf2f9;
-    color: #1f2c3d;
+    background: var(--surface-3);
+    color: var(--text-800);
     border-top-left-radius: 4px;
 }
 
 .admin-msg-bubble.admin {
-    background: linear-gradient(135deg, #2f8cff, #2563eb);
+    background: linear-gradient(135deg, #d65b4c, #b33f31);
     color: #ffffff;
     border-top-right-radius: 4px;
 }
@@ -333,9 +389,13 @@ $action = 'messages';
 }
 
 .admin-chat-input-wrap {
-    border-top: 1px solid #e1e8f2;
+    border-top: 1px solid var(--border);
     padding: 10px 12px;
-    background: #f7f9fc;
+    background: var(--surface-2);
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
 }
 
 .admin-chat-input-form {
@@ -346,20 +406,44 @@ $action = 'messages';
 }
 
 .admin-attach-btn {
-    color: #647a95;
+    color: var(--text-600);
     text-decoration: none;
-    border: 1px solid #c8d4e6;
-    background: #ffffff;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
     border-radius: 10px;
     width: 40px;
     height: 40px;
 }
 
+.admin-chat-input-form .dropdown {
+    display: flex;
+}
+
+.admin-actions-menu {
+    min-width: 84px;
+    box-shadow: 0 14px 30px rgba(31, 41, 55, 0.14);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+}
+
+.admin-action-bubble {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+}
+
+.admin-action-icon i {
+    font-size: 1rem;
+}
+
 .admin-chat-input-form .form-control {
-    background: #ffffff;
-    border: 1px solid #cfd9e8;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
-    color: #223448 !important;
+    color: var(--text-900) !important;
 }
 
 .admin-send-btn {
@@ -369,7 +453,7 @@ $action = 'messages';
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.28);
+    box-shadow: 0 8px 16px rgba(200, 70, 56, 0.28);
 }
 
 .admin-chat-empty {
@@ -378,7 +462,7 @@ $action = 'messages';
     align-items: center;
     justify-content: center;
     flex: 1;
-    color: #6a7f98;
+    color: var(--text-500);
     gap: 8px;
 }
 
@@ -390,22 +474,19 @@ $action = 'messages';
     .back-office .page-wrapper {
         margin-left: 0 !important;
         padding: 0 !important;
-        height: auto;
     }
 
     .admin-messages-page {
-        height: auto;
-        min-height: calc(100vh - 64px);
+        height: 100vh;
     }
 
     .admin-chat-shell {
         grid-template-columns: 1fr;
-        min-height: calc(100vh - 64px);
     }
 
     .admin-chat-sidebar {
         border-right: 0;
-        border-bottom: 1px solid #d6dfeb;
+        border-bottom: 1px solid var(--border);
     }
 
     .admin-chat-conversation-list {
@@ -418,6 +499,109 @@ $action = 'messages';
     }
 }
 </style>
+
+<script>
+(function () {
+    // Scroll to bottom function
+    function scrollAdminChatToBottom() {
+        var zone = document.getElementById('adminChatZone');
+        if (!zone) return;
+        try { zone.scrollTop = zone.scrollHeight; } catch(e) {}
+        setTimeout(function(){ try { zone.scrollTop = zone.scrollHeight; } catch(e) {} }, 50);
+        setTimeout(function(){ try { zone.scrollTop = zone.scrollHeight; } catch(e) {} }, 300);
+    }
+
+    // On load scroll to bottom
+    window.addEventListener('load', function(){ scrollAdminChatToBottom(); });
+
+    // Observe new messages appended and scroll
+    var observerTarget = document.getElementById('adminChatZone');
+    if (observerTarget) {
+        var obs = new MutationObserver(function(muts){ scrollAdminChatToBottom(); });
+        obs.observe(observerTarget, { childList: true, subtree: true });
+    }
+})();
+</script>
+
+<div class="modal fade" id="editInterventionInfoModalAdmin" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-light">
+            <div class="modal-header">
+                <h5 class="modal-title text-white">Modifier l'intervention</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="index.php?action=messages">
+                <input type="hidden" name="action_type" value="update_intervention_info">
+                <input type="hidden" name="id_intervention" id="adminEditInterventionId">
+                <div class="modal-body text-light">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Type d'intervention</label>
+                            <select name="id_type" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="">Selectionner un type</option>
+                                <?php foreach (($typesIntervention ?? []) as $type): ?>
+                                    <option value="<?php echo (int)($type['id_type'] ?? 0); ?>"><?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Statut</label>
+                            <select name="statut" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="planifiée">Planifiee</option>
+                                <option value="en_cours">En cours</option>
+                                <option value="terminée">Terminee</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Description des travaux</label>
+                            <textarea name="description_travail" class="form-control bg-dark text-white border-secondary" rows="3" required></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cout initial (DT)</label>
+                            <input type="number" step="0.01" min="0" name="cout_initial" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date debut</label>
+                            <input type="date" name="date_debut" class="form-control bg-dark text-white border-secondary">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date fin</label>
+                            <input type="date" name="date_fin" class="form-control bg-dark text-white border-secondary">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="uploadInterventionMediaModalAdmin" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content bg-dark border-light">
+            <div class="modal-header">
+                <h5 class="modal-title text-white">Ajouter un document</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="index.php?action=messages" enctype="multipart/form-data">
+                <input type="hidden" name="action_type" value="upload_intervention_media">
+                <input type="hidden" name="id_intervention" id="adminUploadInterventionId">
+                <div class="modal-body text-light">
+                    <label class="form-label">Fichier</label>
+                    <input type="file" name="media_file" class="form-control bg-dark text-white border-secondary" accept="image/*,video/*,application/pdf" required>
+                    <div class="form-text text-muted">Images, video ou PDF (max 10 Mo).</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Uploader</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 (function () {
@@ -441,6 +625,34 @@ $action = 'messages';
         });
     });
 })();
+
+function setAdminEditInterventionData(button) {
+    if (!button || !button.dataset) return;
+    var modal = document.getElementById('editInterventionInfoModalAdmin');
+    if (!modal) return;
+
+    var idInput = modal.querySelector('#adminEditInterventionId');
+    var typeSelect = modal.querySelector('select[name="id_type"]');
+    var statutSelect = modal.querySelector('select[name="statut"]');
+    var descriptionField = modal.querySelector('textarea[name="description_travail"]');
+    var coutField = modal.querySelector('input[name="cout_initial"]');
+    var dateDebutField = modal.querySelector('input[name="date_debut"]');
+    var dateFinField = modal.querySelector('input[name="date_fin"]');
+
+    if (idInput) idInput.value = button.dataset.id || '';
+    if (typeSelect) typeSelect.value = button.dataset.typeId || '';
+    if (statutSelect) statutSelect.value = button.dataset.statut || '';
+    if (descriptionField) descriptionField.value = button.dataset.description || '';
+    if (coutField) coutField.value = button.dataset.cout || '';
+    if (dateDebutField) dateDebutField.value = button.dataset.dateDebut ? button.dataset.dateDebut.split(' ')[0] : '';
+    if (dateFinField) dateFinField.value = button.dataset.dateFin ? button.dataset.dateFin.split(' ')[0] : '';
+}
+
+function setAdminUploadInterventionData(button) {
+    if (!button || !button.dataset) return;
+    var input = document.getElementById('adminUploadInterventionId');
+    if (input) input.value = button.dataset.id || '';
+}
 </script>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

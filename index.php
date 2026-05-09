@@ -135,6 +135,25 @@ switch ($action) {
         $conversationPreviews = $buildConversationPreviews($interventions, $vehicleId);
         $sortInterventionsByLastMessage($interventions, $conversationPreviews);
 
+        $threads = [];
+        foreach ($interventions as $intervention) {
+            $interventionId = (int)($intervention['id_intervention'] ?? 0);
+            if ($interventionId <= 0) {
+                continue;
+            }
+
+            $preview = $conversationPreviews[$interventionId] ?? [];
+            $threads[] = [
+                'intervention' => $intervention,
+                'last_message' => [
+                    'contenu' => $preview['last_content'] ?? '',
+                    'date_envoi' => $preview['last_date'] ?? null,
+                    'expediteur' => $preview['last_sender'] ?? null,
+                ],
+                'messages_count' => $preview['count'] ?? 0,
+            ];
+        }
+
         $selectedData = $resolveClientSelectedIntervention(
             $interventions,
             $vehicleId,
@@ -143,9 +162,14 @@ switch ($action) {
         $selectedInterventionId = (int)$selectedData['id'];
         $selectedIntervention = $selectedData['intervention'];
 
+        if (empty($selectedIntervention) && !empty($interventions)) {
+            $selectedIntervention = $interventions[0];
+            $selectedInterventionId = (int)($selectedIntervention['id_intervention'] ?? 0);
+        }
+
         $messages = [];
-        if (!empty($selectedIntervention)) {
-            $messages = $interventionController->listMessages((int)$selectedIntervention['id_intervention'], $vehicleId);
+        if ($vehicleId > 0) {
+            $messages = $interventionController->listMessagesByVehicle($vehicleId);
         }
 
         $action = 'client_messages';
@@ -180,7 +204,14 @@ switch ($action) {
             $result = $interventionController->handleRequest();
             $idIntervention = isset($_POST['id_intervention']) ? (int)$_POST['id_intervention'] : 0;
             $vehicleId = isset($_POST['vehicle_id']) ? (int)$_POST['vehicle_id'] : 0;
-            $qs = !empty($result['success']) ? 'sent=1' : 'error=1';
+            $actionType = $_POST['action_type'] ?? ($_POST['action'] ?? '');
+            if (!empty($result['success']) && $actionType === 'update_intervention_info') {
+                $qs = 'updated=1';
+            } elseif (!empty($result['success']) && $actionType === 'upload_intervention_media') {
+                $qs = 'uploaded=1';
+            } else {
+                $qs = !empty($result['success']) ? 'sent=1' : 'error=1';
+            }
             header('Location: index.php?action=intervention_chat&id=' . $idIntervention . '&vehicle_id=' . $vehicleId . '&' . $qs);
             exit();
         }
@@ -198,6 +229,7 @@ switch ($action) {
         );
         $selectedInterventionId = (int)$selectedData['id'];
         $selectedIntervention = $selectedData['intervention'];
+        $typesIntervention = $interventionController->getTypesIntervention();
 
         $messages = [];
         if (!empty($selectedIntervention)) {
@@ -344,6 +376,8 @@ switch ($action) {
                     header('Location: index.php?action=admin_interventions&intervention_updated=1');
                 } elseif ($actionType === 'update_quote') {
                     header('Location: index.php?action=admin_interventions&quote_updated=1');
+                } elseif ($actionType === 'update_type_prices') {
+                    header('Location: index.php?action=admin_interventions&type_prices_updated=1');
                 } elseif ($actionType === 'send_quote_email') {
                     header('Location: index.php?action=admin_interventions&quote_email_sent=1');
                 } elseif ($actionType === 'send_intervention_info') {
@@ -406,6 +440,7 @@ switch ($action) {
         $interventions = $interventionController->getAll(null, 200, 0);
         $conversationPreviews = $buildConversationPreviews($interventions, 0);
         $sortInterventionsByLastMessage($interventions, $conversationPreviews);
+        $typesIntervention = $interventionController->getTypesIntervention();
 
         $selectedInterventionId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if ($selectedInterventionId <= 0 && !empty($interventions)) {

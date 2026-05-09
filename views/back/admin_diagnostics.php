@@ -73,7 +73,7 @@
 
     <!-- Tableau des diagnostics -->
     <div class="card bg-dark border-light">
-        <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-header" style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
             <h5 class="mb-0 text-white">
                 <i class="fas fa-list me-2"></i>Diagnostics en Attente
             </h5>
@@ -183,7 +183,7 @@
 <div class="modal fade" id="acceptModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content bg-dark border-light">
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
                 <h5 class="modal-title text-white">
                     <i class="fas fa-check-circle me-2"></i>Accepter le Diagnostic
                 </h5>
@@ -281,7 +281,7 @@ function setRefuseData(diagnosticId, vehicleImmat) {
 
 <style>
 .table-hover tbody tr:hover {
-    background-color: rgba(102, 126, 234, 0.1) !important;
+    background-color: rgba(200, 70, 56, 0.06) !important;
 }
 
 .btn-group-sm .btn {
@@ -295,9 +295,9 @@ function setRefuseData(diagnosticId, vehicleImmat) {
 }
 
 .form-control:focus, .form-select:focus {
-    background-color: #3a3f5c !important;
-    color: white !important;
-    border-color: #667eea !important;
-    box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+    background-color: var(--surface) !important;
+    color: var(--text-900) !important;
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(200, 70, 56, 0.15) !important;
 }
 </style>

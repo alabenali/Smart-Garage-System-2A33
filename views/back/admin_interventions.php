@@ -38,7 +38,7 @@ $action = 'admin_interventions';
     <div class="modal fade" id="addInterventionModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content bg-dark border-light">
-                        <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
                     <h5 class="modal-title text-white"><i class="bi bi-plus-circle me-2"></i>Ajouter une intervention</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -79,9 +79,10 @@ $action = 'admin_interventions';
                                 <div class="d-flex flex-wrap gap-3">
                                     <?php foreach (($types_intervention ?? []) as $type): ?>
                                         <div class="form-check">
-                                            <input class="form-check-input intervention-checkbox" type="checkbox" id="type_<?php echo (int)($type['id_type'] ?? 0); ?>" name="id_type[]" value="<?php echo (int)($type['id_type'] ?? 0); ?>" data-type-name="<?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?>" data-min="0" data-max="0">
+                                            <input class="form-check-input intervention-checkbox" type="checkbox" id="type_<?php echo (int)($type['id_type'] ?? 0); ?>" name="id_type[]" value="<?php echo (int)($type['id_type'] ?? 0); ?>" data-type-name="<?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?>" data-price="<?php echo htmlspecialchars(number_format((float)($type['prix'] ?? 0), 2, '.', '')); ?>">
                                             <label class="form-check-label text-white" for="type_<?php echo (int)($type['id_type'] ?? 0); ?>">
                                                 <?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?>
+                                                <span class="text-muted">(<?php echo number_format((float)($type['prix'] ?? 0), 2, ',', ' '); ?> DT)</span>
                                             </label>
                                         </div>
                                     <?php endforeach; ?>
@@ -174,6 +175,13 @@ $action = 'admin_interventions';
     <?php if (isset($_GET['quote_updated'])): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-file-invoice-dollar me-2"></i><strong>Devis mis a jour avec succes.</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_GET['type_prices_updated'])): ?>
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-tags me-2"></i><strong>Prix des types mis a jour avec succes.</strong>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -298,13 +306,39 @@ $action = 'admin_interventions';
                                                 <i class="bi bi-file-earmark-pdf me-1"></i>Devis PDF
                                             </a>
 
-                                            <button type="button" class="btn btn-sm btn-outline-warning inter-action-btn"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#statutModal"
-                                                title="Modifier le statut"
-                                                onclick="setStatutData(<?php echo (int)$inter['id_intervention']; ?>, '<?php echo htmlspecialchars((string)$inter['statut'], ENT_QUOTES); ?>', '<?php echo !empty($inter['date_debut']) ? date('Y-m-d', strtotime((string)$inter['date_debut'])) : ''; ?>', '<?php echo !empty($inter['date_fin']) ? date('Y-m-d', strtotime((string)$inter['date_fin'])) : ''; ?>')">
-                                                <i class="bi bi-pencil-square me-1"></i>Statut
-                                            </button>
+                                            <div class="dropdown">
+                                                <button type="button" class="btn btn-sm btn-outline-primary inter-action-btn inter-action-plus" data-bs-toggle="dropdown" aria-expanded="false" title="Actions">
+                                                    +
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li>
+                                                        <button type="button"
+                                                            class="dropdown-item"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editInterventionInfoModalAdmin"
+                                                            data-id="<?php echo (int)$inter['id_intervention']; ?>"
+                                                            data-description="<?php echo htmlspecialchars((string)($inter['description_travail'] ?? ''), ENT_QUOTES); ?>"
+                                                            data-type-id="<?php echo (int)($inter['id_type'] ?? 0); ?>"
+                                                            data-cout="<?php echo htmlspecialchars((string)($inter['cout_initial'] ?? 0), ENT_QUOTES); ?>"
+                                                            data-statut="<?php echo htmlspecialchars((string)($inter['statut'] ?? ''), ENT_QUOTES); ?>"
+                                                            data-date-debut="<?php echo htmlspecialchars((string)($inter['date_debut'] ?? ''), ENT_QUOTES); ?>"
+                                                            data-date-fin="<?php echo htmlspecialchars((string)($inter['date_fin'] ?? ''), ENT_QUOTES); ?>"
+                                                            onclick="setAdminEditInterventionData(this)">
+                                                            <i class="bi bi-pencil-square me-2"></i>Modifier
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button type="button"
+                                                            class="dropdown-item"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#uploadInterventionMediaModalAdmin"
+                                                            data-id="<?php echo (int)$inter['id_intervention']; ?>"
+                                                            onclick="setAdminUploadInterventionData(this)">
+                                                            <i class="bi bi-image me-2"></i>Photo / Document
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
 
                                             <?php if (($inter['statut'] ?? '') !== 'terminée'): ?>
                                                 <button type="button" class="btn btn-sm btn-success inter-action-btn"
@@ -313,9 +347,6 @@ $action = 'admin_interventions';
                                                     title="Terminer l'intervention"
                                                     onclick="setTerminateData(<?php echo (int)$inter['id_intervention']; ?>, <?php echo (float)($inter['cout_initial'] ?? 0); ?>)">
                                                     <i class="bi bi-check2-circle me-1"></i>Terminer
-                                                </button>
-                                                <button type="button" class="btn btn-sm btn-outline-warning inter-action-btn" data-bs-toggle="modal" data-bs-target="#editQuoteModal<?php echo $iid; ?>" title="Modifier le devis">
-                                                    <i class="bi bi-pencil-square me-1"></i>Devis
                                                 </button>
                                             <?php else: ?>
                                                     <a href="index.php?action=export_intervention_pdf&id=<?php echo (int)$inter['id_intervention']; ?>"
@@ -368,22 +399,22 @@ $action = 'admin_interventions';
             $msgs = $interventionMessages[$iid] ?? [];
             ?>
             <div class="modal fade" id="messagesModal<?php echo $iid; ?>" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                    <div class="modal-content bg-dark border-light">
-                        <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content bg-dark border-light" style="max-height: calc(100vh - 2rem); display: flex; flex-direction: column;">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
                             <h5 class="modal-title text-white">
                                 <i class="bi bi-chat-dots me-2"></i>Messages - Intervention #<?php echo $iid; ?>
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body messages-modal-body" style="max-height: 420px; overflow-y: auto;">
+                        <div class="modal-body messages-modal-body" style="flex: 1 1 auto; min-height: 0; overflow-y: auto;">
                             <?php if (empty($msgs)): ?>
                                 <div class="text-muted">Aucun message pour cette intervention.</div>
                             <?php else: ?>
                                 <?php foreach ($msgs as $msg): ?>
                                     <?php $isClient = (($msg['expediteur'] ?? '') === 'client'); ?>
                                     <div class="d-flex mb-3 <?php echo $isClient ? 'justify-content-start' : 'justify-content-end'; ?>">
-                                        <div class="p-3 rounded-3" style="max-width: 78%; <?php echo $isClient ? 'background: #eef2f7; color:#1b2430;' : 'background: linear-gradient(135deg, #1f8fff, #2563eb); color:#fff;'; ?>">
+                                        <div class="p-3 rounded-3" style="max-width: 78%; <?php echo $isClient ? 'background: #eef2f7; color:#1b2430;' : 'background: linear-gradient(135deg, #d65b4c, #b33f31); color:#fff;'; ?>">
                                             <div class="small mb-1" style="opacity:.85;">
                                                 <?php echo $isClient ? 'Client' : 'Admin'; ?>
                                                 - <?php echo htmlspecialchars(date('d/m/Y H:i', strtotime((string)$msg['date_envoi']))); ?>
@@ -394,7 +425,7 @@ $action = 'admin_interventions';
                                 <?php endforeach; ?>
                             <?php endif; ?>
                         </div>
-                        <div class="modal-footer border-top border-secondary">
+                        <div class="modal-footer border-top border-secondary" style="flex-shrink: 0;">
                             <form method="POST" action="index.php?action=admin_interventions" class="w-100 d-flex gap-2">
                                 <input type="hidden" name="action" value="send_message">
                                 <input type="hidden" name="sender" value="admin">
@@ -492,10 +523,92 @@ $action = 'admin_interventions';
     <?php endif; ?>
 </div>
 
+<div class="modal fade" id="editInterventionInfoModalAdmin" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-light">
+            <div class="modal-header">
+                <h5 class="modal-title text-white">Modifier l'intervention</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="index.php?action=admin_interventions">
+                <input type="hidden" name="action_type" value="update_intervention_info">
+                <input type="hidden" name="id_intervention" id="adminEditInterventionId">
+                <div class="modal-body text-light">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Type d'intervention</label>
+                            <select name="id_type" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="">Selectionner un type</option>
+                                <?php foreach (($types_intervention ?? []) as $type): ?>
+                                    <option value="<?php echo (int)($type['id_type'] ?? 0); ?>">
+                                        <?php echo htmlspecialchars((string)($type['nom'] ?? '')); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Statut</label>
+                            <select name="statut" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="planifiée">Planifiee</option>
+                                <option value="en_cours">En cours</option>
+                                <option value="terminée">Terminee</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Description des travaux</label>
+                            <textarea name="description_travail" class="form-control bg-dark text-white border-secondary" rows="3" required></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Cout initial (DT)</label>
+                            <input type="number" step="0.01" min="0" name="cout_initial" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date debut</label>
+                            <input type="date" name="date_debut" class="form-control bg-dark text-white border-secondary">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Date fin</label>
+                            <input type="date" name="date_fin" class="form-control bg-dark text-white border-secondary">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="uploadInterventionMediaModalAdmin" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content bg-dark border-light">
+            <div class="modal-header">
+                <h5 class="modal-title text-white">Ajouter un document</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="index.php?action=admin_interventions" enctype="multipart/form-data">
+                <input type="hidden" name="action_type" value="upload_intervention_media">
+                <input type="hidden" name="id_intervention" id="adminUploadInterventionId">
+                <div class="modal-body text-light">
+                    <label class="form-label">Fichier</label>
+                    <input type="file" name="media_file" class="form-control bg-dark text-white border-secondary" accept="image/*,video/*,application/pdf" required>
+                    <div class="form-text text-muted">Images, video ou PDF (max 10 Mo).</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Uploader</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="statutModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content bg-dark border-light">
-            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <div class="modal-header" style="background: linear-gradient(135deg, #d65b4c 0%, #b33f31 100%);">
                 <h5 class="modal-title text-white"><i class="fas fa-edit me-2"></i>Modifier le Statut</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -667,11 +780,39 @@ function setTerminateData(interventionId, coutInitial) {
     document.getElementById('coutMinMessage').textContent = 'Cout minimum: ' + parseFloat(coutInitial).toFixed(2) + ' DT';
     document.getElementById('dateFin').value = new Date().toISOString().split('T')[0];
 }
+
+function setAdminEditInterventionData(button) {
+    if (!button || !button.dataset) return;
+    const modal = document.getElementById('editInterventionInfoModalAdmin');
+    if (!modal) return;
+
+    const idInput = modal.querySelector('#adminEditInterventionId');
+    const typeSelect = modal.querySelector('select[name="id_type"]');
+    const statutSelect = modal.querySelector('select[name="statut"]');
+    const descriptionField = modal.querySelector('textarea[name="description_travail"]');
+    const coutField = modal.querySelector('input[name="cout_initial"]');
+    const dateDebutField = modal.querySelector('input[name="date_debut"]');
+    const dateFinField = modal.querySelector('input[name="date_fin"]');
+
+    if (idInput) idInput.value = button.dataset.id || '';
+    if (typeSelect) typeSelect.value = button.dataset.typeId || '';
+    if (statutSelect) statutSelect.value = button.dataset.statut || '';
+    if (descriptionField) descriptionField.value = button.dataset.description || '';
+    if (coutField) coutField.value = button.dataset.cout || '';
+    if (dateDebutField) dateDebutField.value = button.dataset.dateDebut ? button.dataset.dateDebut.split(' ')[0] : '';
+    if (dateFinField) dateFinField.value = button.dataset.dateFin ? button.dataset.dateFin.split(' ')[0] : '';
+}
+
+function setAdminUploadInterventionData(button) {
+    if (!button || !button.dataset) return;
+    const input = document.getElementById('adminUploadInterventionId');
+    if (input) input.value = button.dataset.id || '';
+}
 </script>
 
 <style>
 .table-hover tbody tr:hover {
-    background-color: rgba(8, 188, 232, 0.12) !important;
+    background-color: rgba(200, 70, 56, 0.06) !important;
 }
 
 .badge {
@@ -695,27 +836,36 @@ function setTerminateData(interventionId, coutInitial) {
     font-size: 0.85rem;
 }
 
+.inter-action-plus {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border-radius: 50%;
+    font-weight: 700;
+    line-height: 1;
+}
+
 .inter-dates-cell {
-    color: #dce9ff;
+    color: var(--text-700);
     font-size: 0.95rem;
 }
 
 .inter-date-label {
-    color: #b8cced;
+    color: var(--text-500);
     font-weight: 700;
 }
 
 .inter-date-value {
-    color: #f3f8ff;
+    color: var(--text-900);
     font-weight: 700;
 }
 
 .inter-date-finish {
-    color: #8ef0b3;
+    color: var(--success);
 }
 
 .inter-date-empty {
-    color: #8fb0d8;
+    color: var(--text-500);
     font-weight: 600;
 }
 
@@ -724,18 +874,18 @@ function setTerminateData(interventionId, coutInitial) {
 }
 
 #addInterventionModal .diag-info-card {
-    background: rgba(87, 168, 255, 0.08);
-    border: 1px solid rgba(87, 168, 255, 0.25);
+    background: var(--accent-100);
+    border: 1px solid var(--accent-200);
     border-radius: 12px;
 }
 
 #addInterventionModal .diag-info-title {
-    color: #d9e9ff;
+    color: var(--text-800);
     font-weight: 700;
 }
 
 #addInterventionModal .diag-info-label {
-    color: #b8cced;
+    color: var(--text-600);
     font-weight: 600;
 }
 
@@ -745,17 +895,32 @@ function setTerminateData(interventionId, coutInitial) {
 #addInterventionModal #diagInfoSeverity,
 #addInterventionModal #diagInfoDate,
 #addInterventionModal #diagInfoAmount {
-    color: #f3f8ff;
+    color: var(--text-900);
 }
 
-/* Styles pour le tri du tableau */
+.admin-interventions-page input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.admin-interventions-page input[type="number"]::-webkit-outer-spin-button,
+.admin-interventions-page input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.admin-interventions-page .input-group .form-control[type="number"] {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
 table.table-dark thead th {
     user-select: none;
     cursor: pointer;
 }
 
 table.table-dark thead th:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: var(--surface-2);
     transition: background-color 0.2s;
 }
 </style>
@@ -763,60 +928,44 @@ table.table-dark thead th:hover {
 <script>
 (function() {
     'use strict';
-    
-    // Prix estimés pour chaque type d'intervention (min - max en DT)
-    const interventionPrices = {
-        'Batterie': { min: 150, max: 400 },
-        'Climatisation': { min: 80, max: 250 },
-        'Diagnostic électronique': { min: 30, max: 100 },
-        'Distribution (courroie)': { min: 300, max: 900 },
-        'Échappement': { min: 100, max: 400 },
-        'Embrayage': { min: 400, max: 1200 },
-        'Freinage (plaquettes/disques)': { min: 100, max: 500 },
-        'Pneumatiques (1-4 pneus)': { min: 80, max: 600 },
-        'Suspension (amortisseurs)': { min: 200, max: 800 },
-        'Vidange': { min: 50, max: 150 }
-    };
+
+    function parseMoney(value) {
+        var number = parseFloat(String(value || '0').replace(',', '.'));
+        return Number.isFinite(number) ? number : 0;
+    }
     
     // Initialiser les prix
     function initializePrices() {
         const checkboxes = document.querySelectorAll('.intervention-checkbox');
         checkboxes.forEach(checkbox => {
-            const typeName = checkbox.getAttribute('data-type-name');
-            const prices = interventionPrices[typeName] || { min: 0, max: 0 };
-            checkbox.setAttribute('data-min', prices.min);
-            checkbox.setAttribute('data-max', prices.max);
+            const price = parseMoney(checkbox.getAttribute('data-price'));
+            checkbox.setAttribute('data-price', price.toFixed(2));
         });
     }
     
     // Calculer le prix total
     function calculateTotalPrice() {
-        let totalMin = 0, totalMax = 0;
+        let total = 0;
         const checkedBoxes = document.querySelectorAll('.intervention-checkbox:checked');
         
         checkedBoxes.forEach(checkbox => {
-            const min = parseInt(checkbox.getAttribute('data-min')) || 0;
-            const max = parseInt(checkbox.getAttribute('data-max')) || 0;
-            totalMin += min;
-            totalMax += max;
+            total += parseMoney(checkbox.getAttribute('data-price'));
         });
         
         // Afficher le total
         const totalEl = document.getElementById('totalEstimation');
         if (totalEl) {
-            if (totalMin > 0) {
-                totalEl.textContent = totalMin + ' → ' + totalMax + ' DT';
+            if (total > 0) {
+                totalEl.textContent = total.toFixed(2) + ' DT';
             } else {
                 totalEl.textContent = '0 DT';
             }
         }
         
-        // Mettre à jour le champ cout_initial avec 80% du range
+        // Mettre à jour le champ cout_initial avec le total exact des types
         const coutInput = document.getElementById('modalCoutInitial');
-        if (coutInput && totalMin > 0) {
-            const estimated = totalMin + (totalMax - totalMin) * 0.8;
-            const value = Math.round(estimated * 100) / 100;
-            coutInput.value = value;
+        if (coutInput && total > 0) {
+            coutInput.value = total.toFixed(2);
         } else if (coutInput) {
             coutInput.value = '';
         }

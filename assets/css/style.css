@@ -84,7 +84,7 @@ small.text-muted {
 .form-label,
 label,
 .form-text {
-    color: #d7e5f7;
+    color: #092347;
 }
 
 .form-control,
@@ -98,7 +98,7 @@ input {
 .form-select::placeholder,
 textarea::placeholder,
 input::placeholder {
-    color: #a9bfdc !important;
+    color: #0d2b50 !important;
     opacity: 1;
 }
 
@@ -635,7 +635,7 @@ input::placeholder {
 /* Bootstrap form labels (ex: Diagnostic modal) */
 .modal-content form .form-label,
 .modal-content form label.text-muted {
-    color: var(--text-primary) !important;
+    color: #13243b !important;
 }
 
 /* Diagnostic modal selects: closed field + opened option list */
@@ -657,8 +657,7 @@ input::placeholder {
 
 .modal-content form select.form-select option:checked,
 .modal-content form select.form-select option:hover {
-    background-color: #1f4f84;
-    color: #ffffff;
+    color: #000000;
 }
 
 .sg-form-group input,
