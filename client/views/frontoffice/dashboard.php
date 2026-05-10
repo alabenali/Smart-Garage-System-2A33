@@ -76,6 +76,66 @@ if ($profilePic) {
             <span class="btn-sg btn-sg-primary"><i class="bi bi-arrow-right"></i> Ouvrir</span>
         </div>
     </a>
+
+    <a href="/integration/diagnostic/frontoffice.php?action=mes_diagnostics" class="vehicle-card" style="text-decoration:none;color:inherit;">
+        <div class="vc-header" style="margin-bottom:0.5rem;">
+            <div>
+                <div class="vc-brand"><i class="bi bi-clipboard2-pulse me-1"></i> Diagnostic</div>
+                <div class="vc-model">Suivre vos diagnostics et demandes atelier.</div>
+            </div>
+        </div>
+        <div class="btn-group-actions" style="margin-top:1rem;">
+            <span class="btn-sg btn-sg-primary"><i class="bi bi-arrow-right"></i> Ouvrir</span>
+        </div>
+    </a>
+
+    <a href="/integration/diagnostic/frontoffice.php?action=mes_diagnostics" class="vehicle-card" style="text-decoration:none;color:inherit;">
+        <div class="vc-header" style="margin-bottom:0.5rem;">
+            <div>
+                <div class="vc-brand"><i class="bi bi-file-earmark-medical me-1"></i> Mes diagnostics</div>
+                <div class="vc-model">Consulter l'historique et ajouter des medias.</div>
+            </div>
+        </div>
+        <div class="btn-group-actions" style="margin-top:1rem;">
+            <span class="btn-sg btn-sg-primary"><i class="bi bi-arrow-right"></i> Ouvrir</span>
+        </div>
+    </a>
+
+    <a href="/integration/diagnostic/frontoffice.php?action=client_interventions" class="vehicle-card" style="text-decoration:none;color:inherit;">
+        <div class="vc-header" style="margin-bottom:0.5rem;">
+            <div>
+                <div class="vc-brand"><i class="bi bi-tools me-1"></i> Mes interventions</div>
+                <div class="vc-model">Voir les travaux, devis et statuts en cours.</div>
+            </div>
+        </div>
+        <div class="btn-group-actions" style="margin-top:1rem;">
+            <span class="btn-sg btn-sg-primary"><i class="bi bi-arrow-right"></i> Ouvrir</span>
+        </div>
+    </a>
+
+    <a href="/integration/samrtnour/frontoffice.php" class="vehicle-card" style="text-decoration:none;color:inherit;">
+        <div class="vc-header" style="margin-bottom:0.5rem;">
+            <div>
+                <div class="vc-brand"><i class="bi bi-box-seam me-1"></i> Catalogue de pi&egrave;ces</div>
+                <div class="vc-model">Parcourir les pi&egrave;ces et passer une commande.</div>
+            </div>
+        </div>
+        <div class="btn-group-actions" style="margin-top:1rem;">
+            <span class="btn-sg btn-sg-primary"><i class="bi bi-arrow-right"></i> Ouvrir</span>
+        </div>
+    </a>
+
+    <a href="/integration/samrtnour/frontoffice.php?action=orderHistory" class="vehicle-card" style="text-decoration:none;color:inherit;">
+        <div class="vc-header" style="margin-bottom:0.5rem;">
+            <div>
+                <div class="vc-brand"><i class="bi bi-cart3 me-1"></i> Mes commandes pi&egrave;ces</div>
+                <div class="vc-model">Consulter l'historique de vos commandes.</div>
+            </div>
+        </div>
+        <div class="btn-group-actions" style="margin-top:1rem;">
+            <span class="btn-sg btn-sg-primary"><i class="bi bi-arrow-right"></i> Ouvrir</span>
+        </div>
+    </a>
 </div>
 
 <?php require __DIR__ . '/layout_footer.php'; ?>

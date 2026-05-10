@@ -27,6 +27,11 @@ require __DIR__ . '/layout_header.php';
     <div class="stat-card"><div class="stat-icon teal"><i class="bi bi-card-checklist"></i></div><div class="stat-value"><?php echo number_format((float) ($avgRdvPerClient ?? 0), 1, ',', ' '); ?></div><div class="stat-label">RDV / client</div></div>
     <div class="stat-card"><div class="stat-icon yellow"><i class="bi bi-activity"></i></div><div class="stat-value"><?php echo number_format((float) ($avgUrgence ?? 0), 1, ',', ' '); ?>/10</div><div class="stat-label">Urgence moyenne</div></div>
     <div class="stat-card"><div class="stat-icon cyan"><i class="bi bi-person-plus"></i></div><div class="stat-value"><?php echo (int) ($newThisMonth ?? 0); ?></div><div class="stat-label">Nouveaux ce mois</div></div>
+    <div class="stat-card"><div class="stat-icon purple"><i class="bi bi-box-seam-fill"></i></div><div class="stat-value"><?php echo (int) ($partsOrderStats['total_pieces'] ?? 0); ?></div><div class="stat-label">References pieces</div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="bi bi-boxes"></i></div><div class="stat-value"><?php echo number_format((int) ($partsOrderStats['total_stock'] ?? 0), 0, ',', ' '); ?></div><div class="stat-label">Pieces en stock</div></div>
+    <div class="stat-card"><div class="stat-icon orange"><i class="bi bi-cash-coin"></i></div><div class="stat-value"><?php echo number_format((float) ($partsOrderStats['valeur_stock'] ?? 0), 0, ',', ' '); ?></div><div class="stat-label">Valeur stock (DT)</div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="bi bi-exclamation-triangle-fill"></i></div><div class="stat-value"><?php echo (int) ($partsOrderStats['alertes_stock'] ?? 0); ?></div><div class="stat-label">Alertes stock</div></div>
+    <div class="stat-card"><div class="stat-icon blue"><i class="bi bi-cart3"></i></div><div class="stat-value"><?php echo (int) ($partsOrderStats['total_commandes'] ?? 0); ?></div><div class="stat-label">Commandes pieces</div></div>
 </div>
 
 <div class="client-mini-grid">
@@ -34,6 +39,71 @@ require __DIR__ . '/layout_header.php';
     <a href="/integration/vehicule%20et%20rdv/index.php?action=manageVehicles" class="btn-sg btn-sg-outline"><i class="bi bi-car-front"></i> Gerer vehicules</a>
     <a href="/integration/vehicule%20et%20rdv/index.php?action=backCalendar" class="btn-sg btn-sg-outline"><i class="bi bi-calendar-plus"></i> Creer RDV</a>
     <a href="/integration/vehicule%20et%20rdv/index.php?action=backRdvList" class="btn-sg btn-sg-outline"><i class="bi bi-file-earmark-pdf"></i> Exports RDV</a>
+    <a href="/integration/diagnostic/backoffice.php?action=diagnostics" class="btn-sg btn-sg-outline"><i class="bi bi-clipboard2-pulse"></i> Gerer diagnostics</a>
+    <a href="/integration/diagnostic/backoffice.php?action=admin_interventions" class="btn-sg btn-sg-outline"><i class="bi bi-tools"></i> Gerer interventions</a>
+    <a href="/integration/samrtnour/backoffice.php?action=managePieces" class="btn-sg btn-sg-outline"><i class="bi bi-box-seam"></i> Gerer pieces</a>
+    <a href="/integration/samrtnour/backoffice.php?action=manageCommandes" class="btn-sg btn-sg-outline"><i class="bi bi-cart3"></i> Gerer commandes</a>
+</div>
+
+<div style="display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:1.25rem; margin-top:1.5rem;">
+    <div class="sg-table-wrap">
+        <div class="table-header">
+            <h3><i class="bi bi-tags me-2"></i>Repartition par categorie</h3>
+        </div>
+        <table class="sg-table">
+            <thead><tr><th>Categorie</th><th>Nombre</th><th>%</th></tr></thead>
+            <tbody>
+                <?php $totalPiecesForPct = max(1, (int) ($partsOrderStats['total_pieces'] ?? 0)); ?>
+                <?php foreach (($pieceCategoryStats ?? []) as $category): ?>
+                    <?php $pct = round(((int) $category['total'] / $totalPiecesForPct) * 100); ?>
+                    <tr>
+                        <td><span class="badge-category"><?php echo htmlspecialchars($category['label']); ?></span></td>
+                        <td><?php echo (int) $category['total']; ?></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;">
+                                    <div style="width:<?php echo $pct; ?>%;height:100%;background:var(--accent);border-radius:3px;"></div>
+                                </div>
+                                <span style="font-size:0.8rem;color:var(--text-secondary);min-width:36px;"><?php echo $pct; ?>%</span>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (empty($pieceCategoryStats)): ?>
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">Aucune donnee piece.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="sg-table-wrap">
+        <div class="table-header">
+            <h3><i class="bi bi-building me-2"></i>Repartition par marque</h3>
+        </div>
+        <table class="sg-table">
+            <thead><tr><th>Marque</th><th>Nombre</th><th>%</th></tr></thead>
+            <tbody>
+                <?php foreach (($pieceBrandStats ?? []) as $brand): ?>
+                    <?php $pct = round(((int) $brand['total'] / $totalPiecesForPct) * 100); ?>
+                    <tr>
+                        <td><strong><?php echo htmlspecialchars($brand['label']); ?></strong></td>
+                        <td><?php echo (int) $brand['total']; ?></td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="flex:1;height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden;">
+                                    <div style="width:<?php echo $pct; ?>%;height:100%;background:var(--success);border-radius:3px;"></div>
+                                </div>
+                                <span style="font-size:0.8rem;color:var(--text-secondary);min-width:36px;"><?php echo $pct; ?>%</span>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+                <?php if (empty($pieceBrandStats)): ?>
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted);padding:2rem;">Aucune donnee piece.</td></tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <div style="display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:1.25rem; margin-top:1.5rem;">

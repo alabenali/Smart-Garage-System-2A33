@@ -7,6 +7,7 @@ require_once __DIR__ . '/../models/User.php';
 class AdminController {
     private PDO $db;
     private ?PDO $garageDb = null;
+    private ?PDO $partsDb = null;
 
     public function __construct() {
         $this->db = Database::getConnection();
@@ -103,6 +104,29 @@ class AdminController {
         return $this->garageDb;
     }
 
+    private function getPartsDb(): ?PDO {
+        if ($this->partsDb instanceof PDO) {
+            return $this->partsDb;
+        }
+
+        try {
+            $this->partsDb = new PDO(
+                'mysql:host=localhost;dbname=smart_garage_system;charset=utf8mb4',
+                'root',
+                '',
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false,
+                ]
+            );
+        } catch (Throwable $e) {
+            $this->partsDb = null;
+        }
+
+        return $this->partsDb;
+    }
+
     private function garageFetchAll(string $sql, array $params = []): array {
         $garageDb = $this->getGarageDb();
         if (!$garageDb) {
@@ -126,6 +150,37 @@ class AdminController {
 
         try {
             $stmt = $garageDb->prepare($sql);
+            $stmt->execute($params);
+            $value = $stmt->fetchColumn();
+            return $value === false ? $default : $value;
+        } catch (Throwable $e) {
+            return $default;
+        }
+    }
+
+    private function partsFetchAll(string $sql, array $params = []): array {
+        $partsDb = $this->getPartsDb();
+        if (!$partsDb) {
+            return [];
+        }
+
+        try {
+            $stmt = $partsDb->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll();
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
+    private function partsFetchColumn(string $sql, array $params = [], mixed $default = 0): mixed {
+        $partsDb = $this->getPartsDb();
+        if (!$partsDb) {
+            return $default;
+        }
+
+        try {
+            $stmt = $partsDb->prepare($sql);
             $stmt->execute($params);
             $value = $stmt->fetchColumn();
             return $value === false ? $default : $value;
@@ -210,6 +265,9 @@ class AdminController {
         $avgUrgence = round((float) $this->garageFetchColumn('SELECT AVG(COALESCE(urgence_score, 0)) FROM rendezvous_digital', [], 0), 1);
         $avgVehiclesPerClient = $totalUsers > 0 ? round($totalVehicles / $totalUsers, 1) : 0;
         $avgRdvPerClient = $totalUsers > 0 ? round($totalRdv / $totalUsers, 1) : 0;
+        $partsOrderStats = $this->getPartsOrderDashboardStats();
+        $pieceCategoryStats = $this->getPieceGroupStats('categorie');
+        $pieceBrandStats = $this->getPieceGroupStats('marque');
 
         $topActiveRows = $this->garageFetchAll(
             'SELECT id_client, COUNT(*) AS rdv_total
@@ -255,9 +313,36 @@ class AdminController {
             'avgUrgence' => $avgUrgence,
             'avgVehiclesPerClient' => $avgVehiclesPerClient,
             'avgRdvPerClient' => $avgRdvPerClient,
+            'partsOrderStats' => $partsOrderStats,
+            'pieceCategoryStats' => $pieceCategoryStats,
+            'pieceBrandStats' => $pieceBrandStats,
             'topActiveClients' => $topActiveClients,
             'problematicVehicles' => $problematicVehicles,
         ];
+    }
+
+    private function getPartsOrderDashboardStats(): array {
+        return [
+            'total_pieces' => (int) $this->partsFetchColumn('SELECT COUNT(*) FROM pieces', [], 0),
+            'total_stock' => (int) $this->partsFetchColumn('SELECT COALESCE(SUM(quantite_stock), 0) FROM pieces', [], 0),
+            'valeur_stock' => (float) $this->partsFetchColumn('SELECT COALESCE(SUM(quantite_stock * prix_unitaire), 0) FROM pieces', [], 0),
+            'alertes_stock' => (int) $this->partsFetchColumn('SELECT COUNT(*) FROM pieces WHERE quantite_stock <= seuil_alerte', [], 0),
+            'total_commandes' => (int) $this->partsFetchColumn('SELECT COUNT(*) FROM commandes', [], 0),
+        ];
+    }
+
+    private function getPieceGroupStats(string $column): array {
+        if (!in_array($column, ['categorie', 'marque'], true)) {
+            return [];
+        }
+
+        return $this->partsFetchAll(
+            "SELECT COALESCE(NULLIF(TRIM({$column}), ''), 'Non renseigne') AS label, COUNT(*) AS total
+             FROM pieces
+             GROUP BY COALESCE(NULLIF(TRIM({$column}), ''), 'Non renseigne')
+             ORDER BY total DESC, label ASC
+             LIMIT 8"
+        );
     }
 
     private function verifyPassword(string $email, string $password): array|false {

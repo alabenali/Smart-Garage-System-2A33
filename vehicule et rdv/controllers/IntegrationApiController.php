@@ -91,6 +91,34 @@ class IntegrationApiController
         $this->jsonResponse(['success' => true, 'data' => $data]);
     }
 
+    public function vehicleDiagnostics(): void
+    {
+        $id = isset($_GET['id_vehicle']) ? (int)$_GET['id_vehicle'] : 0;
+        if ($id <= 0) { $this->jsonResponse(['success'=>false,'message'=>'id_vehicle requis'],422); return; }
+        $stmt = $this->db->prepare('SELECT * FROM diagnostic WHERE id_vehicle = :id ORDER BY date_diagnostic DESC');
+        $stmt->execute([':id' => $id]);
+        $this->jsonResponse(['success'=>true,'data'=>$stmt->fetchAll()]);
+    }
+
+    public function rdvDiagnostic(): void
+    {
+        $id = isset($_GET['id_rdv']) ? (int)$_GET['id_rdv'] : 0;
+        if ($id <= 0) { $this->jsonResponse(['success'=>false,'message'=>'id_rdv requis'],422); return; }
+        $stmt = $this->db->prepare('SELECT * FROM diagnostic WHERE id_rdv = :id ORDER BY date_diagnostic DESC LIMIT 1');
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        $this->jsonResponse(['success'=>true,'data'=>$row ?: null]);
+    }
+
+    public function clientDiagnostics(): void
+    {
+        $id = isset($_GET['id_client']) ? (int)$_GET['id_client'] : 0;
+        if ($id <= 0) { $this->jsonResponse(['success'=>false,'message'=>'id_client requis'],422); return; }
+        $stmt = $this->db->prepare('SELECT * FROM diagnostic WHERE id_client = :id ORDER BY date_diagnostic DESC');
+        $stmt->execute([':id' => $id]);
+        $this->jsonResponse(['success'=>true,'data'=>$stmt->fetchAll()]);
+    }
+
     private function jsonResponse(array $payload, int $status = 200): void
     {
         http_response_code($status);

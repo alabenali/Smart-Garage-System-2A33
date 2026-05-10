@@ -8,3 +8,8 @@ vehicule et rdv/storage/*.log
 vehicule et rdv/views/images/pannes/
 vehicule et rdv/config/secrets.php
 vehicule et rdv/.git_nested_backup*/
+
+samrtnour/composer.phar
+samrtnour/*.zip
+samrtnour/.vscode/
+samrtnour/samrt nour/.git_nested_backup*/

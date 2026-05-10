@@ -42,6 +42,7 @@ class TelegramService
     public function sendTelegramMessage(string $message): bool
     {
         if ($this->botToken === '' || $this->chatId === '') {
+            $this->logError('Configuration manquante: TELEGRAM_BOT_TOKEN ou TELEGRAM_CHAT_ID absent');
             return false;
         }
 

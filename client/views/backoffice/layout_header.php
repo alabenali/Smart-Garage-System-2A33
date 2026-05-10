@@ -19,6 +19,7 @@ $garageBase = '/integration/vehicule%20et%20rdv';
         .client-link { color:var(--accent-secondary); font-weight:700; text-decoration:none; }
         .client-link:hover { color:var(--accent); }
         .client-mini-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:0.9rem; margin:1rem 0; }
+        .badge-category { display:inline-flex; align-items:center; padding:0.35rem 0.65rem; border-radius:999px; background:var(--info-bg); color:var(--accent-secondary); font-size:0.84rem; font-weight:800; }
         .client-empty { border-top:1px solid var(--border-color); }
         @media (max-width:768px){ .client-topline{display:block;} .client-topline .btn-group-actions{margin-top:1rem;} }
     </style>
@@ -41,6 +42,12 @@ $garageBase = '/integration/vehicule%20et%20rdv';
             <a href="/integration/vehicule%20et%20rdv/index.php?action=manageVehicles"><i class="bi bi-car-front"></i> V&eacute;hicules</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backCalendar"><i class="bi bi-calendar-week"></i> Calendrier RDV</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=backRdvList"><i class="bi bi-card-checklist"></i> Liste RDV</a>
+            <a href="/integration/diagnostic/backoffice.php?action=diagnostics" class="<?php echo in_array($currentAction, ['diagnosticDashboard', 'diagnostics', 'adminInterventions'], true) ? 'active' : ''; ?>"><i class="bi bi-clipboard2-pulse"></i> Diagnostic</a>
+            <a href="/integration/diagnostic/backoffice.php?action=admin_interventions"><i class="bi bi-tools"></i> Interventions</a>
+            <a href="/integration/diagnostic/backoffice.php?action=messages"><i class="bi bi-chat-dots"></i> Messages</a>
+            <a href="/integration/samrtnour/backoffice.php?action=managePieces" class="<?php echo in_array($currentAction, ['pieces', 'managePieces', 'addPiece', 'viewPiece', 'editPiece', 'confirmDeletePiece', 'deletePiece'], true) ? 'active' : ''; ?>"><i class="bi bi-box-seam"></i> Pi&egrave;ces</a>
+            <a href="/integration/samrtnour/backoffice.php?action=manageCommandes" class="<?php echo in_array($currentAction, ['manageCommandes', 'viewCommande', 'updateCommandeStatus', 'deleteCommande', 'exportCommandes', 'exportCommande', 'exportDemandes'], true) ? 'active' : ''; ?>"><i class="bi bi-cart3"></i> Commandes</a>
+            <a href="/integration/samrtnour/backoffice.php?action=manageGaranties" class="<?php echo in_array($currentAction, ['manageGaranties', 'marquerRemplacee', 'garantiesByClient', 'testAlertes', 'garantieDetail'], true) ? 'active' : ''; ?>"><i class="bi bi-shield-check"></i> Garanties</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=adminLoyalty"><i class="bi bi-stars"></i> Fid&eacute;lit&eacute;</a>
             <a href="/integration/vehicule%20et%20rdv/admin/test_rapport.php"><i class="bi bi-file-earmark-bar-graph"></i> Rapport</a>
             <a href="/integration/client/controllers/AIController.php?action=showAssistant" class="<?php echo $currentAction === 'aiHelper' ? 'active' : ''; ?>"><i class="bi bi-stars"></i> AI Helper</a>
