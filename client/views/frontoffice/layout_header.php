@@ -46,6 +46,9 @@ if (!empty($_SESSION['user_prenom']) || !empty($_SESSION['user_nom'])) {
             <a href="/integration/client/controllers/UserController.php?action=showProfile" class="<?php echo $action === 'clientProfile' ? 'active' : ''; ?>"><i class="bi bi-person"></i> Mon profil</a>
             <a href="/integration/vehicule%20et%20rdv/index.php?action=showVehicles" class="<?php echo $action === 'clientVehicles' ? 'active' : ''; ?>"><i class="bi bi-car-front"></i> Mes v&eacute;hicules</a>
             <a href="/integration/client/controllers/UserController.php?action=showMyRendezvous" class="<?php echo $action === 'clientRendezvous' ? 'active' : ''; ?>"><i class="bi bi-calendar-check"></i> Mes rendez-vous</a>
+            <a href="/integration/samrtnour/frontoffice.php?action=showCatalogue" class="<?php echo in_array($action, ['clientPieces', 'clientPiecesCatalogue', 'showCatalogue'], true) ? 'active' : ''; ?>"><i class="bi bi-box-seam"></i> Catalogue</a>
+            <a href="/integration/samrtnour/frontoffice.php?action=orderPiece" class="<?php echo in_array($action, ['clientPieceOrder', 'orderPiece'], true) ? 'active' : ''; ?>"><i class="bi bi-cart-plus"></i> Commander</a>
+            <a href="/integration/samrtnour/frontoffice.php?action=orderHistory" class="<?php echo in_array($action, ['clientPieceHistory', 'orderHistory'], true) ? 'active' : ''; ?>"><i class="bi bi-clock-history"></i> Historique</a>
             <a href="#" onclick="if (typeof toggleChatbot === 'function') { toggleChatbot(); } return false;"><i class="bi bi-chat-dots"></i> Chat IA</a>
             <a href="/integration/client/controllers/UserController.php?action=logout"><i class="bi bi-box-arrow-right"></i> Déconnexion</a>
         </nav>
